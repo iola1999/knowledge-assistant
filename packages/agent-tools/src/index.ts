@@ -265,69 +265,43 @@ export function createLegalMcpServer() {
       tool(
         "search_workspace_knowledge",
         "Search documents inside a workspace knowledge base",
-        {
-          workspace_id: "string",
-          query: "string",
-          filters: "object?",
-          top_k: "number?",
-        },
+        searchWorkspaceKnowledgeInputSchema.shape,
         async (args) => asToolText(await searchWorkspaceKnowledgeHandler(args)),
       ),
       tool(
         "read_citation_anchor",
         "Read a citation anchor and nearby context",
-        {
-          anchor_id: "string",
-        },
+        readCitationAnchorInputSchema.shape,
         async (args) => asToolText(await readCitationAnchorHandler(args)),
       ),
       tool(
         "search_statutes",
         "Search statutes and official legal texts",
-        {
-          query: "string",
-          jurisdiction: "string?",
-          top_k: "number?",
-        },
+        searchStatutesInputSchema.shape,
         async (args) => asToolText(await searchStatutesHandler(args)),
       ),
       tool(
         "search_web_general",
         "Search the public web for general legal context",
-        {
-          query: "string",
-          top_k: "number?",
-        },
+        searchWebGeneralInputSchema.shape,
         async (args) => asToolText(await searchWebGeneralHandler(args)),
       ),
       tool(
         "fetch_source",
         "Fetch text content from an allowed URL",
-        {
-          url: "string",
-        },
+        fetchSourceInputSchema.shape,
         async (args) => asToolText(await fetchSourceHandler(args)),
       ),
       tool(
         "create_report_outline",
         "Create a report outline from workspace evidence",
-        {
-          workspace_id: "string",
-          title: "string",
-          task: "string",
-          evidence_anchor_ids: "array?",
-        },
+        createReportOutlineInputSchema.shape,
         async (args) => asToolText(await createReportOutlineHandler(args)),
       ),
       tool(
         "write_report_section",
         "Write a report section from evidence anchors",
-        {
-          report_id: "string",
-          section_id: "string",
-          instruction: "string",
-          evidence_anchor_ids: "array?",
-        },
+        writeReportSectionInputSchema.shape,
         async (args) => asToolText(await writeReportSectionHandler(args)),
       ),
     ],

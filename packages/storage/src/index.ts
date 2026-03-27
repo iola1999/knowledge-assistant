@@ -63,15 +63,49 @@ export async function putJson(key: string, value: unknown) {
   );
 }
 
-export async function getJson<T>(key: string): Promise<T | null> {
-  const response = await getS3Client().send(
-    new GetObjectCommand({
-      Bucket: getBucketName(),
-      Key: key,
-    }),
-  );
+function isNotFoundError(error: unknown) {
+  if (!(error instanceof Error)) {
+    return false;
+  }
 
-  const text = await response.Body?.transformToString();
+  const maybeMetadata = error as Error & {
+    $metadata?: { httpStatusCode?: number };
+    name?: string;
+  };
+
+  return (
+    maybeMetadata.name === "NoSuchKey" ||
+    maybeMetadata.$metadata?.httpStatusCode === 404
+  );
+}
+
+export async function getObjectBytes(key: string): Promise<Uint8Array | null> {
+  try {
+    const response = await getS3Client().send(
+      new GetObjectCommand({
+        Bucket: getBucketName(),
+        Key: key,
+      }),
+    );
+
+    const bytes = await response.Body?.transformToByteArray();
+    return bytes ?? null;
+  } catch (error) {
+    if (isNotFoundError(error)) {
+      return null;
+    }
+
+    throw error;
+  }
+}
+
+export async function getJson<T>(key: string): Promise<T | null> {
+  const bytes = await getObjectBytes(key);
+  if (!bytes) {
+    return null;
+  }
+
+  const text = new TextDecoder().decode(bytes);
   if (!text) {
     return null;
   }

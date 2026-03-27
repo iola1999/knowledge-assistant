@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { and, eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
 
@@ -43,15 +44,25 @@ export default async function ReportPage({
   return (
     <div className="stack">
       <div className="card">
-        <h1>{report[0].title}</h1>
-        <p className="muted">状态：{report[0].status}</p>
+        <div className="toolbar">
+          <div>
+            <h1>{report[0].title}</h1>
+            <p className="muted">状态：{report[0].status}</p>
+          </div>
+          <Link href={`/api/reports/${reportId}/export-docx`} className="card">
+            导出 DOCX
+          </Link>
+        </div>
       </div>
       <div className="card">
         <h3>章节</h3>
         <ul className="list">
           {sections.map((section) => (
             <li key={section.id}>
-              {section.title} · {section.status}
+              <strong>{section.title}</strong> · {section.status}
+              {section.contentMarkdown ? (
+                <div className="muted">{section.contentMarkdown}</div>
+              ) : null}
             </li>
           ))}
         </ul>

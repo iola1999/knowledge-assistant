@@ -1,5 +1,7 @@
+import crypto from "node:crypto";
+
 import { QueueEvents, Worker } from "bullmq";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 import {
   citationAnchors,
@@ -13,7 +15,7 @@ import {
   parseArtifacts,
 } from "@law-doc/db";
 import { QUEUE_NAMES, getRedisConnection } from "@law-doc/queue";
-import { getJson, putJson } from "@law-doc/storage";
+import { getJson, getObjectBytes, putJson } from "@law-doc/storage";
 
 type ParseArtifact = {
   page_count: number;
@@ -33,12 +35,20 @@ type ParseArtifact = {
 const db = getDb();
 const parserServiceUrl = process.env.PARSER_SERVICE_URL ?? "http://localhost:8001";
 
-async function updateJob(documentVersionId: string, stage: string, progress: number) {
+async function updateJob(
+  documentVersionId: string,
+  stage: string,
+  progress: number,
+  status: "queued" | "running" | "completed" | "failed" = "running",
+) {
   await db
     .update(documentJobs)
     .set({
       stage: stage as never,
+      status: status as never,
       progress,
+      startedAt: status === "running" ? new Date() : undefined,
+      finishedAt: status === "completed" || status === "failed" ? new Date() : undefined,
       updatedAt: new Date(),
     })
     .where(eq(documentJobs.documentVersionId, documentVersionId));
@@ -51,6 +61,10 @@ async function updateJob(documentVersionId: string, stage: string, progress: num
     .where(eq(documentVersions.id, documentVersionId));
 }
 
+async function completeJob(documentVersionId: string) {
+  await updateJob(documentVersionId, "ready", 100, "completed");
+}
+
 async function fetchVersion(documentVersionId: string) {
   const rows = await db
     .select({
@@ -58,6 +72,8 @@ async function fetchVersion(documentVersionId: string) {
       documentId: documentVersions.documentId,
       storageKey: documentVersions.storageKey,
       sha256: documentVersions.sha256,
+      fileSizeBytes: documentVersions.fileSizeBytes,
+      parseArtifactId: documentVersions.parseArtifactId,
       documentTitle: documents.title,
       workspaceId: documents.workspaceId,
       documentPath: documents.logicalPath,
@@ -70,12 +86,40 @@ async function fetchVersion(documentVersionId: string) {
   return rows[0] ?? null;
 }
 
-async function parseDocument(documentVersionId: string) {
-  await updateJob(documentVersionId, "parsing_layout", 20);
+async function ensureVersionFingerprint(documentVersionId: string) {
   const version = await fetchVersion(documentVersionId);
   if (!version) {
     throw new Error(`Document version ${documentVersionId} not found`);
   }
+
+  const bytes = await getObjectBytes(version.storageKey);
+  if (!bytes) {
+    throw new Error(`Object ${version.storageKey} not found in storage`);
+  }
+
+  const sha256 = crypto.createHash("sha256").update(bytes).digest("hex");
+  const fileSizeBytes = bytes.byteLength;
+
+  if (version.sha256 !== sha256 || version.fileSizeBytes !== fileSizeBytes) {
+    await db
+      .update(documentVersions)
+      .set({
+        sha256,
+        fileSizeBytes,
+      })
+      .where(eq(documentVersions.id, documentVersionId));
+  }
+
+  return {
+    ...version,
+    sha256,
+    fileSizeBytes,
+  };
+}
+
+async function parseDocument(documentVersionId: string) {
+  await updateJob(documentVersionId, "parsing_layout", 20);
+  const version = await ensureVersionFingerprint(documentVersionId);
 
   const cached = await db
     .select()
@@ -84,6 +128,15 @@ async function parseDocument(documentVersionId: string) {
     .limit(1);
 
   if (cached[0]) {
+    await db
+      .update(documentVersions)
+      .set({
+        parseArtifactId: cached[0].id,
+        pageCount: cached[0].pageCount,
+        parseScoreBp: cached[0].parseScoreBp,
+      })
+      .where(eq(documentVersions.id, documentVersionId));
+
     return cached[0].artifactStorageKey;
   }
 
@@ -110,18 +163,27 @@ async function parseDocument(documentVersionId: string) {
   const artifactStorageKey = `parse-artifacts/${version.sha256}.json`;
   await putJson(artifactStorageKey, artifact);
 
-  await db.insert(parseArtifacts).values({
-    sha256: version.sha256,
-    artifactStorageKey,
-    pageCount: artifact.page_count,
-    parseScoreBp: artifact.parse_score_bp,
-    parserVersion: "parser-service-v1",
-  }).onConflictDoNothing();
+  await db
+    .insert(parseArtifacts)
+    .values({
+      sha256: version.sha256,
+      artifactStorageKey,
+      pageCount: artifact.page_count,
+      parseScoreBp: artifact.parse_score_bp,
+      parserVersion: "parser-service-v1",
+    })
+    .onConflictDoNothing();
+
+  const [artifactRecord] = await db
+    .select()
+    .from(parseArtifacts)
+    .where(eq(parseArtifacts.sha256, version.sha256))
+    .limit(1);
 
   await db
     .update(documentVersions)
     .set({
-      parseArtifactId: cached[0]?.id,
+      parseArtifactId: artifactRecord?.id ?? null,
       pageCount: artifact.page_count,
       parseScoreBp: artifact.parse_score_bp,
     })
@@ -143,7 +205,12 @@ async function chunkDocument(documentVersionId: string) {
     .where(eq(parseArtifacts.sha256, version.sha256))
     .limit(1);
 
-  const artifact = await getJson<ParseArtifact>(artifactRecord[0]?.artifactStorageKey ?? "");
+  const artifactStorageKey = artifactRecord[0]?.artifactStorageKey;
+  if (!artifactStorageKey) {
+    throw new Error("Parse artifact record not found");
+  }
+
+  const artifact = await getJson<ParseArtifact>(artifactStorageKey);
   if (!artifact) {
     throw new Error("Parse artifact not found");
   }
@@ -230,6 +297,11 @@ async function embedDocument(documentVersionId: string) {
 
 async function indexDocument(documentVersionId: string) {
   await updateJob(documentVersionId, "indexing", 90);
+  const version = await fetchVersion(documentVersionId);
+  if (!version) {
+    throw new Error(`Document version ${documentVersionId} not found`);
+  }
+
   await db
     .update(documentVersions)
     .set({
@@ -243,13 +315,9 @@ async function indexDocument(documentVersionId: string) {
       status: "ready",
       updatedAt: new Date(),
     })
-    .where(
-      and(
-        eq(documents.id, documentVersions.documentId as never),
-      ) as never,
-    );
+    .where(eq(documents.id, version.documentId));
 
-  await updateJob(documentVersionId, "ready", 100);
+  await completeJob(documentVersionId);
 }
 
 async function main() {
@@ -296,11 +364,15 @@ async function main() {
     worker.on("failed", async (job, error) => {
       if (!job) return;
 
+      const version = await fetchVersion(job.data.documentVersionId);
+
       await db
         .update(documentJobs)
         .set({
+          stage: "failed",
           status: "failed",
           errorMessage: error.message,
+          finishedAt: new Date(),
           updatedAt: new Date(),
         })
         .where(eq(documentJobs.documentVersionId, job.data.documentVersionId));
@@ -311,6 +383,16 @@ async function main() {
           parseStatus: "failed",
         })
         .where(eq(documentVersions.id, job.data.documentVersionId));
+
+      if (version) {
+        await db
+          .update(documents)
+          .set({
+            status: "failed",
+            updatedAt: new Date(),
+          })
+          .where(eq(documents.id, version.documentId));
+      }
     });
   }
 

@@ -1,10 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useState, useTransition } from "react";
 
 export function Composer({ conversationId }: { conversationId: string }) {
+  const router = useRouter();
   const [content, setContent] = useState("");
   const [status, setStatus] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -19,8 +22,18 @@ export function Composer({ conversationId }: { conversationId: string }) {
     });
 
     if (response.ok) {
+      const body = (await response.json().catch(() => null)) as
+        | { agentError?: string }
+        | null;
       setContent("");
-      setStatus("消息已保存，已请求 Agent。刷新页面可查看新回复。");
+      setStatus(
+        body?.agentError
+          ? `消息已保存，但 Agent 处理失败：${body.agentError}`
+          : "消息已提交，正在刷新对话...",
+      );
+      startTransition(() => {
+        router.refresh();
+      });
     } else {
       setStatus("发送失败。");
     }
@@ -36,7 +49,9 @@ export function Composer({ conversationId }: { conversationId: string }) {
         onChange={(e) => setContent(e.target.value)}
         placeholder="输入你的问题..."
       />
-      <button type="submit">发送</button>
+      <button disabled={isPending} type="submit">
+        {isPending ? "刷新中..." : "发送"}
+      </button>
       {status ? <p>{status}</p> : null}
     </form>
   );

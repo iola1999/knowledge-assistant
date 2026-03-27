@@ -1,8 +1,10 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 export function UploadForm({ workspaceId }: { workspaceId: string }) {
+  const router = useRouter();
   const [directoryPath, setDirectoryPath] = useState("资料库");
   const [status, setStatus] = useState<string | null>(null);
 
@@ -52,6 +54,7 @@ export function UploadForm({ workspaceId }: { workspaceId: string }) {
     });
 
     setStatus("上传完成，任务已入队。");
+    router.refresh();
   }
 
   return (

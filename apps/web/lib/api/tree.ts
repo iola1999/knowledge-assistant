@@ -6,37 +6,48 @@ type TreeNode = {
 };
 
 export function buildDocumentTree(paths: string[]) {
-  const root = new Map<string, TreeNode>();
+  const root: TreeNode = {
+    name: "root",
+    path: "",
+    type: "directory",
+    children: [],
+  };
 
   for (const path of paths) {
     const parts = path.split("/").filter(Boolean);
-    let level = root;
+    let current = root;
     let currentPath = "";
 
     parts.forEach((part, index) => {
       currentPath = currentPath ? `${currentPath}/${part}` : part;
       const isFile = index === parts.length - 1;
 
-      if (!level.has(part)) {
-        level.set(part, {
+      current.children ??= [];
+
+      let node = current.children.find((child) => child.name === part);
+      if (!node) {
+        node = {
           name: part,
           path: currentPath,
           type: isFile ? "file" : "directory",
           children: isFile ? undefined : [],
+        };
+        current.children.push(node);
+        current.children.sort((left, right) => {
+          if (left.type !== right.type) {
+            return left.type === "directory" ? -1 : 1;
+          }
+
+          return left.name.localeCompare(right.name, "zh-CN");
         });
       }
 
-      const node = level.get(part)!;
       if (!isFile) {
-        const next = new Map<string, TreeNode>();
-        for (const child of node.children ?? []) {
-          next.set(child.name, child);
-        }
-        level = next;
-        node.children = Array.from(level.values());
+        node.children ??= [];
+        current = node;
       }
     });
   }
 
-  return Array.from(root.values());
+  return root.children ?? [];
 }
