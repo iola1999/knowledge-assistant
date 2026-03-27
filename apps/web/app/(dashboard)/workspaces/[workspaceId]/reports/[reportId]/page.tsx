@@ -1,10 +1,12 @@
 import Link from "next/link";
-import { and, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
 
 import { getDb, reports, reportSections, workspaces } from "@law-doc/db";
 
 import { auth } from "@/auth";
+import { GenerateSectionButton } from "@/components/reports/generate-section-button";
+import { OutlineButton } from "@/components/reports/outline-button";
 
 export default async function ReportPage({
   params,
@@ -39,7 +41,8 @@ export default async function ReportPage({
   const sections = await db
     .select()
     .from(reportSections)
-    .where(eq(reportSections.reportId, reportId));
+    .where(eq(reportSections.reportId, reportId))
+    .orderBy(asc(reportSections.orderIndex));
 
   return (
     <div className="stack">
@@ -53,19 +56,33 @@ export default async function ReportPage({
             导出 DOCX
           </Link>
         </div>
+        <div className="toolbar">
+          <OutlineButton reportId={reportId} />
+          <p className="muted">先生成大纲，再按章节逐步补全文本。</p>
+        </div>
       </div>
       <div className="card">
         <h3>章节</h3>
         <ul className="list">
           {sections.map((section) => (
             <li key={section.id}>
-              <strong>{section.title}</strong> · {section.status}
+              <div className="toolbar">
+                <div>
+                  <strong>{section.title}</strong> · {section.status}
+                </div>
+                <GenerateSectionButton
+                  reportId={reportId}
+                  sectionId={section.id}
+                  sectionTitle={section.title}
+                />
+              </div>
               {section.contentMarkdown ? (
                 <div className="muted">{section.contentMarkdown}</div>
               ) : null}
             </li>
           ))}
         </ul>
+        {sections.length === 0 ? <p className="muted">当前还没有章节，请先生成大纲。</p> : null}
       </div>
     </div>
   );

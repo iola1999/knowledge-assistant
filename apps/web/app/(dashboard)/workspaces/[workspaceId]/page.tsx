@@ -14,6 +14,7 @@ import {
 } from "@law-doc/db";
 
 import { Composer } from "@/components/chat/composer";
+import { CreateReportForm } from "@/components/reports/create-report-form";
 import { UploadForm } from "@/components/workspaces/upload-form";
 import { auth } from "@/auth";
 
@@ -198,6 +199,10 @@ export default async function WorkspacePage({
 
         <div className="stack">
           <UploadForm workspaceId={workspaceId} />
+          <CreateReportForm
+            workspaceId={workspaceId}
+            conversationId={conversation[0]?.id}
+          />
           <div className="card">
             <h3>处理队列</h3>
             <ul className="list">
