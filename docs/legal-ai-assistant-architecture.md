@@ -1,5 +1,7 @@
 # 律师行业 AI 助手技术方案
 
+> 注：本文件是通用方案草稿。若你按当前已确认约束实施，请优先参考 [legal-ai-assistant-technical-design-nodejs.md](/Users/fan/project/tmp/law-doc/docs/legal-ai-assistant-technical-design-nodejs.md)。
+
 版本：v0.1  
 日期：2026-03-28
 
