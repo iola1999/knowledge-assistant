@@ -2,7 +2,8 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { isSuperAdminUsername } from "@/lib/auth/super-admin";
-import { buttonStyles, cn, ui } from "@/lib/ui";
+import { workspaceBranding } from "@/lib/branding";
+import { cn, ui } from "@/lib/ui";
 
 type WorkspaceListItem = {
   id: string;
@@ -61,12 +62,14 @@ export function WorkspaceShell({
         <div className="grid gap-3">
           <Link href="/workspaces" className="flex items-center gap-3 px-1 py-1">
             <span className="grid size-9 place-items-center rounded-xl bg-app-accent/12 font-serif text-sm font-semibold text-app-accent">
-              LA
+              {workspaceBranding.badgeLabel}
             </span>
             <span className="grid gap-0.5">
-              <strong className="font-serif text-[1.02rem]">Legal AI</strong>
+              <strong className="font-serif text-[1.02rem]">
+                {workspaceBranding.productName}
+              </strong>
               <span className="text-[10px] uppercase tracking-[0.16em] text-app-muted">
-                Assistant Workspace
+                {workspaceBranding.productTagline}
               </span>
             </span>
           </Link>

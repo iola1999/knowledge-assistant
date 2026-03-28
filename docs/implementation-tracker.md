@@ -1,6 +1,6 @@
 # 实施跟踪
 
-版本：v0.2  
+版本：v0.3  
 日期：2026-03-28
 
 > 本文件是项目的执行跟踪文档。
@@ -29,6 +29,18 @@
 - 当前最缺的不是更多 agent 花样，而是 parser / retrieval / grounded answer / SSE 这些可信回答底座能力。
 - 产品整体已切换为通用知识库助手定位，但保留 `search_statutes` 专项工具。
 
+当前实现快照：
+
+- `web -> agent-runtime -> grounded final answer -> citations` 主问答链路已通，但当前回答仍以“同步请求 + 落库后刷新页面”为主，尚未形成真正的工具级时间线流。
+- `presign -> documents/document_versions/document_jobs -> BullMQ parse/chunk/embed/index` 上传消化链路已通，解析结果会落到 `document_pages / document_blocks / document_chunks / citation_anchors`，并同步进入 Qdrant。
+- 文档阅读页已经支持 PDF 基础阅读、解析块查看和按引用锚点回跳，但仍没有 bbox 级高亮与更细粒度定位。
+- 系统参数页和 `system_settings` 已经接管大部分 provider / infra 配置；`DATABASE_URL` 与 `AUTH_SECRET` 继续保持 env-only。
+- 报告链路已具备“创建 -> 默认大纲 -> 章节生成 -> DOCX 导出”的基础版，但当前章节生成仍偏占位实现，不代表完整研究写作能力。
+- parser 已有无文本 PDF 的 OCR 降级路径，但真实 OCR provider 仍未接入；当前仅有 `disabled/mock` 级别能力。
+- OCR 下一步不再尝试本地 provider；待商业 API 方案确定后再接入，当前继续保持默认关闭。
+- retrieval 已具备 dense + keyword/heuristic + 可选 DashScope rerank 的基础版，但尚未完成 tracker 目标中的 sparse/BM25 混合检索。
+- 去法律化重定位已完成大部分命名与主流程调整，但仍需继续做回归清理，避免通用定位被后续改动带偏。
+
 ## 2. 最近完成
 
 - `working tree` 去法律化重定位
@@ -44,25 +56,33 @@
 - `working tree` Add PDF viewer and upload job feedback
 - `working tree` Finish workspace conversation management
 - `working tree` Implement document management CRUD
+- `working tree` Document implementation snapshot and current gap assessment
+- `working tree` Finish de-legalization brand cleanup for workspace shell and add regression guard
 - `f0e431a` Prioritize DashScope retrieval providers
 - `70aa665` Add parser OCR fallback and grounded answer validation
 
 ## 3. 活跃待办
 
-- parser 真实 OCR provider 接入，默认仍保持关闭。
+- 去法律化后的回归清理与文案收口
+  - 继续检查其余页面和占位实现中的垂类默认文案
+  - 回归补齐相关测试，防止后续再漂回法律垂类默认文案
+- OCR 商业 API provider 方案待定
+  - 当前继续保持 `disabled`
+  - 候选方向优先考虑百炼，但在 provider 口径确认前暂不开发 OCR 接入
 - sparse/BM25 混合检索与 rerank 回归测试。
 - SSE 工具时间线和 grounded answer 状态信息前端补齐。
-- 产品去法律化后的回归清理与文案收口。
+- `search_web_general` / `search_statutes` / 报告章节生成仍有占位能力，需要后续逐步替换为真实 provider 或真实生成流程。
 
 ## 4. 下一步
 
 默认按以下顺序推进：
 
 1. 完成去法律化改造的剩余测试与文案清理
-2. parser 真实 OCR provider 接入
+2. 为去法律化清理补局部质量门禁，并提交一批稳定可验证的变更
 3. sparse/BM25 混合检索
 4. Agent evidence dossier
 5. SSE 工具时间线
+6. OCR 商业 API provider 方案确认后再接入
 
 ## 5. 风险与注意事项
 
@@ -71,4 +91,6 @@
 - `AUTH_SECRET` 不进入 `system_settings`。
 - `/settings` 保存的是数据库配置，不会热更新到已运行进程。
 - OCR 不要默认开启。
+- OCR 当前明确保持 disabled，不应在未确认商业 provider 前继续扩展本地实现。
 - PDF 阅读器当前仍是基础版，没有 bbox 级高亮。
+- 对话“流式”接口当前仍是回放已落库消息，不应误判为完整 SSE 工具时间线能力。

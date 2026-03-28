@@ -1,6 +1,6 @@
 # 通用知识库 Agent 助手技术设计（Node.js / Next.js / Claude Agent SDK）
 
-版本：v0.2  
+版本：v0.3  
 日期：2026-03-28
 
 > 文档角色说明：
@@ -49,6 +49,7 @@
 - Agent 规划固定 Anthropic
 - embedding / rerank 优先 DashScope，未配置时回退本地方案
 - OCR 默认关闭，只有扫描件、图片型 PDF 或无文本层材料才启用
+- OCR provider 暂不推进本地实现；后续待商业 API 口径确认后再接入，候选方向优先考虑百炼
 
 ## 3. 总体架构
 
@@ -84,6 +85,21 @@ flowchart LR
 - 文档解析放到 Python Parser Service。
 - 检索证据和最终生成分层，避免把所有责任压给 Agent SDK。
 
+当前实现快照：
+
+- `Next.js BFF` 已经承接注册登录、工作空间、上传签名、文档管理、会话消息落库、报告基础操作和文档阅读页。
+- `BullMQ Worker` 已经跑通 `parse -> chunk -> embed -> index` 流程，解析产物会同时落 PostgreSQL 与 Qdrant。
+- `Agent Runtime` 已经能按 workspace mode 控制 `allowedTools`，并在工具调用后回收 citation evidence，再交给最终 grounded answer renderer。
+- `Python Parser Service` 已支持 PDF / DOCX / text 基础解析、结构块构建、无文本 PDF 的 OCR 降级入口。
+
+当前已知缺口：
+
+- `/api/conversations/[conversationId]/stream` 现在主要回放已落库消息，不代表完整的 token 级流式输出或工具时间线。
+- `search_web_general`、`search_statutes`、`create_report_outline`、`write_report_section` 仍包含明显占位实现，需要后续替换为真实 provider 或真实生成流程。
+- OCR 真实 provider 尚未接入；当前仅支持关闭或 mock，并继续保持 disabled 直到商业 API 方案确定。
+- retrieval 还未完成 sparse/BM25 混合检索。
+- 前端与文案仍存在少量去法律化未收口残留。
+
 ## 4. 运行时分层
 
 ### 4.1 Next.js BFF
@@ -95,7 +111,7 @@ flowchart LR
 - 上传签名
 - 任务查询
 - 创建对话
-- SSE 推流
+- 基础 SSE 响应包装
 
 不负责：
 
@@ -121,13 +137,14 @@ flowchart LR
 - 管理会话 session
 - 控制不同模式下的 `allowedTools`
 - 组织问答、研究和写作流程
+- 在工具结果与最终答案之间插入 grounded final answer 校验层
 
 ### 4.4 Python Parser Service
 
 负责：
 
 - 文本抽取
-- OCR
+- OCR 降级入口
 - 表格和版面结构恢复
 - 页码与坐标映射
 
@@ -212,7 +229,7 @@ flowchart LR
 
 优先级统一以 [implementation-tracker.md](/Users/fan/project/tmp/law-doc/docs/implementation-tracker.md) 为准。当前重点仍然是：
 
-1. parser 真实 OCR provider
-2. sparse/BM25 混合检索
-3. grounded answer 与证据展示
-4. SSE 工具时间线
+1. sparse/BM25 混合检索
+2. grounded answer 与证据展示
+3. SSE 工具时间线
+4. OCR 商业 API provider 方案确认后的接入
