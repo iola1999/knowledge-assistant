@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 
 import { getDb, workspaces } from "@knowledge-assistant/db";
@@ -8,7 +8,7 @@ import {
   normalizeWorkspacePrompt,
   WORKSPACE_PROMPT_MAX_LENGTH,
 } from "@/lib/api/workspace-prompt";
-import { resolveWorkspaceArchivedAt } from "@/lib/api/workspace-lifecycle";
+import { resolveWorkspaceDeletedAt } from "@/lib/api/workspace-lifecycle";
 
 export const runtime = "nodejs";
 
@@ -24,14 +24,12 @@ const workspacePatchSchema = z
       )
       .optional(),
     industry: z.string().trim().max(80).optional(),
-    archived: z.boolean().optional(),
   })
   .refine(
     (value) =>
       value.title !== undefined ||
       value.workspacePrompt !== undefined ||
-      value.industry !== undefined ||
-      value.archived !== undefined,
+      value.industry !== undefined,
     {
       message: "至少提供一个需要更新的字段。",
     },
@@ -52,7 +50,13 @@ export async function GET(
   const result = await db
     .select()
     .from(workspaces)
-    .where(and(eq(workspaces.id, workspaceId), eq(workspaces.userId, userId)))
+    .where(
+      and(
+        eq(workspaces.id, workspaceId),
+        eq(workspaces.userId, userId),
+        isNull(workspaces.archivedAt),
+      ),
+    )
     .limit(1);
 
   if (!result[0]) {
@@ -77,7 +81,13 @@ export async function PATCH(
   const result = await db
     .select()
     .from(workspaces)
-    .where(and(eq(workspaces.id, workspaceId), eq(workspaces.userId, userId)))
+    .where(
+      and(
+        eq(workspaces.id, workspaceId),
+        eq(workspaces.userId, userId),
+        isNull(workspaces.archivedAt),
+      ),
+    )
     .limit(1);
 
   const workspace = result[0];
@@ -104,10 +114,6 @@ export async function PATCH(
           ? normalizeWorkspacePrompt(nextData.workspacePrompt)
           : workspace.workspacePrompt,
       industry: nextData.industry ?? workspace.industry,
-      archivedAt: resolveWorkspaceArchivedAt({
-        archived: nextData.archived,
-        currentArchivedAt: workspace.archivedAt,
-      }),
       updatedAt: new Date(),
     })
     .where(eq(workspaces.id, workspaceId))
@@ -131,16 +137,31 @@ export async function DELETE(
   const [workspace] = await db
     .select({
       id: workspaces.id,
+      archivedAt: workspaces.archivedAt,
     })
     .from(workspaces)
-    .where(and(eq(workspaces.id, workspaceId), eq(workspaces.userId, userId)))
+    .where(
+      and(
+        eq(workspaces.id, workspaceId),
+        eq(workspaces.userId, userId),
+        isNull(workspaces.archivedAt),
+      ),
+    )
     .limit(1);
 
   if (!workspace) {
     return Response.json({ error: "Workspace not found" }, { status: 404 });
   }
 
-  await db.delete(workspaces).where(eq(workspaces.id, workspaceId));
+  await db
+    .update(workspaces)
+    .set({
+      archivedAt: resolveWorkspaceDeletedAt({
+        currentDeletedAt: workspace.archivedAt,
+      }),
+      updatedAt: new Date(),
+    })
+    .where(eq(workspaces.id, workspaceId));
 
   return Response.json({ ok: true });
 }

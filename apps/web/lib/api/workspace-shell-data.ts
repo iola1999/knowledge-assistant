@@ -22,7 +22,13 @@ export async function loadWorkspaceShellData(workspaceId: string) {
     db
       .select()
       .from(workspaces)
-      .where(and(eq(workspaces.id, workspaceId), eq(workspaces.userId, userId)))
+      .where(
+        and(
+          eq(workspaces.id, workspaceId),
+          eq(workspaces.userId, userId),
+          isNull(workspaces.archivedAt),
+        ),
+      )
       .limit(1),
     db
       .select({

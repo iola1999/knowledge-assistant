@@ -1,6 +1,6 @@
 # 实施跟踪
 
-版本：v0.5
+版本：v0.6
 日期：2026-03-29
 
 > 本文件是项目的执行跟踪文档。
@@ -34,7 +34,7 @@
 
 - `web -> BullMQ conversation.respond -> agent-runtime -> grounded final answer -> citations` 主问答链路已通；发送消息后会先落 user message + assistant placeholder，再异步生成最终回答。
 - 问答策略已固定为“本地资料优先 + 联网查询补充”；不再保留 `kb_only / kb_plus_web` 模式切换与相关设置入口。
-- 账号页已补齐修改密码与退出登录的基础入口；工作空间也已补齐归档与删除。
+- 账号页已补齐修改密码与退出登录的基础入口；工作空间当前只保留软删除，不再提供归档。
 - `/api/conversations/[conversationId]/stream` 现在会持续推送数据库里的 `tool` 消息、assistant draft `answer_delta` 和完成/失败事件；前端会在当前会话里实时更新 assistant 气泡。
 - 当前回答流式是“数据库轮询 + assistant draft 持久化”链路；它已经满足 P0 的流式呈现，但仍不是 provider 直连 token transport，最终 grounded answer 与 citations 仍在完成态统一落库。
 - `presign -> documents/document_versions/document_jobs -> BullMQ parse/chunk/embed/index` 上传消化链路已通，解析结果会落到 `document_pages / document_blocks / document_chunks / citation_anchors`，并同步进入 Qdrant。
@@ -50,7 +50,7 @@
 
 ## 2. 最近完成
 
-- `working tree` Add workspace archive/delete controls and hide archived workspaces from default lists
+- `working tree` Remove workspace archive controls and switch workspace delete to soft delete
 - `working tree` Add account security page with password change and logout
 - `working tree` Add read-only conversation sharing with revocable share links and public share page
 - `working tree` Align upload scope with OCR-disabled policy and reject image/scanned uploads early

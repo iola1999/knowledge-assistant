@@ -14,6 +14,7 @@ import {
   getDb,
   messageCitations,
   messages,
+  workspaces,
 } from "@knowledge-assistant/db";
 
 import { LinkifiedText } from "@/components/shared/linkified-text";
@@ -70,10 +71,12 @@ export default async function SharedConversationPage({
     })
     .from(conversationShares)
     .innerJoin(conversations, eq(conversations.id, conversationShares.conversationId))
+    .innerJoin(workspaces, eq(workspaces.id, conversations.workspaceId))
     .where(
       and(
         eq(conversationShares.shareToken, shareToken),
         isNull(conversationShares.revokedAt),
+        isNull(workspaces.archivedAt),
       ),
     )
     .limit(1);

@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 
 import {
   citationAnchors,
@@ -28,7 +28,13 @@ export async function requireOwnedConversation(
     })
     .from(conversations)
     .innerJoin(workspaces, eq(workspaces.id, conversations.workspaceId))
-    .where(and(eq(conversations.id, conversationId), eq(workspaces.userId, userId)))
+    .where(
+      and(
+        eq(conversations.id, conversationId),
+        eq(workspaces.userId, userId),
+        isNull(workspaces.archivedAt),
+      ),
+    )
     .limit(1);
 
   return result[0] ?? null;
@@ -47,7 +53,13 @@ export async function requireOwnedDocument(documentId: string, userId: string) {
     })
     .from(documents)
     .innerJoin(workspaces, eq(workspaces.id, documents.workspaceId))
-    .where(and(eq(documents.id, documentId), eq(workspaces.userId, userId)))
+    .where(
+      and(
+        eq(documents.id, documentId),
+        eq(workspaces.userId, userId),
+        isNull(workspaces.archivedAt),
+      ),
+    )
     .limit(1);
 
   return result[0] ?? null;
@@ -65,7 +77,13 @@ export async function requireOwnedReport(reportId: string, userId: string) {
     })
     .from(reports)
     .innerJoin(workspaces, eq(workspaces.id, reports.workspaceId))
-    .where(and(eq(reports.id, reportId), eq(workspaces.userId, userId)))
+    .where(
+      and(
+        eq(reports.id, reportId),
+        eq(workspaces.userId, userId),
+        isNull(workspaces.archivedAt),
+      ),
+    )
     .limit(1);
 
   return result[0] ?? null;
@@ -87,7 +105,13 @@ export async function requireOwnedAnchor(anchorId: string, userId: string) {
     })
     .from(citationAnchors)
     .innerJoin(workspaces, eq(workspaces.id, citationAnchors.workspaceId))
-    .where(and(eq(citationAnchors.id, anchorId), eq(workspaces.userId, userId)))
+    .where(
+      and(
+        eq(citationAnchors.id, anchorId),
+        eq(workspaces.userId, userId),
+        isNull(workspaces.archivedAt),
+      ),
+    )
     .limit(1);
 
   return result[0] ?? null;
@@ -118,7 +142,13 @@ export async function requireOwnedDocumentJob(jobId: string, userId: string) {
     )
     .innerJoin(documents, eq(documents.id, documentVersions.documentId))
     .innerJoin(workspaces, eq(workspaces.id, documents.workspaceId))
-    .where(and(eq(documentJobs.id, jobId), eq(workspaces.userId, userId)))
+    .where(
+      and(
+        eq(documentJobs.id, jobId),
+        eq(workspaces.userId, userId),
+        isNull(workspaces.archivedAt),
+      ),
+    )
     .limit(1);
 
   return result[0] ?? null;

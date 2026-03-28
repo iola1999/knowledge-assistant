@@ -1,47 +1,37 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  isWorkspaceArchived,
-  resolveWorkspaceArchivedAt,
+  isWorkspaceDeleted,
+  resolveWorkspaceDeletedAt,
 } from "./workspace-lifecycle";
 
-describe("resolveWorkspaceArchivedAt", () => {
-  it("keeps the current state when no archive flag is provided", () => {
-    const currentArchivedAt = new Date("2026-03-29T12:00:00.000Z");
+describe("resolveWorkspaceDeletedAt", () => {
+  it("uses the current tombstone when the workspace is already soft deleted", () => {
+    const currentDeletedAt = new Date("2026-03-29T12:00:00.000Z");
 
     expect(
-      resolveWorkspaceArchivedAt({
-        currentArchivedAt,
+      resolveWorkspaceDeletedAt({
+        currentDeletedAt,
       }),
-    ).toBe(currentArchivedAt);
+    ).toBe(currentDeletedAt);
   });
 
-  it("sets archivedAt when archiving an active workspace", () => {
+  it("sets the tombstone timestamp when soft deleting an active workspace", () => {
     const now = new Date("2026-03-29T13:00:00.000Z");
 
     expect(
-      resolveWorkspaceArchivedAt({
-        archived: true,
-        currentArchivedAt: null,
+      resolveWorkspaceDeletedAt({
+        currentDeletedAt: null,
         now,
       }),
     ).toBe(now);
   });
-
-  it("clears archivedAt when restoring a workspace", () => {
-    expect(
-      resolveWorkspaceArchivedAt({
-        archived: false,
-        currentArchivedAt: new Date("2026-03-29T12:00:00.000Z"),
-      }),
-    ).toBeNull();
-  });
 });
 
-describe("isWorkspaceArchived", () => {
-  it("returns true only when archivedAt is a date", () => {
-    expect(isWorkspaceArchived(new Date())).toBe(true);
-    expect(isWorkspaceArchived(null)).toBe(false);
-    expect(isWorkspaceArchived(undefined)).toBe(false);
+describe("isWorkspaceDeleted", () => {
+  it("returns true only when deletedAt is a date", () => {
+    expect(isWorkspaceDeleted(new Date())).toBe(true);
+    expect(isWorkspaceDeleted(null)).toBe(false);
+    expect(isWorkspaceDeleted(undefined)).toBe(false);
   });
 });

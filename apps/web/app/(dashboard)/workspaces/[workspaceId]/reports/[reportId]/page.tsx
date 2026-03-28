@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, isNull } from "drizzle-orm";
 import { notFound } from "next/navigation";
 
 import { getDb, reports, reportSections, workspaces } from "@knowledge-assistant/db";
@@ -22,7 +22,13 @@ export default async function ReportPage({
   const workspace = await db
     .select()
     .from(workspaces)
-    .where(and(eq(workspaces.id, workspaceId), eq(workspaces.userId, userId)))
+    .where(
+      and(
+        eq(workspaces.id, workspaceId),
+        eq(workspaces.userId, userId),
+        isNull(workspaces.archivedAt),
+      ),
+    )
     .limit(1);
 
   if (!workspace[0]) {

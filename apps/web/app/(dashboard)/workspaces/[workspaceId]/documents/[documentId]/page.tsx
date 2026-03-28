@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { PARSE_STATUS } from "@knowledge-assistant/contracts";
 
@@ -38,7 +38,13 @@ export default async function DocumentPage({
   const workspace = await db
     .select()
     .from(workspaces)
-    .where(and(eq(workspaces.id, workspaceId), eq(workspaces.userId, userId)))
+    .where(
+      and(
+        eq(workspaces.id, workspaceId),
+        eq(workspaces.userId, userId),
+        isNull(workspaces.archivedAt),
+      ),
+    )
     .limit(1);
 
   if (!workspace[0]) {

@@ -40,7 +40,6 @@ export default async function WorkspaceSettingsPage({
         <WorkspaceLifecyclePanel
           workspaceId={workspace.id}
           workspaceTitle={workspace.title}
-          archived={Boolean(workspace.archivedAt)}
         />
       </div>
     </WorkspaceShell>
