@@ -60,6 +60,7 @@
 - `working tree` Finish de-legalization brand cleanup for workspace shell and add regression guard
 - `working tree` Reconfirm OCR stays disabled pending commercial API decision and verify current batch with `pnpm verify`
 - `working tree` Add BM25 scoring over dense retrieval candidates with regression tests
+- `working tree` Surface grounded answer confidence / unsupported reason / missing information in workspace conversation UI
 - `f0e431a` Prioritize DashScope retrieval providers
 - `70aa665` Add parser OCR fallback and grounded answer validation
 
@@ -74,7 +75,7 @@
 - sparse/BM25 混合检索深化
   - 当前已补 dense 候选窗口上的 BM25 打分
   - 后续仍需要更完整的 sparse 候选扩展与 rerank 回归测试
-- SSE 工具时间线和 grounded answer 状态信息前端补齐。
+- SSE 工具时间线补齐。
 - `search_web_general` / `search_statutes` / 报告章节生成仍有占位能力，需要后续逐步替换为真实 provider 或真实生成流程。
 
 ## 4. 下一步
