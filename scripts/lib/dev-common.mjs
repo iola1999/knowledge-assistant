@@ -1,3 +1,4 @@
+import os from "node:os";
 import fs from "node:fs";
 import fsp from "node:fs/promises";
 import net from "node:net";
@@ -19,8 +20,23 @@ const libDir = path.dirname(fileURLToPath(import.meta.url));
 
 export const repoRoot = path.resolve(libDir, "../..");
 export const devRoot = path.join(repoRoot, ".dev");
-export const logDir = path.join(devRoot, "logs");
 export const pidDir = path.join(devRoot, "pids");
+
+export function resolveTmpRoot({
+  platform = process.platform,
+  tmpDir = os.tmpdir(),
+} = {}) {
+  return platform === "win32" ? tmpDir : "/tmp";
+}
+
+export function resolveDevLogRoot({
+  tmpRoot = resolveTmpRoot(),
+  projectName = path.basename(repoRoot),
+} = {}) {
+  return path.join(tmpRoot, `${projectName}-dev`);
+}
+
+export const logDir = path.join(resolveDevLogRoot(), "logs");
 
 const envExamplePath = path.join(repoRoot, ".env.example");
 const envLocalPath = path.join(repoRoot, ".env.local");

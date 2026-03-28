@@ -4,6 +4,7 @@ import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { getAuthFormErrorMessage } from "@/lib/auth/form-error";
 import { buttonStyles, cn, ui } from "@/lib/ui";
 
 export function AuthForm({ mode }: { mode: "login" | "register" }) {
@@ -48,7 +49,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
       router.push("/workspaces");
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unexpected error");
+      setError(getAuthFormErrorMessage({ error: err, mode }));
     } finally {
       setLoading(false);
     }
@@ -95,6 +96,9 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
       <button className={buttonStyles()} disabled={loading} type="submit">
         {loading ? "处理中..." : mode === "login" ? "登录" : "创建账号"}
       </button>
+      {mode === "login" ? (
+        <p className={ui.muted}>首次启动请先注册账号，创建后再回来登录。</p>
+      ) : null}
     </form>
   );
 }
