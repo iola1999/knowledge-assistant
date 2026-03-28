@@ -91,7 +91,10 @@ pnpm dev
 
 - parser 现在走受管稳定启动模式，优先保证 `pnpm dev` / `pnpm dev:status` 可可靠接管。
 - 如果你改了 `services/parser/**` 里的代码，当前建议手动重启一次 `pnpm dev`。
-- 受管进程日志默认写到 `/tmp/knowledge-assistant-dev/logs`，避免日志文件持续落在仓库内干扰前端 dev watch。
+- 受管进程状态统一写到 `/tmp/knowledge-assistant-dev`：
+  - 日志在 `/tmp/knowledge-assistant-dev/logs`
+  - PID 文件在 `/tmp/knowledge-assistant-dev/pids`
+- 这样可以避免在仓库内留下 `.dev` 状态目录，减少对前端 dev watch 的干扰。
 
 状态检查：
 

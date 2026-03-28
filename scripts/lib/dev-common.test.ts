@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { resolveDevLogRoot, resolveTmpRoot } from "./dev-common.mjs";
+import { resolveDevLogRoot, resolvePidRoot, resolveTmpRoot } from "./dev-common.mjs";
 
 describe("resolveTmpRoot", () => {
   it("uses /tmp on POSIX platforms so dev logs stay outside the repo", () => {
@@ -27,5 +27,16 @@ describe("resolveDevLogRoot", () => {
         projectName: "knowledge-assistant",
       }),
     ).toBe("/tmp/knowledge-assistant-dev");
+  });
+});
+
+describe("resolvePidRoot", () => {
+  it("stores managed service pid files alongside logs under tmp", () => {
+    expect(
+      resolvePidRoot({
+        tmpRoot: "/tmp",
+        projectName: "knowledge-assistant",
+      }),
+    ).toBe("/tmp/knowledge-assistant-dev/pids");
   });
 });

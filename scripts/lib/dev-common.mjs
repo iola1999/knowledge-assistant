@@ -19,8 +19,6 @@ import { buildRuntimeEnvironment } from "./system-settings.mjs";
 const libDir = path.dirname(fileURLToPath(import.meta.url));
 
 export const repoRoot = path.resolve(libDir, "../..");
-export const devRoot = path.join(repoRoot, ".dev");
-export const pidDir = path.join(devRoot, "pids");
 
 export function resolveTmpRoot({
   platform = process.platform,
@@ -36,7 +34,13 @@ export function resolveDevLogRoot({
   return path.join(tmpRoot, `${projectName}-dev`);
 }
 
+export function resolvePidRoot(options = {}) {
+  return path.join(resolveDevLogRoot(options), "pids");
+}
+
+export const devRoot = resolveDevLogRoot();
 export const logDir = path.join(resolveDevLogRoot(), "logs");
+export const pidDir = resolvePidRoot();
 
 const envExamplePath = path.join(repoRoot, ".env.example");
 const envLocalPath = path.join(repoRoot, ".env.local");
