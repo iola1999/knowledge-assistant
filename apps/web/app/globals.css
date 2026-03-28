@@ -49,6 +49,7 @@
 
   html {
     min-height: 100%;
+    text-autospace: normal;
   }
 
   body {
