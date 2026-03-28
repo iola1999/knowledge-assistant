@@ -64,25 +64,19 @@ export function parseEnvText(text) {
   return values;
 }
 
-export function buildDevEnvLocalContent(exampleContent, authSecret) {
+export function normalizeEnvExampleContent(exampleContent) {
   const lineEnding = exampleContent.includes("\r\n") ? "\r\n" : "\n";
-  const lines = exampleContent.split(/\r?\n/u);
-  let replaced = false;
+  return `${exampleContent.replace(new RegExp(`${lineEnding}*$`, "u"), "")}${lineEnding}`;
+}
 
-  const nextLines = lines.map((line) => {
-    if (line.startsWith("AUTH_SECRET=")) {
-      replaced = true;
-      return `AUTH_SECRET=${authSecret}`;
-    }
-
-    return line;
+export function listMissingRequiredEnvNames(
+  env,
+  requiredNames = ["DATABASE_URL", "AUTH_SECRET"],
+) {
+  return requiredNames.filter((name) => {
+    const value = env[name];
+    return typeof value !== "string" || value.trim().length === 0;
   });
-
-  if (!replaced) {
-    nextLines.push(`AUTH_SECRET=${authSecret}`);
-  }
-
-  return `${nextLines.join(lineEnding).replace(new RegExp(`${lineEnding}*$`, "u"), "")}${lineEnding}`;
 }
 
 export function parseConnectionTarget(urlValue) {

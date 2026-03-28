@@ -1,23 +1,27 @@
 import {
+  ensureSystemSettings,
   formatError,
   getLogPath,
   getManagedServices,
   isPortOpen,
   isProcessRunning,
   loadDevEnvironment,
+  loadResolvedSystemEnvironment,
   readPidRecord,
 } from "./lib/dev-common.mjs";
 import { parseInfrastructureTargets } from "./lib/dev-env.mjs";
 
 async function main() {
   const { env, envFileName } = await loadDevEnvironment({ createIfMissing: false });
+  await ensureSystemSettings(env, { ignoreErrors: true });
+  const runtimeEnv = await loadResolvedSystemEnvironment(env);
 
   console.log(`Environment source: ${envFileName ?? "shell variables + built-in defaults"}`);
   console.log("");
   console.log("Infrastructure:");
 
   try {
-    for (const target of parseInfrastructureTargets(env)) {
+    for (const target of parseInfrastructureTargets(runtimeEnv)) {
       const ok = await isPortOpen(target.host, target.port);
       console.log(
         `- ${target.name}: ${ok ? "reachable" : "missing"} (${target.host}:${target.port})`,
@@ -32,7 +36,7 @@ async function main() {
   console.log("");
   console.log("Managed services:");
 
-  for (const service of getManagedServices(env)) {
+  for (const service of getManagedServices(runtimeEnv)) {
     const record = await readPidRecord(service.id);
     const running = record?.pid ? isProcessRunning(record.pid) : false;
     const portLabel =

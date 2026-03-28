@@ -25,6 +25,7 @@ apps/web/
 │  │  └─ register/page.tsx
 │  ├─ (dashboard)/
 │  │  ├─ layout.tsx
+│  │  ├─ settings/page.tsx
 │  │  ├─ workspaces/page.tsx
 │  │  ├─ workspaces/new/page.tsx
 │  │  ├─ workspaces/[workspaceId]/page.tsx
@@ -32,6 +33,7 @@ apps/web/
 │  │  └─ workspaces/[workspaceId]/reports/[reportId]/page.tsx
 │  ├─ api/
 │  │  ├─ auth/[...nextauth]/route.ts
+│  │  ├─ system-settings/route.ts
 │  │  ├─ workspaces/route.ts
 │  │  ├─ workspaces/[workspaceId]/route.ts
 │  │  ├─ workspaces/[workspaceId]/tree/route.ts
@@ -79,7 +81,20 @@ apps/web/
 - `WorkspaceList`
 - `CreateWorkspaceDialog`
 
-### 3.2 `/workspaces/[workspaceId]`
+### 3.2 `/settings`
+
+用途：
+
+- 维护系统级 provider / infra 参数
+- 明确区分 env-only 启动根配置与数据库可运营配置
+- 仅向 `SUPER_ADMIN_USERNAMES` 中声明的超管用户名开放
+
+组件建议：
+
+- `SystemSettingsForm`
+- `SystemSettingsNotice`
+
+### 3.3 `/workspaces/[workspaceId]`
 
 用途：
 
@@ -95,14 +110,14 @@ apps/web/
 - `WorkspaceTree`
 - `DocumentViewer`
 
-### 3.3 `/workspaces/[workspaceId]/documents/[documentId]`
+### 3.4 `/workspaces/[workspaceId]/documents/[documentId]`
 
 用途：
 
 - 单文档深度阅读
 - 支持从 citation 跳入
 
-### 3.4 `/workspaces/[workspaceId]/reports/[reportId]`
+### 3.5 `/workspaces/[workspaceId]/reports/[reportId]`
 
 用途：
 
@@ -120,6 +135,13 @@ apps/web/
   - 列出当前用户工作空间
 - `GET /api/workspaces/:workspaceId`
   - 读取工作空间详情
+
+### 4.1A 系统设置类
+
+- `GET /api/system-settings`
+  - 读取当前系统参数，仅超管可调用
+- `PATCH /api/system-settings`
+  - 更新系统参数，仅超管可调用
 
 ### 4.2 上传与知识库类
 

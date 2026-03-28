@@ -19,6 +19,13 @@
 
 ```mermaid
 erDiagram
+    system_settings {
+        varchar setting_key PK
+        text value_text
+        boolean is_secret
+        text description
+    }
+
     users ||--o{ workspaces : owns
     users ||--o{ sessions : authenticates
 
@@ -74,6 +81,24 @@ erDiagram
 关键约束：
 
 - `user_id + slug` 唯一。
+
+### 3.2A `system_settings`
+
+用途：
+
+- 保存系统级 provider / infra 参数。
+- 供 Web / Worker / Agent / Parser 启动时加载。
+
+关键约束：
+
+- `setting_key` 全局唯一。
+
+说明：
+
+- 当前用于收敛 S3、Qdrant、模型 provider、服务地址等配置。
+- 建表后会自动补齐默认值，并通过 `/settings` 页面维护。
+- `DATABASE_URL` 不在此表中。
+- `AUTH_SECRET` 也不在此表中，仍保留为进程外 secret。
 
 ### 3.3 `documents` / `document_versions`
 

@@ -55,16 +55,20 @@ async function hasUsersTable() {
 }
 
 async function runDrizzlePush() {
+  await runCommand(["exec", "drizzle-kit", "push", "--force"]);
+}
+
+async function ensureSystemSettings() {
+  await runCommand(["exec", "node", "scripts/ensure-system-settings.mjs"]);
+}
+
+async function runCommand(args) {
   await new Promise((resolve, reject) => {
-    const child = spawn(
-      pnpmCommand,
-      ["exec", "drizzle-kit", "push", "--force"],
-      {
-        cwd: packageRoot,
-        env: process.env,
-        stdio: "inherit",
-      },
-    );
+    const child = spawn(pnpmCommand, args, {
+      cwd: packageRoot,
+      env: process.env,
+      stdio: "inherit",
+    });
 
     child.once("error", reject);
     child.once("close", (code) => {
@@ -73,7 +77,7 @@ async function runDrizzlePush() {
         return;
       }
 
-      reject(new Error(`drizzle-kit push exited with code ${code ?? "unknown"}`));
+      reject(new Error(`${args.join(" ")} exited with code ${code ?? "unknown"}`));
     });
   });
 }
@@ -81,6 +85,7 @@ async function runDrizzlePush() {
 async function main() {
   if (await hasUsersTable()) {
     console.log("Database schema already present.");
+    await ensureSystemSettings();
     return;
   }
 
@@ -92,6 +97,7 @@ async function main() {
   }
 
   console.log("Database schema is ready.");
+  await ensureSystemSettings();
 }
 
 main().catch((error) => {

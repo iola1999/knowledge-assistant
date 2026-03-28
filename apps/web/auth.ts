@@ -9,7 +9,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   session: {
     strategy: "jwt",
   },
-  trustHost: process.env.AUTH_TRUST_HOST === "true",
+  trustHost: process.env.AUTH_TRUST_HOST !== "false",
   secret: process.env.AUTH_SECRET,
   providers: [
     Credentials({
@@ -44,6 +44,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         return {
           id: user.id,
           name: user.displayName ?? user.username,
+          username: user.username,
         };
       },
     }),
@@ -53,12 +54,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (user) {
         token.sub = user.id;
         token.name = user.name;
+        token.username = user.username;
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.sub ?? "";
+        session.user.username = typeof token.username === "string" ? token.username : "";
       }
       return session;
     },

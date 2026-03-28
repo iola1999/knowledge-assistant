@@ -1,4 +1,5 @@
 import {
+  assertRequiredEnvironment,
   ensureDevBucket,
   ensureDevDatabase,
   ensureDevDirectories,
@@ -7,6 +8,7 @@ import {
   getManagedServices,
   logDir,
   loadDevEnvironment,
+  loadResolvedSystemEnvironment,
   stopManagedService,
   verifyInfrastructure,
   startManagedService,
@@ -18,10 +20,9 @@ async function main() {
   await ensureToolingInstalled();
 
   const { env, envFileName, envFilePath, created } = await loadDevEnvironment();
-  const endpoints = parseRuntimeEndpoints(env);
 
   if (created) {
-    console.log(`Created ${envFileName} from .env.example with a generated AUTH_SECRET.`);
+    console.log(`Created ${envFileName} from .env.example.`);
   }
 
   if (envFilePath) {
@@ -30,16 +31,19 @@ async function main() {
     console.log("No .env or .env.local found; using shell environment and built-in defaults.");
   }
 
-  await verifyInfrastructure(env);
+  assertRequiredEnvironment(env, ["DATABASE_URL", "AUTH_SECRET"]);
   await ensureDevDatabase(env);
-  await ensureDevBucket(env);
+  const runtimeEnv = await loadResolvedSystemEnvironment(env);
+  const endpoints = parseRuntimeEndpoints(runtimeEnv);
+  await verifyInfrastructure(runtimeEnv);
+  await ensureDevBucket(runtimeEnv);
 
-  const services = getManagedServices(env);
+  const services = getManagedServices(runtimeEnv);
   const startedNow = [];
 
   try {
     for (const service of services) {
-      const result = await startManagedService(service, env);
+      const result = await startManagedService(service, runtimeEnv);
       console.log(
         `${result.started ? "Started" : "Already running"} ${service.name}${result.pid ? ` (pid ${result.pid})` : ""}.`,
       );

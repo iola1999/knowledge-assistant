@@ -2,12 +2,15 @@ import {
   formatError,
   getManagedServices,
   loadDevEnvironment,
+  loadResolvedSystemEnvironment,
   stopManagedService,
 } from "./lib/dev-common.mjs";
 
 async function main() {
   const { env } = await loadDevEnvironment({ createIfMissing: false });
-  const services = getManagedServices(env).reverse();
+  // Stop logic should still work even when the database is offline.
+  const runtimeEnv = await loadResolvedSystemEnvironment(env);
+  const services = getManagedServices(runtimeEnv).reverse();
 
   let stoppedAny = false;
 

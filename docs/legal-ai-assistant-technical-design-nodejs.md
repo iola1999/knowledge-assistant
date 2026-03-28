@@ -7,6 +7,7 @@
 >
 > - 本文件是当前实现的架构/技术约束主文档。
 > - 当前阶段进度、活跃待办、最近完成与下一步顺序，请看 [implementation-tracker.md](/Users/fan/project/tmp/law-doc/docs/implementation-tracker.md)。
+> - 本地开发启动、Docker 依赖和日常操作，请看 [development-setup.md](/Users/fan/project/tmp/law-doc/docs/development-setup.md)。
 > - 如果本文件与其他支持性文档冲突，以本文件为准。
 
 ## 1. 已确认约束
@@ -246,6 +247,7 @@ flowchart LR
 
 - `users`
 - `sessions`
+- `system_settings`
 - `workspaces`
 - `documents`
 - `document_versions`
@@ -271,6 +273,23 @@ flowchart LR
 - `default_mode` (`kb_only` | `kb_plus_web`)
 - `created_at`
 - `archived_at`
+
+#### `system_settings`
+
+- `setting_key`
+- `value_text`
+- `is_secret`
+- `description`
+- `created_at`
+- `updated_at`
+
+说明：
+
+- 用于保存系统级 provider / infra 参数。
+- 开发期默认由建表 / 启动脚本自动补齐默认值。
+- Web 端提供基础版 `/settings` 页面用于可视化维护，且只允许 env 中声明的超管访问。
+- 当前不会把 `DATABASE_URL` 存入该表。
+- `AUTH_SECRET` 也不进入该表，仍保留为进程外 secret。
 
 #### `documents`
 
@@ -1010,6 +1029,9 @@ Agent 不应被写死成“先出报告”。
 根目录统一执行：
 
 ```bash
+pnpm infra:up
+pnpm infra:down
+pnpm infra:logs
 pnpm dev
 pnpm dev:status
 pnpm dev:down
@@ -1028,7 +1050,10 @@ pnpm verify
 
 说明：
 
-- `pnpm dev`：一键启动本地开发栈；会检查 `node_modules`、`.venv`、`.env.local/.env`、PostgreSQL / Redis / Qdrant / S3(或 MinIO)，并在依赖可达后自动补建表与 bucket，再启动 `web` / `worker` / `agent-runtime` / `parser`。
+- `pnpm infra:up`：使用 Docker Compose 启动 PostgreSQL / Redis / Qdrant / MinIO。
+- `pnpm infra:down`：停止开发期 Docker 基础设施。
+- `pnpm infra:logs`：查看开发期 Docker 基础设施日志。
+- `pnpm dev`：一键启动本地开发栈；会检查 `node_modules`、`.venv`、`.env.local/.env`、自动建表、自动补齐 `system_settings` 与 bucket，再启动 `web` / `worker` / `agent-runtime` / `parser`。
 - `pnpm dev:status`：查看本地基础设施连通性与受管开发进程状态。
 - `pnpm dev:down`：停止 `pnpm dev` 拉起的本地开发进程。
 - `pnpm setup:python`：本地创建 `.venv` 并安装 parser 依赖，优先使用 `python3.12`。
@@ -1041,8 +1066,12 @@ pnpm verify
 
 本地开发约束补充：
 
-- `pnpm dev` 只负责应用层一键拉起，不负责自动创建 PostgreSQL / Redis / Qdrant / MinIO 进程。
-- 如果这些基础设施未启动，脚本必须明确失败，不允许出现“页面能开但主链路不可用”的假成功状态。
+- 开发期最佳实践是“应用在宿主机，基础设施在 Docker Compose”。
+- `pnpm dev` 不自动隐式拉起 Docker；如果基础设施未启动，脚本必须明确失败，不允许出现“页面能开但主链路不可用”的假成功状态。
+- 除 `DATABASE_URL` 与 `AUTH_SECRET` 外，大部分 provider / infra 参数应通过 `system_settings` 管理。
+- `AUTH_SECRET` 仍然只支持 env / `.env.local` 提供，不做自动生成或数据库回存。
+- `SUPER_ADMIN_USERNAMES` 通过 env 控制 `/settings` 与 `/api/system-settings` 的访问权限，值使用注册用户名，不进入数据库。
+- `system_settings` 变更当前不会热更新到已运行进程；开发期通过 `/settings` 保存后需要重启 `pnpm dev`。
 
 ### 17.2 GitHub Actions CI
 
@@ -1203,7 +1232,7 @@ CI 执行顺序：
   - 更高保真的版面结构恢复
 - retrieval 仍缺：
   - sparse/BM25 检索
-  - provider 配置透出到观测和管理页面
+  - provider 配置热更新和更细粒度权限控制
   - 外部 rerank 回放与回归测试
 - answer layer 仍缺：
   - Agent SDK 直接输出 evidence dossier

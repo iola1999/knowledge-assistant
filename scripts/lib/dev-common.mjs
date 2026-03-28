@@ -3,16 +3,17 @@ import fsp from "node:fs/promises";
 import net from "node:net";
 import path from "node:path";
 import { spawn } from "node:child_process";
-import { randomBytes } from "node:crypto";
 import { fileURLToPath } from "node:url";
 
 import {
-  buildDevEnvLocalContent,
+  listMissingRequiredEnvNames,
+  normalizeEnvExampleContent,
   parseEnvText,
   parseInfrastructureTargets,
   parseRuntimeEndpoints,
   selectDevEnvFile,
 } from "./dev-env.mjs";
+import { buildRuntimeEnvironment } from "./system-settings.mjs";
 
 const libDir = path.dirname(fileURLToPath(import.meta.url));
 
@@ -92,13 +93,12 @@ export function getManagedServices(env) {
     {
       id: "web",
       name: "Web app",
-      cwd: repoRoot,
+      cwd: path.join(repoRoot, "apps", "web"),
       command: pnpm,
       args: [
-        "--filter",
-        "@law-doc/web",
+        "exec",
+        "next",
         "dev",
-        "--",
         "--hostname",
         endpoints.app.host,
         "--port",
@@ -161,10 +161,9 @@ export async function loadDevEnvironment(options = {}) {
 
   if (!envFileName && createIfMissing) {
     const exampleContent = await fsp.readFile(envExamplePath, "utf8");
-    const authSecret = randomBytes(24).toString("hex");
     await fsp.writeFile(
       envLocalPath,
-      buildDevEnvLocalContent(exampleContent, authSecret),
+      normalizeEnvExampleContent(exampleContent),
       "utf8",
     );
     envFileName = ".env.local";
@@ -190,6 +189,16 @@ export async function loadDevEnvironment(options = {}) {
     envFilePath,
     created,
   };
+}
+
+export function assertRequiredEnvironment(
+  env,
+  requiredNames = ["DATABASE_URL", "AUTH_SECRET"],
+) {
+  const missing = listMissingRequiredEnvNames(env, requiredNames);
+  if (missing.length > 0) {
+    throw new Error(`Missing required environment variables: ${missing.join(", ")}`);
+  }
 }
 
 export async function isPortOpen(host, port, timeoutMs = 800) {
@@ -229,7 +238,7 @@ export async function verifyInfrastructure(env) {
       .join("\n");
 
     throw new Error(
-      `Required local infrastructure is not reachable.\n${details}\nPlease start these services first, then rerun pnpm dev.`,
+      `Required local infrastructure is not reachable.\n${details}\nPlease run pnpm infra:up or start these services manually, then rerun pnpm dev.`,
     );
   }
 
@@ -254,6 +263,41 @@ export async function runCommand(input) {
       reject(
         new Error(
           `${input.command} ${input.args.join(" ")} exited with code ${code ?? "unknown"}`,
+        ),
+      );
+    });
+  });
+}
+
+export async function runCommandCapture(input) {
+  return await new Promise((resolve, reject) => {
+    const child = spawn(input.command, input.args, {
+      cwd: input.cwd,
+      env: input.env ?? process.env,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+
+    let stdout = "";
+    let stderr = "";
+
+    child.stdout?.on("data", (chunk) => {
+      stdout += String(chunk);
+    });
+    child.stderr?.on("data", (chunk) => {
+      stderr += String(chunk);
+    });
+
+    child.once("error", reject);
+    child.once("close", (code) => {
+      if (code === 0) {
+        resolve(stdout.trim());
+        return;
+      }
+
+      reject(
+        new Error(
+          stderr.trim() ||
+            `${input.command} ${input.args.join(" ")} exited with code ${code ?? "unknown"}`,
         ),
       );
     });
@@ -287,6 +331,65 @@ export async function ensureDevDatabase(env) {
     cwd: repoRoot,
     env,
   });
+}
+
+export async function ensureSystemSettings(env, options = {}) {
+  const ignoreErrors = options.ignoreErrors ?? false;
+
+  try {
+    const commandInput = {
+      command: resolvePnpmBinary(),
+      args: [
+        "--filter",
+        "@law-doc/db",
+        "exec",
+        "node",
+        "scripts/ensure-system-settings.mjs",
+      ],
+      cwd: repoRoot,
+      env,
+    };
+
+    if (ignoreErrors) {
+      await runCommandCapture(commandInput);
+    } else {
+      await runCommand(commandInput);
+    }
+  } catch (error) {
+    if (!ignoreErrors) {
+      throw error;
+    }
+  }
+}
+
+export async function loadResolvedSystemEnvironment(env) {
+  const fallbackEnv = buildRuntimeEnvironment(env);
+
+  try {
+    const output = await runCommandCapture({
+      command: resolvePnpmBinary(),
+      args: [
+        "--filter",
+        "@law-doc/db",
+        "exec",
+        "node",
+        "scripts/print-system-env.mjs",
+      ],
+      cwd: repoRoot,
+      env: fallbackEnv,
+    });
+
+    if (!output) {
+      return fallbackEnv;
+    }
+
+    return {
+      ...fallbackEnv,
+      ...JSON.parse(output),
+    };
+  } catch {
+    return fallbackEnv;
+  }
 }
 
 export async function ensureDevBucket(env) {

@@ -38,12 +38,24 @@
 - 会话管理已补齐基础版。
 - 文档阅读器和上传任务反馈已补齐基础版。
 - 本地开发一键启动脚本已补齐，联调不再需要手工逐个拉起 `web/worker/agent/parser`。
+- 系统级 provider / infra 配置开始从 env 收敛到数据库 `system_settings`。
+- 系统设置后台页已补齐基础版；大部分配置现在可在 `/settings` 页面维护，但仅超管可见。
+- 开发期基础设施推荐统一走 Docker Compose，而不是手工本机安装 Qdrant / MinIO。
 - 当前最缺的不是更多 agent 花样，而是 parser/retrieval/grounded answer/SSE 这些“可信回答底座”能力。
 
 ## 3. 最近完成
 
 ### 已完成
 
+- `working tree` `Move system config into database-backed settings`
+  - 新增 `system_settings` 表承载系统级 provider / infra 参数
+  - 建表后会立即补齐默认系统参数，避免出现“表已建但配置为空”的状态
+  - `pnpm dev` / `pnpm dev:web` / `pnpm dev:worker` / `pnpm dev:agent` 启动前会自动补齐并加载系统参数
+  - Web 端新增 `/settings` 页面和 `/api/system-settings` 接口，用于超管可视化维护系统参数
+  - `.env.example` 收敛为最小配置；进程外只保留 `DATABASE_URL` 与 `AUTH_SECRET`
+- `working tree` `Add Docker infra commands and dev guide`
+  - 根目录新增 `pnpm infra:up` / `pnpm infra:down` / `pnpm infra:logs`
+  - 新增本地开发指引文档，明确推荐“应用跑宿主机，依赖跑 Docker Compose”
 - `working tree` `Add local development startup scripts`
   - 根目录新增 `pnpm dev` / `pnpm dev:status` / `pnpm dev:down`
   - 启动脚本会检查 `.env.local/.env`、本地基础设施连通性、数据库 schema 和对象存储 bucket
@@ -82,6 +94,10 @@
 
 ## 4. 活跃待办
 
+- parser 真实 OCR provider 接入，默认仍保持关闭。
+- sparse/BM25 混合检索与 rerank 回归测试。
+- SSE 工具时间线和 grounded answer 状态信息前端补齐。
+
 ## 5. 下一步
 
 默认按以下顺序推进：
@@ -94,7 +110,10 @@
 
 ## 6. 风险与注意事项
 
-- 本地一键启动脚本只代管应用进程；PostgreSQL / Redis / Qdrant / MinIO 仍需开发环境自行提供。
+- 本地一键启动脚本只代管应用进程；基础设施默认通过 `pnpm infra:up` 拉起，而不是由应用脚本隐式代管。
+- `AUTH_SECRET` 仍然不会进入 `system_settings`；它是启动根密钥，不应回存业务数据库。
+- `/settings` 与 `/api/system-settings` 仅允许 `SUPER_ADMIN_USERNAMES` 中声明的注册用户名访问。
+- `/settings` 保存的是数据库配置，不会热更新到已运行进程；保存后需要重启 `pnpm dev`。
 - OCR 不要默认开启，避免给“本来可直接解析的上传链路”增加成本和时延。
 - 现阶段的 PDF 阅读器仍是基础版；不要把“文本高亮近似定位”误当成最终 bbox 定位方案。
 - grounded answer 已经开始收口，但前端还没显式展示 `confidence / unsupported_reason / missing_information`。

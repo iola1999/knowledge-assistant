@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  buildDevEnvLocalContent,
+  listMissingRequiredEnvNames,
+  normalizeEnvExampleContent,
   parseConnectionTarget,
   parseEnvText,
   parseInfrastructureTargets,
@@ -46,16 +47,23 @@ EMPTY=
   });
 });
 
-describe("buildDevEnvLocalContent", () => {
-  it("replaces AUTH_SECRET and preserves other variables", () => {
+describe("normalizeEnvExampleContent", () => {
+  it("ensures the copied example ends with a single newline", () => {
     expect(
-      buildDevEnvLocalContent(
-        "DATABASE_URL=postgres://postgres:postgres@localhost:5432/law_doc\nAUTH_SECRET=replace-me\nAPP_URL=http://localhost:3000\n",
-        "generated-secret",
+      normalizeEnvExampleContent(
+        "DATABASE_URL=postgres://postgres:postgres@localhost:5432/law_doc\nAUTH_SECRET=replace-me\n",
       ),
-    ).toBe(
-      "DATABASE_URL=postgres://postgres:postgres@localhost:5432/law_doc\nAUTH_SECRET=generated-secret\nAPP_URL=http://localhost:3000\n",
-    );
+    ).toBe("DATABASE_URL=postgres://postgres:postgres@localhost:5432/law_doc\nAUTH_SECRET=replace-me\n");
+  });
+});
+
+describe("listMissingRequiredEnvNames", () => {
+  it("reports missing startup env values", () => {
+    expect(
+      listMissingRequiredEnvNames({
+        DATABASE_URL: "postgres://postgres:postgres@localhost:5432/law_doc",
+      }),
+    ).toEqual(["AUTH_SECRET"]);
   });
 });
 

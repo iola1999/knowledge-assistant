@@ -31,6 +31,49 @@ a {
   padding: 32px 20px 64px;
 }
 
+.dashboard-shell {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  border: 1px solid color-mix(in srgb, var(--accent) 18%, var(--border));
+  border-radius: 24px;
+  padding: 20px 22px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.92), rgba(240, 231, 216, 0.92)),
+    radial-gradient(circle at top right, rgba(180, 90, 45, 0.16), transparent 45%);
+  box-shadow: 0 16px 36px rgba(31, 26, 20, 0.08);
+}
+
+.dashboard-brand {
+  gap: 8px;
+}
+
+.dashboard-kicker {
+  margin: 0;
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.dashboard-nav {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.dashboard-nav-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 16px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
 .stack {
   display: grid;
   gap: 16px;
@@ -218,6 +261,27 @@ button:disabled {
   border-radius: 16px;
   padding: 12px;
   background: rgba(255, 255, 255, 0.72);
+}
+
+.settings-form {
+  display: grid;
+  gap: 16px;
+}
+
+.settings-form code {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface-strong) 88%, white);
+  color: var(--text);
+  font-size: 13px;
+}
+
+@media (max-width: 900px) {
+  .grid.two {
+    grid-template-columns: 1fr;
+  }
 }
 
 .pdf-canvas {

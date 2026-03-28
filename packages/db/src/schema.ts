@@ -124,6 +124,15 @@ export const sessions = pgTable(
   }),
 );
 
+export const systemSettings = pgTable("system_settings", {
+  settingKey: varchar("setting_key", { length: 120 }).primaryKey(),
+  valueText: text("value_text").notNull().default(""),
+  isSecret: boolean("is_secret").notNull().default(false),
+  description: text("description"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const workspaces = pgTable(
   "workspaces",
   {

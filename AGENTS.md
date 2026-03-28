@@ -10,15 +10,17 @@
    用它作为当前实现的主设计文档和架构/约束文档。
 2. [docs/implementation-tracker.md](/Users/fan/project/tmp/law-doc/docs/implementation-tracker.md)
    用它作为当前阶段进度、活跃待办和下一步执行顺序文档。
-3. [docs/legal-ai-assistant-prd.md](/Users/fan/project/tmp/law-doc/docs/legal-ai-assistant-prd.md)
+3. [docs/development-setup.md](/Users/fan/project/tmp/law-doc/docs/development-setup.md)
+   当任务涉及本地启动、Docker 依赖、开发环境配置或系统参数时必读。
+4. [docs/legal-ai-assistant-prd.md](/Users/fan/project/tmp/law-doc/docs/legal-ai-assistant-prd.md)
    用它确认 P0/P1 范围、业务目标、用户场景和验收口径。
-4. [docs/legal-ai-assistant-erd.md](/Users/fan/project/tmp/law-doc/docs/legal-ai-assistant-erd.md)
+5. [docs/legal-ai-assistant-erd.md](/Users/fan/project/tmp/law-doc/docs/legal-ai-assistant-erd.md)
    当任务涉及 schema、索引、检索、引用链路时必读。
-5. [docs/legal-ai-assistant-mcp-tools.md](/Users/fan/project/tmp/law-doc/docs/legal-ai-assistant-mcp-tools.md)
+6. [docs/legal-ai-assistant-mcp-tools.md](/Users/fan/project/tmp/law-doc/docs/legal-ai-assistant-mcp-tools.md)
    当任务涉及 agent tool、返回结构、错误模型时必读。
-6. [docs/legal-ai-assistant-nextjs-app-structure.md](/Users/fan/project/tmp/law-doc/docs/legal-ai-assistant-nextjs-app-structure.md)
+7. [docs/legal-ai-assistant-nextjs-app-structure.md](/Users/fan/project/tmp/law-doc/docs/legal-ai-assistant-nextjs-app-structure.md)
    当任务涉及页面、Route Handler、SSE、组件边界时必读。
-7. [docs/legal-ai-assistant-architecture.md](/Users/fan/project/tmp/law-doc/docs/legal-ai-assistant-architecture.md)
+8. [docs/legal-ai-assistant-architecture.md](/Users/fan/project/tmp/law-doc/docs/legal-ai-assistant-architecture.md)
    这是通用背景文档；需要宏观权衡时参考，不要优先于 Node.js 技术设计文档。
 
 原则：
@@ -120,6 +122,9 @@
 根目录统一执行：
 
 ```bash
+pnpm infra:up
+pnpm infra:down
+pnpm infra:logs
 pnpm dev
 pnpm dev:status
 pnpm dev:down
@@ -138,8 +143,14 @@ pnpm verify
 
 说明：
 
+- `pnpm infra:up`
+  使用 Docker Compose 启动 PostgreSQL / Redis / Qdrant / MinIO。
+- `pnpm infra:down`
+  停止开发期 Docker 基础设施。
+- `pnpm infra:logs`
+  查看开发期 Docker 基础设施日志。
 - `pnpm dev`
-  一键启动本地开发栈；会检查 `node_modules`、`.venv`、`.env.local/.env`、PostgreSQL / Redis / Qdrant / S3(或 MinIO)，并在依赖可达后自动补建表与 bucket，再启动 `web` / `worker` / `agent-runtime` / `parser`。
+  一键启动本地开发栈；会检查 `node_modules`、`.venv`、`.env.local/.env`、自动建表、自动补齐 `system_settings` 与 bucket，再启动 `web` / `worker` / `agent-runtime` / `parser`。
 - `pnpm dev:status`
   查看本地基础设施连通性与受管开发进程状态。
 - `pnpm dev:down`
@@ -152,6 +163,14 @@ pnpm verify
   生成当前覆盖率基线。
 - `pnpm verify`
   统一质量门禁，提交前必须通过。
+
+配置约束补充：
+
+- 大部分 provider / infra 参数放进 `system_settings` 表管理。
+- `DATABASE_URL` 仍是启动根配置，必须在进程外提供。
+- `AUTH_SECRET` 不放入业务数据库，也不做自动生成或本地回写；开发环境同样要求显式从 env / `.env.local` 提供。
+- `SUPER_ADMIN_USERNAMES` 通过 env 控制 `/settings` 与系统参数接口的访问权限，值使用注册用户名，不进入数据库。
+- `system_settings` 默认值在建表后立即补齐；日常优先通过 `/settings` 页面维护，而不是直接改库。
 
 ## 6. 提交前检查
 
