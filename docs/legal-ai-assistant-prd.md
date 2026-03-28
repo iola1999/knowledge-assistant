@@ -3,6 +3,12 @@
 版本：v0.1  
 日期：2026-03-28
 
+> 文档角色说明：
+>
+> - 本文件定义产品目标、用户场景、功能范围和验收口径。
+> - 具体技术选型、服务拆分、当前实现约束，以 [legal-ai-assistant-technical-design-nodejs.md](/Users/fan/project/tmp/law-doc/docs/legal-ai-assistant-technical-design-nodejs.md) 为准。
+> - 当前阶段进度与执行顺序，以 [implementation-tracker.md](/Users/fan/project/tmp/law-doc/docs/implementation-tracker.md) 为准。
+
 ## 1. 产品定位
 
 构建一个面向律师、法务和律师助理的工作空间级 AI 工作台。系统以用户私有资料库为主，按需联网补充公开信息，并且所有关键结论默认要求可追溯、可点击、可核验。

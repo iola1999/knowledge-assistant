@@ -7,21 +7,24 @@
 开始任何任务前，先按这个顺序阅读需求与设计：
 
 1. [docs/legal-ai-assistant-technical-design-nodejs.md](/Users/fan/project/tmp/law-doc/docs/legal-ai-assistant-technical-design-nodejs.md)
-   用它作为当前实现的主设计文档和阶段计划文档。
-2. [docs/legal-ai-assistant-prd.md](/Users/fan/project/tmp/law-doc/docs/legal-ai-assistant-prd.md)
+   用它作为当前实现的主设计文档和架构/约束文档。
+2. [docs/implementation-tracker.md](/Users/fan/project/tmp/law-doc/docs/implementation-tracker.md)
+   用它作为当前阶段进度、活跃待办和下一步执行顺序文档。
+3. [docs/legal-ai-assistant-prd.md](/Users/fan/project/tmp/law-doc/docs/legal-ai-assistant-prd.md)
    用它确认 P0/P1 范围、业务目标、用户场景和验收口径。
-3. [docs/legal-ai-assistant-erd.md](/Users/fan/project/tmp/law-doc/docs/legal-ai-assistant-erd.md)
+4. [docs/legal-ai-assistant-erd.md](/Users/fan/project/tmp/law-doc/docs/legal-ai-assistant-erd.md)
    当任务涉及 schema、索引、检索、引用链路时必读。
-4. [docs/legal-ai-assistant-mcp-tools.md](/Users/fan/project/tmp/law-doc/docs/legal-ai-assistant-mcp-tools.md)
+5. [docs/legal-ai-assistant-mcp-tools.md](/Users/fan/project/tmp/law-doc/docs/legal-ai-assistant-mcp-tools.md)
    当任务涉及 agent tool、返回结构、错误模型时必读。
-5. [docs/legal-ai-assistant-nextjs-app-structure.md](/Users/fan/project/tmp/law-doc/docs/legal-ai-assistant-nextjs-app-structure.md)
+6. [docs/legal-ai-assistant-nextjs-app-structure.md](/Users/fan/project/tmp/law-doc/docs/legal-ai-assistant-nextjs-app-structure.md)
    当任务涉及页面、Route Handler、SSE、组件边界时必读。
-6. [docs/legal-ai-assistant-architecture.md](/Users/fan/project/tmp/law-doc/docs/legal-ai-assistant-architecture.md)
+7. [docs/legal-ai-assistant-architecture.md](/Users/fan/project/tmp/law-doc/docs/legal-ai-assistant-architecture.md)
    这是通用背景文档；需要宏观权衡时参考，不要优先于 Node.js 技术设计文档。
 
 原则：
 
 - 如果 `technical-design-nodejs` 和其他文档冲突，以 `technical-design-nodejs` 为准。
+- 如果任务优先级、当前阶段状态、最近完成与其他文档冲突，以 `implementation-tracker` 为准。
 - 如果文档和现有代码冲突，先确认哪边代表最新决策，再动代码。
 - 不要跳过代码检查直接按文档想象实现。
 
@@ -42,7 +45,7 @@
    - 本次不处理什么
    - 对应测试要覆盖什么
 
-如果需求会影响多层，先找主链路。当前项目的主链路优先级长期保持为：
+如果需求会影响多层，先找主链路。当前项目的主链路长期保持为：
 
 1. 先把传统前后端主工作流拉通
 2. 文档解析与切块质量
@@ -50,6 +53,8 @@
 4. grounded final answer
 5. 工具时间线和阅读器体验
 6. 其他增强型 UI 或次要工具
+
+当前阶段到底先做哪几个子任务，以 `docs/implementation-tracker.md` 为准，不要在这里维护重复 backlog。
 
 ## 3. 怎么开发
 
@@ -155,30 +160,12 @@ pnpm verify
 
 - `AGENTS.md`
 - `docs/legal-ai-assistant-technical-design-nodejs.md`
+- `docs/implementation-tracker.md`
 
 ## 7. 当前重点
 
-截至当前阶段，下一批任务优先级如下：
+执行中的操作级优先级、最近完成和下一步顺序，统一维护在：
 
-1. web / BFF 主链路继续补齐：
-   - 工作空间首用体验
-   - 目录树、文档阅读、报告回访
-   - 上传与处理状态的稳定反馈
-2. parser 继续升级：
-   - 真实 OCR provider 接入（保持当前 disabled/mock fallback 契约；默认不开）
-   - 更稳的结构化 heading / table / block 映射
-   - 页码与坐标质量提升
-3. grounded final answer：
-   - Agent SDK evidence dossier 输出
-   - 结构化回答结果在 UI 中展示 `confidence / unsupported_reason / missing_information`
-   - 继续补强 `anchor_id` 校验边界与测试
-4. retrieval provider：
-   - 百炼优先的 embedding / rerank 配置与观测
-   - sparse/BM25 接入
-5. 工具时间线 / SSE：
-   - 工具开始、结束、回答流式增量
-6. 文档阅读器能力：
-   - 更真实的锚点跳转
-   - 页内高亮
+- [docs/implementation-tracker.md](/Users/fan/project/tmp/law-doc/docs/implementation-tracker.md)
 
-如果新任务不在这个优先级上，需要先说明为什么值得插队。
+如果新任务不在 tracker 当前优先级上，需要先说明为什么值得插队。

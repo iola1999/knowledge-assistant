@@ -3,6 +3,11 @@
 版本：v0.1  
 日期：2026-03-28
 
+> 文档角色说明：
+>
+> - 本文件只负责数据模型、实体关系和字段设计意图。
+> - 如果表结构与当前代码或技术设计文档冲突，以当前 Drizzle schema 和 [legal-ai-assistant-technical-design-nodejs.md](/Users/fan/project/tmp/law-doc/docs/legal-ai-assistant-technical-design-nodejs.md) 为准。
+
 ## 1. 建模原则
 
 - 资源归属以 `workspace` 为核心。

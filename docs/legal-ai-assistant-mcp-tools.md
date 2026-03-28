@@ -3,6 +3,11 @@
 版本：v0.1  
 日期：2026-03-28
 
+> 文档角色说明：
+>
+> - 本文件只负责 MCP tool 的命名、输入输出契约和错误模型。
+> - 如果工具集合、调用模式或实现细节与当前代码冲突，以 [legal-ai-assistant-technical-design-nodejs.md](/Users/fan/project/tmp/law-doc/docs/legal-ai-assistant-technical-design-nodejs.md) 和 `packages/contracts` / `packages/agent-tools` 当前代码为准。
+
 ## 1. 设计目标
 
 - 让 `@anthropic-ai/claude-agent-sdk` 只看到清晰、可控、边界明确的工具。

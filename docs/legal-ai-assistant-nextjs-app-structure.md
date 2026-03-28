@@ -3,6 +3,12 @@
 版本：v0.1  
 日期：2026-03-28
 
+> 文档角色说明：
+>
+> - 本文件只负责 Next.js 页面、Route Handler、Server/Client 边界建议。
+> - 当前页面实现进度和阶段优先级，请看 [implementation-tracker.md](/Users/fan/project/tmp/law-doc/docs/implementation-tracker.md)。
+> - 如果目录结构建议与当前代码不完全一致，以当前代码和 [legal-ai-assistant-technical-design-nodejs.md](/Users/fan/project/tmp/law-doc/docs/legal-ai-assistant-technical-design-nodejs.md) 为准。
+
 ## 1. 目标
 
 - 用 Next.js 作为 Web + BFF。

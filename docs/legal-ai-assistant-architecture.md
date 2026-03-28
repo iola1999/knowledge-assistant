@@ -1,6 +1,11 @@
 # 律师行业 AI 助手技术方案
 
-> 注：本文件是通用方案草稿。若你按当前已确认约束实施，请优先参考 [legal-ai-assistant-technical-design-nodejs.md](/Users/fan/project/tmp/law-doc/docs/legal-ai-assistant-technical-design-nodejs.md)。
+> 文档角色说明：
+>
+> - 本文件是历史调研/通用备选方案文档，不是当前实现方案。
+> - 其中出现的 `FastAPI / Celery / backend-api` 等服务划分，属于早期备选架构，不代表当前代码实现。
+> - 当前实施请优先参考 [legal-ai-assistant-technical-design-nodejs.md](/Users/fan/project/tmp/law-doc/docs/legal-ai-assistant-technical-design-nodejs.md)。
+> - 当前阶段进度与执行顺序请参考 [implementation-tracker.md](/Users/fan/project/tmp/law-doc/docs/implementation-tracker.md)。
 
 版本：v0.1  
 日期：2026-03-28

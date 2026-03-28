@@ -3,6 +3,12 @@
 版本：v0.2  
 日期：2026-03-28
 
+> 文档角色说明：
+>
+> - 本文件是当前实现的架构/技术约束主文档。
+> - 当前阶段进度、活跃待办、最近完成与下一步顺序，请看 [implementation-tracker.md](/Users/fan/project/tmp/law-doc/docs/implementation-tracker.md)。
+> - 如果本文件与其他支持性文档冲突，以本文件为准。
+
 ## 1. 已确认约束
 
 本设计以你刚确认的边界为准：
@@ -1191,6 +1197,11 @@ CI 执行顺序：
   - 各类 web guard / route 辅助逻辑
 
 ## 20. 下一阶段计划
+
+说明：
+
+- 本节只保留中长期阶段路线图。
+- 日常执行中的活跃 backlog 与最近完成，请统一看 [implementation-tracker.md](/Users/fan/project/tmp/law-doc/docs/implementation-tracker.md)。
 
 结合 PRD、技术设计和当前代码状态，下一阶段按以下顺序推进：
 
