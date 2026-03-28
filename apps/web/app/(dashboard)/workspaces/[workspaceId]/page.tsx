@@ -10,25 +10,32 @@ import {
   getDb,
   messageCitations,
   messages,
+  reports,
   workspaces,
 } from "@law-doc/db";
 
 import { Composer } from "@/components/chat/composer";
+import { CreateConversationButton } from "@/components/chat/create-conversation-button";
 import { CreateReportForm } from "@/components/reports/create-report-form";
+import { WorkspaceAutoRefresh } from "@/components/workspaces/auto-refresh";
+import { DocumentTreePanel } from "@/components/workspaces/document-tree-panel";
 import { UploadForm } from "@/components/workspaces/upload-form";
 import { auth } from "@/auth";
 
 export default async function WorkspacePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ workspaceId: string }>;
+  searchParams: Promise<{ conversationId?: string }>;
 }) {
   const { workspaceId } = await params;
+  const { conversationId: requestedConversationId } = await searchParams;
   const session = await auth();
   const userId = session?.user?.id ?? "";
   const db = getDb();
 
-  const [workspace, docs, conversation] = await Promise.all([
+  const [workspace, docs, conversationList, reportList] = await Promise.all([
     db
       .select()
       .from(workspaces)
@@ -43,8 +50,13 @@ export default async function WorkspacePage({
       .select()
       .from(conversations)
       .where(eq(conversations.workspaceId, workspaceId))
-      .orderBy(desc(conversations.createdAt))
-      .limit(1),
+      .orderBy(desc(conversations.updatedAt), desc(conversations.createdAt)),
+    db
+      .select()
+      .from(reports)
+      .where(eq(reports.workspaceId, workspaceId))
+      .orderBy(desc(reports.updatedAt), desc(reports.createdAt))
+      .limit(8),
   ]);
 
   if (!workspace[0]) {
@@ -88,11 +100,16 @@ export default async function WorkspacePage({
     };
   });
 
-  const thread = conversation[0]
+  const activeConversation =
+    conversationList.find((item) => item.id === requestedConversationId) ??
+    conversationList[0] ??
+    null;
+
+  const thread = activeConversation
     ? await db
         .select()
         .from(messages)
-        .where(eq(messages.conversationId, conversation[0].id))
+        .where(eq(messages.conversationId, activeConversation.id))
         .orderBy(asc(messages.createdAt))
     : [];
 
@@ -112,8 +129,16 @@ export default async function WorkspacePage({
     citationsByMessage.set(citation.messageId, group);
   }
 
+  const hasActiveJobs = docsWithProgress.some(
+    (doc) =>
+      doc.latestJob?.status === "queued" ||
+      doc.latestJob?.status === "running" ||
+      (doc.latestVersion && doc.latestVersion.parseStatus !== "ready" && doc.latestVersion.parseStatus !== "failed"),
+  );
+
   return (
     <div className="stack">
+      <WorkspaceAutoRefresh enabled={hasActiveJobs} />
       <div className="toolbar">
         <div>
           <h1>{workspace[0].title}</h1>
@@ -123,12 +148,42 @@ export default async function WorkspacePage({
 
       <div className="grid two">
         <div className="stack">
-          {conversation[0] ? (
+          <div className="card stack">
+            <div className="toolbar">
+              <h3>对话</h3>
+              <CreateConversationButton workspaceId={workspaceId} />
+            </div>
+            {conversationList.length > 0 ? (
+              <div className="conversation-list">
+                {conversationList.slice(0, 8).map((item) => (
+                  <Link
+                    key={item.id}
+                    href={`/workspaces/${workspaceId}?conversationId=${item.id}`}
+                    className={`conversation-link${item.id === activeConversation?.id ? " is-active" : ""}`}
+                  >
+                    <strong>{item.title}</strong>
+                    <span className="muted">
+                      {item.mode} · {item.status}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <div className="empty-state">
+                <p>当前还没有对话。</p>
+                <p className="muted">先创建一个对话，再开始基于知识库提问。</p>
+              </div>
+            )}
+          </div>
+
+          {activeConversation ? (
             <>
               <div className="card stack">
                 <div className="toolbar">
                   <h3>当前对话</h3>
-                  <span className="muted">{conversation[0].title}</span>
+                  <span className="muted">
+                    {activeConversation.title} · {activeConversation.mode}
+                  </span>
                 </div>
                 <div className="thread">
                   {thread.length > 0 ? (
@@ -165,43 +220,30 @@ export default async function WorkspacePage({
                   )}
                 </div>
               </div>
-              <Composer conversationId={conversation[0].id} />
+              <Composer conversationId={activeConversation.id} />
             </>
           ) : (
             <div className="card">
-              <p>还没有对话。</p>
-              <p className="muted">调用 `POST /api/workspaces/{workspaceId}/conversations` 后即可提问。</p>
+              <p>先创建一个对话。</p>
+              <p className="muted">创建后即可在当前工作空间中提问和沉淀回答记录。</p>
             </div>
           )}
 
-          <div className="card">
-            <h3>文档列表</h3>
-            <ul className="list">
-              {docsWithProgress.map((doc) => (
-                <li key={doc.id}>
-                  <Link href={`/workspaces/${workspaceId}/documents/${doc.id}`}>
-                    {doc.title}
-                  </Link>
-                  <span className="muted">
-                    {" "}
-                    · {doc.logicalPath}
-                    {doc.latestJob
-                      ? ` · ${doc.latestJob.stage} · ${doc.latestJob.progress}%`
-                      : doc.latestVersion
-                        ? ` · ${doc.latestVersion.parseStatus}`
-                        : ""}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
+          <DocumentTreePanel
+            workspaceId={workspaceId}
+            documents={docsWithProgress.map((doc) => ({
+              id: doc.id,
+              title: doc.title,
+              logicalPath: doc.logicalPath,
+            }))}
+          />
         </div>
 
         <div className="stack">
           <UploadForm workspaceId={workspaceId} />
           <CreateReportForm
             workspaceId={workspaceId}
-            conversationId={conversation[0]?.id}
+            conversationId={activeConversation?.id}
           />
           <div className="card">
             <h3>处理队列</h3>
@@ -222,6 +264,25 @@ export default async function WorkspacePage({
               {docsWithProgress.filter((doc) => doc.latestJob || doc.status !== "ready")
                 .length === 0 ? <li className="muted">当前没有进行中的处理任务。</li> : null}
             </ul>
+          </div>
+          <div className="card">
+            <div className="toolbar">
+              <h3>最近报告</h3>
+            </div>
+            {reportList.length > 0 ? (
+              <ul className="list">
+                {reportList.map((report) => (
+                  <li key={report.id}>
+                    <Link href={`/workspaces/${workspaceId}/reports/${report.id}`}>
+                      {report.title}
+                    </Link>
+                    <span className="muted"> · {report.status}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="muted">当前还没有报告。</p>
+            )}
           </div>
           <div className="card">
             <h3>最近文档</h3>

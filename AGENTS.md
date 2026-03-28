@@ -44,11 +44,12 @@
 
 如果需求会影响多层，先找主链路。当前项目的主链路优先级长期保持为：
 
-1. 文档解析与切块质量
-2. 检索与引用准确性
-3. grounded final answer
-4. 工具时间线和阅读器体验
-5. 其他增强型 UI 或次要工具
+1. 先把传统前后端主工作流拉通
+2. 文档解析与切块质量
+3. 检索与引用准确性
+4. grounded final answer
+5. 工具时间线和阅读器体验
+6. 其他增强型 UI 或次要工具
 
 ## 3. 怎么开发
 
@@ -159,20 +160,24 @@ pnpm verify
 
 截至当前阶段，下一批任务优先级如下：
 
-1. parser 继续升级：
+1. web / BFF 主链路继续补齐：
+   - 工作空间首用体验
+   - 目录树、文档阅读、报告回访
+   - 上传与处理状态的稳定反馈
+2. parser 继续升级：
    - 真实 OCR provider 接入（保持当前 disabled/mock fallback 契约；默认不开）
    - 更稳的结构化 heading / table / block 映射
    - 页码与坐标质量提升
-2. grounded final answer：
+3. grounded final answer：
    - Agent SDK evidence dossier 输出
    - 结构化回答结果在 UI 中展示 `confidence / unsupported_reason / missing_information`
    - 继续补强 `anchor_id` 校验边界与测试
-3. retrieval provider：
+4. retrieval provider：
    - 百炼优先的 embedding / rerank 配置与观测
    - sparse/BM25 接入
-4. 工具时间线 / SSE：
+5. 工具时间线 / SSE：
    - 工具开始、结束、回答流式增量
-5. 文档阅读器能力：
+6. 文档阅读器能力：
    - 更真实的锚点跳转
    - 页内高亮
 

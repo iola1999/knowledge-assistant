@@ -149,9 +149,89 @@ button:disabled {
   align-items: center;
   padding: 6px 10px;
   border-radius: 999px;
+  border: 1px solid transparent;
   background: color-mix(in srgb, var(--surface-strong) 80%, white);
   color: var(--text);
   font-size: 13px;
+}
+
+.citation-link.is-highlighted,
+.conversation-link.is-active {
+  background: color-mix(in srgb, var(--accent) 18%, white);
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+}
+
+.conversation-list {
+  display: grid;
+  gap: 10px;
+}
+
+.conversation-link {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.empty-state {
+  display: grid;
+  gap: 4px;
+}
+
+.tree-list {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 10px;
+}
+
+.tree-children {
+  margin-top: 10px;
+}
+
+.tree-directory {
+  font-weight: 700;
+}
+
+.tree-file {
+  font-weight: 600;
+}
+
+.tree-path {
+  font-size: 13px;
+}
+
+.page-section {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.64);
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.document-block {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.document-block.is-highlighted {
+  border-color: color-mix(in srgb, var(--accent) 50%, var(--border));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 14%, transparent);
 }
 
 @media (max-width: 900px) {
