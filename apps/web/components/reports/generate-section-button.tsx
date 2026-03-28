@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
+import { buttonStyles, ui } from "@/lib/ui";
+
 export function GenerateSectionButton({
   reportId,
   sectionId,
@@ -45,11 +47,11 @@ export function GenerateSectionButton({
   }
 
   return (
-    <div className="stack">
-      <button disabled={isPending} onClick={handleClick} type="button">
+    <div className="grid gap-2">
+      <button className={buttonStyles({ variant: "secondary", size: "sm" })} disabled={isPending} onClick={handleClick} type="button">
         {isPending ? "生成中..." : "生成章节"}
       </button>
-      {status ? <p className="muted">{status}</p> : null}
+      {status ? <p className={ui.muted}>{status}</p> : null}
     </div>
   );
 }

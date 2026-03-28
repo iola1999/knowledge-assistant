@@ -7,6 +7,7 @@ import {
   documentTypeOptions,
   parseTagsInput,
 } from "@/lib/api/document-metadata";
+import { buttonStyles, cn, ui } from "@/lib/ui";
 
 type DocumentMetadataFormProps = {
   workspaceId: string;
@@ -79,30 +80,36 @@ export function DocumentMetadataForm({
   }
 
   return (
-    <form onSubmit={onSubmit} className="card form">
-      <div className="toolbar">
+    <form onSubmit={onSubmit} className={cn(ui.panel, "grid gap-4")}>
+      <div className={ui.toolbar}>
         <h3>资料管理</h3>
-        <span className="muted">重命名、移动目录、类型和标签</span>
+        <span className={ui.muted}>重命名、移动目录、类型和标签</span>
       </div>
-      <label>
+      <label className={ui.label}>
         文档名称
         <input
+          className={ui.input}
           value={title}
           onChange={(event) => setTitle(event.target.value)}
           placeholder="例如：采购主合同-修订稿"
         />
       </label>
-      <label>
+      <label className={ui.label}>
         目录路径
         <input
+          className={ui.input}
           value={directoryPath}
           onChange={(event) => setDirectoryPath(event.target.value)}
           placeholder="例如：资料库/客户A/主合同"
         />
       </label>
-      <label>
+      <label className={ui.label}>
         文档类型
-        <select value={docType} onChange={(event) => setDocType(event.target.value)}>
+        <select
+          className={ui.select}
+          value={docType}
+          onChange={(event) => setDocType(event.target.value)}
+        >
           {documentTypeOptions.map((option) => (
             <option key={option.value} value={option.value}>
               {option.label}
@@ -110,18 +117,19 @@ export function DocumentMetadataForm({
           ))}
         </select>
       </label>
-      <label>
+      <label className={ui.label}>
         标签
         <input
+          className={ui.input}
           value={tagsInput}
           onChange={(event) => setTagsInput(event.target.value)}
           placeholder="多个标签用逗号分隔"
         />
       </label>
-      <button disabled={isPending} type="submit">
+      <button className={buttonStyles()} disabled={isPending} type="submit">
         {isPending ? "刷新中..." : "保存"}
       </button>
-      {status ? <p>{status}</p> : null}
+      {status ? <p className={ui.muted}>{status}</p> : null}
     </form>
   );
 }

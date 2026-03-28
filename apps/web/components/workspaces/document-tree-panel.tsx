@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { buildDocumentTree } from "@/lib/api/tree";
 import { documentTypeOptions } from "@/lib/api/document-metadata";
+import { cn, ui } from "@/lib/ui";
 
 type DocumentTreeItem = {
   id: string;
@@ -23,18 +24,21 @@ function renderTreeNode(
     if (!document) {
       return (
         <li key={node.path}>
-          <span className="muted">{node.name}</span>
+          <span className={ui.muted}>{node.name}</span>
         </li>
       );
     }
 
     return (
-      <li key={node.path}>
-        <Link href={`/workspaces/${workspaceId}/documents/${document.id}`} className="tree-file">
+      <li key={node.path} className="grid gap-1">
+        <Link
+          href={`/workspaces/${workspaceId}/documents/${document.id}`}
+          className="font-medium text-app-text hover:text-app-accent"
+        >
           {document.title}
         </Link>
-        <div className="muted tree-path">{document.logicalPath}</div>
-        <div className="muted tree-meta">
+        <div className={cn(ui.muted, "text-xs")}>{document.logicalPath}</div>
+        <div className={cn(ui.muted, "text-xs")}>
           {documentTypeOptions.find((item) => item.value === document.docType)?.label ??
             document.docType}
           {document.tags.length > 0 ? ` · ${document.tags.join("、")}` : ""}
@@ -45,9 +49,9 @@ function renderTreeNode(
 
   return (
     <li key={node.path}>
-      <div className="tree-directory">{node.name}</div>
+      <div className="text-sm font-semibold text-app-text">{node.name}</div>
       {node.children?.length ? (
-        <ul className="tree-list tree-children">
+        <ul className="mt-3 grid gap-3 border-l border-app-border pl-4">
           {node.children.map((child) =>
             renderTreeNode(workspaceId, child, documentByPath),
           )}
@@ -68,14 +72,14 @@ export function DocumentTreePanel({
   const documentByPath = new Map(documents.map((item) => [item.logicalPath, item] as const));
 
   return (
-    <div className="assistant-settings-subcard">
+    <div className={cn(ui.subcard, "grid gap-4")}>
       <h3>资料目录</h3>
       {tree.length ? (
-        <ul className="tree-list">
+        <ul className="grid gap-3">
           {tree.map((node) => renderTreeNode(workspaceId, node, documentByPath))}
         </ul>
       ) : (
-        <p className="muted">当前还没有资料。</p>
+        <p className={ui.muted}>当前还没有资料。</p>
       )}
     </div>
   );

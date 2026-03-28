@@ -4,6 +4,8 @@ import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { buttonStyles, cn, ui } from "@/lib/ui";
+
 export function AuthForm({ mode }: { mode: "login" | "register" }) {
   const router = useRouter();
   const [username, setUsername] = useState("");
@@ -53,26 +55,35 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
   }
 
   return (
-    <form onSubmit={onSubmit} className="card form">
-      <h1>{mode === "login" ? "登录" : "注册"}</h1>
+    <form onSubmit={onSubmit} className={cn(ui.panelLarge, "grid gap-4")}>
+      <div className="space-y-2">
+        <p className={ui.eyebrow}>{mode === "login" ? "Login" : "Register"}</p>
+        <h1>{mode === "login" ? "登录" : "注册"}</h1>
+      </div>
       {mode === "register" ? (
-        <label>
+        <label className={ui.label}>
           显示名
-          <input value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
+          <input
+            className={ui.input}
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
+          />
         </label>
       ) : null}
-      <label>
+      <label className={ui.label}>
         用户名
         <input
+          className={ui.input}
           required
           minLength={3}
           value={username}
           onChange={(e) => setUsername(e.target.value)}
         />
       </label>
-      <label>
+      <label className={ui.label}>
         密码
         <input
+          className={ui.input}
           required
           type="password"
           minLength={6}
@@ -80,8 +91,8 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
           onChange={(e) => setPassword(e.target.value)}
         />
       </label>
-      {error ? <p className="error">{error}</p> : null}
-      <button disabled={loading} type="submit">
+      {error ? <p className={ui.error}>{error}</p> : null}
+      <button className={buttonStyles()} disabled={loading} type="submit">
         {loading ? "处理中..." : mode === "login" ? "登录" : "创建账号"}
       </button>
     </form>

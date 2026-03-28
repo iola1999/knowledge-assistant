@@ -5,6 +5,7 @@ import { getDb, users, workspaces } from "@law-doc/db";
 
 import { auth } from "@/auth";
 import { isSuperAdminUsername } from "@/lib/auth/super-admin";
+import { buttonStyles, cn, ui } from "@/lib/ui";
 
 export default async function WorkspacesPage() {
   const session = await auth();
@@ -22,67 +23,77 @@ export default async function WorkspacesPage() {
   const canAccessSystemSettings = isSuperAdminUsername(username);
 
   return (
-    <div className="workspace-selector-page">
-      <div className="workspace-selector-hero">
-        <div className="workspace-selector-copy stack">
-          <p className="workspace-panel-eyebrow">Spaces</p>
+    <div className={ui.page}>
+      <div className={ui.toolbar}>
+        <div className="max-w-[64ch] space-y-2">
+          <p className={ui.eyebrow}>Spaces</p>
           <h1>先选择要进入的空间</h1>
-          <p className="muted">
+          <p className={ui.muted}>
             欢迎，{displayName}。问答、资料和历史会话都以空间为边界，登录后先进入一个具体空间再开始工作。
           </p>
         </div>
 
-        <div className="workspace-selector-actions">
-          <Link href="/workspaces/new" className="assistant-primary-link">
+        <div className={ui.actions}>
+          <Link href="/workspaces/new" className={buttonStyles()}>
             新建工作空间
           </Link>
           {canAccessSystemSettings ? (
-            <Link href="/settings" className="assistant-secondary-link">
+            <Link href="/settings" className={buttonStyles({ variant: "secondary" })}>
               系统设置
             </Link>
           ) : null}
         </div>
       </div>
 
-      <div className="workspace-selector-grid">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
         {workspaceList.length ? (
           workspaceList.map((workspace) => (
             <Link
               key={workspace.id}
               href={`/workspaces/${workspace.id}`}
-              className="workspace-selector-card"
+              className={cn(
+                ui.panel,
+                "grid min-h-[220px] gap-4 rounded-[24px] p-6 transition hover:-translate-y-0.5",
+              )}
             >
-              <div className="workspace-selector-card-top">
-                <span className="workspace-selector-mark">空</span>
-                <span className="workspace-selector-open">进入空间</span>
+              <div className={ui.toolbar}>
+                <span className="grid size-12 place-items-center rounded-2xl bg-app-surface-strong text-xl font-semibold text-app-accent">
+                  空
+                </span>
+                <span className="text-sm text-app-muted">进入空间</span>
               </div>
-              <div className="stack">
+              <div className="space-y-2">
                 <strong>{workspace.title}</strong>
-                <p className="muted">{workspace.description || "暂无描述"}</p>
+                <p className={ui.muted}>{workspace.description || "暂无描述"}</p>
               </div>
-              <div className="workspace-selector-meta muted">
+              <div className="flex flex-wrap items-center gap-2 text-sm text-app-muted">
                 <span>{workspace.defaultMode === "kb_plus_web" ? "资料 + 联网" : "仅资料"}</span>
                 <span>{workspace.allowWebSearch ? "允许联网" : "默认本地"}</span>
               </div>
             </Link>
           ))
         ) : (
-          <div className="workspace-selector-empty">
+          <div className={cn(ui.panel, "grid min-h-[220px] content-center rounded-[24px] p-6")}>
             <p>还没有工作空间，先创建一个空间再开始问答。</p>
           </div>
         )}
 
         <Link
           href="/workspaces/new"
-          className="workspace-selector-card workspace-selector-card-create"
+          className={cn(
+            ui.panel,
+            "grid min-h-[220px] gap-4 rounded-[24px] border-dashed p-6 transition hover:-translate-y-0.5",
+          )}
         >
-          <div className="workspace-selector-card-top">
-            <span className="workspace-selector-mark">+</span>
-            <span className="workspace-selector-open">创建新空间</span>
+          <div className={ui.toolbar}>
+            <span className="grid size-12 place-items-center rounded-2xl bg-app-surface-strong text-xl font-semibold text-app-accent">
+              +
+            </span>
+            <span className="text-sm text-app-muted">创建新空间</span>
           </div>
-          <div className="stack">
+          <div className="space-y-2">
             <strong>新建工作空间</strong>
-            <p className="muted">为新的案件、客户或专题建立独立资料库与会话历史。</p>
+            <p className={ui.muted}>为新的案件、客户或专题建立独立资料库与会话历史。</p>
           </div>
         </Link>
       </div>

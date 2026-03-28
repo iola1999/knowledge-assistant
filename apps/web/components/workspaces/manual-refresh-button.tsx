@@ -3,13 +3,15 @@
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 
+import { buttonStyles } from "@/lib/ui";
+
 export function ManualRefreshButton() {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
   return (
     <button
-      className="button-secondary"
+      className={buttonStyles({ variant: "secondary", size: "sm" })}
       disabled={isPending}
       onClick={() =>
         startTransition(() => {

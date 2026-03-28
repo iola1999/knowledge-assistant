@@ -19,6 +19,7 @@ import { DocumentMetadataForm } from "@/components/documents/document-metadata-f
 import { PdfViewer } from "@/components/documents/pdf-viewer";
 import { buildDocumentViewerPages } from "@/lib/api/document-view";
 import { documentTypeOptions } from "@/lib/api/document-metadata";
+import { cn, ui } from "@/lib/ui";
 
 export default async function DocumentPage({
   params,
@@ -150,18 +151,18 @@ export default async function DocumentPage({
   const canRenderPdf = doc[0].mimeType.includes("pdf") && Boolean(latestVersion);
 
   return (
-    <div className="stack">
-      <div className="card">
-        <div className="toolbar">
-          <div>
+    <div className={ui.pageNarrow}>
+      <div className={cn(ui.panelLarge, "grid gap-4")}>
+        <div className={ui.toolbar}>
+          <div className="space-y-1">
             <h1>{doc[0].title}</h1>
-            <p className="muted">{doc[0].logicalPath}</p>
+            <p className={ui.muted}>{doc[0].logicalPath}</p>
             <p>
               状态：{doc[0].status} · 类型：{docTypeLabel}
             </p>
-            {tags.length > 0 ? <p className="muted">标签：{tags.join("、")}</p> : null}
+            {tags.length > 0 ? <p className={ui.muted}>标签：{tags.join("、")}</p> : null}
             {latestVersion ? (
-              <p className="muted">
+              <p className={ui.muted}>
                 当前版本：v{latestVersion.version} · {latestVersion.parseStatus}
                 {latestJob ? ` · ${latestJob.stage} · ${latestJob.progress}%` : ""}
               </p>
@@ -190,18 +191,18 @@ export default async function DocumentPage({
         />
       ) : null}
       {anchor ? (
-        <div className="card">
+        <div className={cn(ui.panel, "grid gap-2")}>
           <h3>当前引用定位</h3>
-          <p className="muted">
+          <p className={ui.muted}>
             {anchor.documentPath} · 第{anchor.pageNo}页
           </p>
           <p>{anchor.anchorText}</p>
         </div>
       ) : null}
-      <div className="card stack">
-        <div className="toolbar">
+      <div className={cn(ui.panel, "grid gap-4")}>
+        <div className={ui.toolbar}>
           <h3>解析内容</h3>
-          <span className="muted">
+          <span className={ui.muted}>
             {viewerPages.length > 0
               ? `${viewerPages.length} 页`
               : latestVersion?.parseStatus === "ready"
@@ -211,59 +212,72 @@ export default async function DocumentPage({
         </div>
         {viewerPages.length > 0 ? (
           viewerPages.map((page) => (
-            <section key={page.pageNo} className="page-section">
-              <div className="page-header">
+            <section
+              key={page.pageNo}
+              className="grid gap-4 rounded-3xl border border-app-border bg-app-surface-soft/80 p-4"
+            >
+              <div className={ui.toolbar}>
                 <strong>第 {page.pageNo} 页</strong>
-                <span className="muted">{page.anchors.length} 条引用锚点</span>
+                <span className={ui.muted}>{page.anchors.length} 条引用锚点</span>
               </div>
               {page.anchors.length > 0 ? (
-                <div className="citation-list">
+                <div className="flex flex-wrap gap-2">
                   {page.anchors.map((item) => (
                     <Link
                       key={item.id}
                       href={`/workspaces/${workspaceId}/documents/${documentId}?anchorId=${item.id}`}
-                      className={`citation-link${item.isHighlighted ? " is-highlighted" : ""}`}
+                      className={cn(
+                        "inline-flex items-center rounded-full border px-3 py-1 text-[13px]",
+                        item.isHighlighted
+                          ? "border-app-border-strong bg-white"
+                          : "border-app-border bg-app-surface-soft hover:border-app-border-strong",
+                      )}
                     >
                       {item.anchorLabel}
                     </Link>
                   ))}
                 </div>
               ) : null}
-              <div className="stack">
+              <div className="grid gap-3">
                 {page.blocks.map((block) => (
                   <article
                     key={block.id}
-                    className={`document-block${block.isHighlighted ? " is-highlighted" : ""}`}
+                    className={cn(
+                      "grid gap-3 rounded-2xl border p-4",
+                      block.isHighlighted
+                        ? "border-app-border-strong bg-white shadow-soft"
+                        : "border-app-border bg-white/84",
+                    )}
                   >
-                    <div className="toolbar">
+                    <div className={ui.toolbar}>
                       <strong>{block.blockType}</strong>
-                      <span className="muted">
+                      <span className={ui.muted}>
                         {block.sectionLabel ?? block.headingPath.at(-1) ?? "正文"}
                         {block.anchorCount > 0 ? ` · ${block.anchorCount} 个引用` : ""}
                       </span>
                     </div>
                     {block.headingPath.length > 0 ? (
-                      <div className="muted">
+                      <div className={ui.muted}>
                         {block.headingPath.join(" / ")}
                       </div>
                     ) : null}
-                    <div>{block.text}</div>
+                    <div className="leading-7">{block.text}</div>
                   </article>
                 ))}
               </div>
             </section>
           ))
         ) : (
-          <p className="muted">
+          <p className={ui.muted}>
             当前还没有可展示的解析内容。若状态仍在处理中，稍后刷新即可。
           </p>
         )}
       </div>
-      <div className="card">
+      <div className={cn(ui.panel, "grid gap-3")}>
         <h3>版本</h3>
-        <ul className="list">
+        <ul className="grid gap-2 pl-5 text-sm leading-6 text-app-muted-strong">
           {versions.map((version) => (
-            <li key={version.id}>
+            <li key={version.id} className="list-disc">
               版本 {version.version} · {version.parseStatus} · sha256 {version.sha256}
             </li>
           ))}

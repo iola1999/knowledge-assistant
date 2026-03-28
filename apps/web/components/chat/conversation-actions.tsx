@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
+import { buttonStyles, ui } from "@/lib/ui";
+
 export function ConversationActions({
   conversationId,
   workspaceId,
@@ -66,9 +68,9 @@ export function ConversationActions({
   }
 
   return (
-    <div className="conversation-actions">
+    <div className="flex flex-wrap items-center gap-2">
       <button
-        className="button-secondary"
+        className={buttonStyles({ variant: "secondary", size: "sm" })}
         disabled={isPending}
         onClick={handleRename}
         type="button"
@@ -76,14 +78,14 @@ export function ConversationActions({
         重命名
       </button>
       <button
-        className="button-secondary"
+        className={buttonStyles({ variant: "secondary", size: "sm" })}
         disabled={isPending}
         onClick={handleArchiveToggle}
         type="button"
       >
         {status === "active" ? "归档" : "恢复"}
       </button>
-      {error ? <span className="error">{error}</span> : null}
+      {error ? <span className={ui.error}>{error}</span> : null}
     </div>
   );
 }

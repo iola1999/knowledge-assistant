@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
+import { buttonStyles, cn, ui } from "@/lib/ui";
+
 export function WorkspaceSettingsForm({
   sectionId,
   workspaceId,
@@ -54,35 +56,45 @@ export function WorkspaceSettingsForm({
   }
 
   return (
-    <form id={sectionId} onSubmit={onSubmit} className="workspace-settings-card form">
-      <div className="stack">
-        <p className="workspace-panel-eyebrow">General</p>
+    <form id={sectionId} onSubmit={onSubmit} className={cn(ui.panelLarge, "grid gap-4")}>
+      <div className="grid gap-2">
+        <p className={ui.eyebrow}>General</p>
         <h2>空间信息</h2>
-        <p className="muted">这里维护空间名称、说明和行业标签，方便后续长期稳定使用。</p>
+        <p className={ui.muted}>这里维护空间名称、说明和行业标签，方便后续长期稳定使用。</p>
       </div>
 
-      <label>
+      <label className={ui.label}>
         空间名称
-        <input required value={title} onChange={(event) => setTitle(event.target.value)} />
+        <input
+          required
+          className={ui.input}
+          value={title}
+          onChange={(event) => setTitle(event.target.value)}
+        />
       </label>
-      <label>
+      <label className={ui.label}>
         行业
-        <input value={industry} onChange={(event) => setIndustry(event.target.value)} />
+        <input
+          className={ui.input}
+          value={industry}
+          onChange={(event) => setIndustry(event.target.value)}
+        />
       </label>
-      <label>
+      <label className={ui.label}>
         空间说明
         <textarea
+          className={ui.textarea}
           rows={4}
           value={description}
           onChange={(event) => setDescription(event.target.value)}
         />
       </label>
 
-      <div className="workspace-settings-actions">
-        <button disabled={isPending} type="submit">
+      <div className="flex flex-wrap items-center gap-3">
+        <button className={buttonStyles()} disabled={isPending} type="submit">
           {isPending ? "保存中..." : "保存空间设置"}
         </button>
-        {status ? <span className="muted">{status}</span> : null}
+        {status ? <span className={ui.muted}>{status}</span> : null}
       </div>
     </form>
   );

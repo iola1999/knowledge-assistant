@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
+import { buttonStyles, ui } from "@/lib/ui";
+
 export function OutlineButton({
   reportId,
   disabled,
@@ -38,11 +40,16 @@ export function OutlineButton({
   }
 
   return (
-    <div className="stack">
-      <button disabled={disabled || isPending} onClick={handleClick} type="button">
+    <div className="grid gap-2">
+      <button
+        className={buttonStyles()}
+        disabled={disabled || isPending}
+        onClick={handleClick}
+        type="button"
+      >
         {isPending ? "刷新中..." : "生成大纲"}
       </button>
-      {status ? <p className="muted">{status}</p> : null}
+      {status ? <p className={ui.muted}>{status}</p> : null}
     </div>
   );
 }

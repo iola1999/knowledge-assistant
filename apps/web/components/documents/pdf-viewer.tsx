@@ -7,6 +7,7 @@ import {
   resolveInitialPdfPage,
   splitHighlightedText,
 } from "@/lib/api/pdf-viewer";
+import { buttonStyles, cn, ui } from "@/lib/ui";
 
 type PdfDocumentProxy = {
   numPages: number;
@@ -209,18 +210,18 @@ export function PdfViewer({
   );
 
   return (
-    <div className="card stack">
-      <div className="toolbar">
-        <div>
+    <div className={cn(ui.panel, "grid gap-4")}>
+      <div className={ui.toolbar}>
+        <div className="space-y-1">
           <h3>PDF 阅读器</h3>
-          <p className="muted">
+          <p className={ui.muted}>
             {title}
             {pageCount > 0 ? ` · 共 ${pageCount} 页` : ""}
           </p>
         </div>
-        <div className="pdf-controls">
+        <div className="flex flex-wrap items-center gap-2">
           <button
-            className="button-secondary"
+            className={buttonStyles({ variant: "secondary", size: "sm" })}
             disabled={currentPage <= 1}
             onClick={() => jumpToPage(currentPage - 1)}
             type="button"
@@ -228,14 +229,14 @@ export function PdfViewer({
             上一页
           </button>
           <input
-            className="page-input"
+            className={cn(ui.input, "h-9 w-[88px] rounded-xl px-3 py-0 text-center")}
             inputMode="numeric"
             value={currentPageInput}
             onChange={(event) => setCurrentPageInput(event.target.value)}
             onBlur={() => jumpToPage(Number(currentPageInput))}
           />
           <button
-            className="button-secondary"
+            className={buttonStyles({ variant: "secondary", size: "sm" })}
             disabled={pageCount > 0 ? currentPage >= pageCount : true}
             onClick={() => jumpToPage(currentPage + 1)}
             type="button"
@@ -243,7 +244,7 @@ export function PdfViewer({
             下一页
           </button>
           <button
-            className="button-secondary"
+            className={buttonStyles({ variant: "secondary", size: "sm" })}
             disabled={scale <= 0.8}
             onClick={() => setScale((value) => Math.max(0.8, value - 0.2))}
             type="button"
@@ -251,7 +252,7 @@ export function PdfViewer({
             缩小
           </button>
           <button
-            className="button-secondary"
+            className={buttonStyles({ variant: "secondary", size: "sm" })}
             onClick={() => setScale((value) => Math.min(2, value + 0.2))}
             type="button"
           >
@@ -260,9 +261,10 @@ export function PdfViewer({
         </div>
       </div>
 
-      <label>
+      <label className={ui.label}>
         页内搜索
         <input
+          className={ui.input}
           value={searchQuery}
           onChange={(event) => setSearchQuery(event.target.value)}
           placeholder="搜索当前 PDF 中的关键词"
@@ -270,11 +272,11 @@ export function PdfViewer({
       </label>
 
       {searchResults.length > 0 ? (
-        <div className="search-result-list">
+        <div className="grid gap-2">
           {searchResults.map((result) => (
             <button
               key={`${result.pageNo}-${result.snippet}`}
-              className="search-result-item"
+              className="w-full rounded-2xl border border-app-border bg-app-surface-soft px-4 py-3 text-left text-sm hover:border-app-border-strong hover:bg-white"
               onClick={() => jumpToPage(result.pageNo)}
               type="button"
             >
@@ -284,17 +286,17 @@ export function PdfViewer({
         </div>
       ) : null}
 
-      {status ? <p className="muted">{status}</p> : null}
-      <div className="pdf-canvas-wrap">
-        <canvas ref={canvasRef} className="pdf-canvas" />
+      {status ? <p className={ui.muted}>{status}</p> : null}
+      <div className="overflow-auto rounded-3xl border border-app-border bg-white/78 p-4">
+        <canvas ref={canvasRef} className="block h-auto w-full" />
       </div>
 
-      <div className="stack">
-        <div className="toolbar">
+      <div className="grid gap-3">
+        <div className={ui.toolbar}>
           <strong>第 {currentPage} 页文本</strong>
-          {highlightedText ? <span className="muted">已按引用内容高亮</span> : null}
+          {highlightedText ? <span className={ui.muted}>已按引用内容高亮</span> : null}
         </div>
-        <div className="pdf-text-panel">
+        <div className="rounded-3xl border border-app-border bg-white/78 p-4 leading-7">
           {highlightedSegments.map((segment, index) =>
             segment.highlighted ? (
               <mark key={`${segment.text}-${index}`}>{segment.text}</mark>

@@ -18,6 +18,7 @@ import { UploadForm } from "@/components/workspaces/upload-form";
 import { WorkspaceSettingsForm } from "@/components/workspaces/workspace-settings-form";
 import { WorkspaceShell } from "@/components/workspaces/workspace-shell";
 import { canRetryDocumentJob, describeDocumentJobFailure } from "@/lib/api/document-jobs";
+import { buttonStyles, cn, ui } from "@/lib/ui";
 
 export default async function WorkspaceSettingsPage({
   params,
@@ -127,22 +128,32 @@ export default async function WorkspaceSettingsPage({
         { label: "设置" },
       ]}
     >
-      <div className="workspace-settings-page">
-        <section className="workspace-settings-hero">
-          <div className="stack">
-            <p className="workspace-panel-eyebrow">Workspace Settings</p>
+      <div className="mx-auto grid w-full max-w-[1040px] gap-5">
+        <section className="flex flex-wrap items-end justify-between gap-4 px-0.5 py-2">
+          <div className="space-y-2">
+            <p className={ui.eyebrow}>Workspace Settings</p>
             <h1>当前空间设置</h1>
-            <p className="muted">
+            <p className={ui.muted}>
               这里集中维护空间名称、资料库和上传入口。主对话页只保留问答本身，不再混放后台功能。
             </p>
           </div>
-          <div className="workspace-settings-anchor-nav">
-            <Link href="#general">空间信息</Link>
-            <Link href="#knowledge-base">资料库</Link>
+          <div className="flex flex-wrap items-center gap-2">
+            <Link
+              href="#general"
+              className={buttonStyles({ variant: "secondary", size: "sm" })}
+            >
+              空间信息
+            </Link>
+            <Link
+              href="#knowledge-base"
+              className={buttonStyles({ variant: "secondary", size: "sm" })}
+            >
+              资料库
+            </Link>
           </div>
         </section>
 
-        <div className="workspace-settings-grid">
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(320px,0.92fr)_minmax(0,1.08fr)]">
           <WorkspaceSettingsForm
             sectionId="general"
             workspaceId={workspace.id}
@@ -151,12 +162,12 @@ export default async function WorkspaceSettingsPage({
             initialIndustry={workspace.industry}
           />
 
-          <section id="knowledge-base" className="workspace-settings-card stack">
-            <div className="workspace-settings-header">
-              <div className="stack">
-                <p className="workspace-panel-eyebrow">Knowledge Base</p>
+          <section id="knowledge-base" className={cn(ui.panelLarge, "grid gap-4 p-6")}>
+            <div className={ui.toolbar}>
+              <div className="space-y-2">
+                <p className={ui.eyebrow}>Knowledge Base</p>
                 <h2>资料库</h2>
-                <p className="muted">
+                <p className={ui.muted}>
                   上传、查看和追踪当前空间中的资料处理状态。所有资料管理都以当前空间为边界。
                 </p>
               </div>
@@ -165,7 +176,7 @@ export default async function WorkspaceSettingsPage({
 
             <UploadForm workspaceId={workspace.id} />
 
-            <div className="workspace-settings-subgrid">
+            <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
               <DocumentTreePanel
                 workspaceId={workspace.id}
                 documents={docsWithProgress.map((doc) => ({
@@ -177,21 +188,27 @@ export default async function WorkspaceSettingsPage({
                 }))}
               />
 
-              <div className="workspace-settings-subsection stack">
+              <div className={cn(ui.subcard, "grid gap-4")}>
                 <h3>处理中的资料</h3>
                 {processingDocs.length > 0 ? (
-                  <div className="workspace-settings-doc-list">
+                  <div className="grid gap-3">
                     {processingDocs.map((doc) => (
-                      <div key={doc.id} className="workspace-settings-doc-item">
-                        <Link href={`/workspaces/${workspace.id}/documents/${doc.id}`}>
+                      <div
+                        key={doc.id}
+                        className="grid gap-2 rounded-2xl border border-app-border bg-white/82 p-4"
+                      >
+                        <Link
+                          href={`/workspaces/${workspace.id}/documents/${doc.id}`}
+                          className="font-medium hover:text-app-accent"
+                        >
                           <strong>{doc.title}</strong>
                         </Link>
-                        <span className="muted">
+                        <span className={ui.muted}>
                           {doc.latestJob?.stage ?? doc.latestVersion?.parseStatus ?? doc.status}
                           {doc.latestJob ? ` · ${doc.latestJob.progress}%` : ""}
                         </span>
                         {doc.latestJob?.status === "failed" ? (
-                          <p className="error">
+                          <p className={ui.error}>
                             {describeDocumentJobFailure({
                               stage: doc.latestJob.stage,
                               errorCode: doc.latestJob.errorCode,
@@ -200,13 +217,13 @@ export default async function WorkspaceSettingsPage({
                           </p>
                         ) : null}
                         {doc.latestJob && canRetryDocumentJob(doc.latestJob) ? (
-                          <div className="muted">可在文档详情页或任务入口继续重试。</div>
+                          <div className={ui.muted}>可在文档详情页或任务入口继续重试。</div>
                         ) : null}
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="muted">当前没有正在处理或失败的资料任务。</p>
+                  <p className={ui.muted}>当前没有正在处理或失败的资料任务。</p>
                 )}
               </div>
             </div>

@@ -59,6 +59,12 @@
   - 空会话态改成大输入框的新问题页，提交首问后前端会自动创建会话
   - 空间内改成“顶部面包屑/空间切换 + 左侧历史会话 + 左侧当前空间设置 + 中央会话主舞台”的产品结构
   - 资料库、上传入口和空间名称维护统一收进 `/workspaces/[workspaceId]/settings`
+  - 视觉设计系统同步收口到更轻、更规整的助手风格：弱化后台卡片感，统一边框、圆角、输入区、消息气泡和侧栏列表语言
+- `working tree` `Migrate web styling to Tailwind design system`
+  - `apps/web` 已接入 `Tailwind CSS v4 + @tailwindcss/postcss`
+  - `globals.css` 收敛为 theme token 与 base 样式，不再承载整站组件样式
+  - 共享视觉 token 和按钮/面板/input 等 primitive 收敛到 `apps/web/lib/ui.ts`
+  - `auth / workspaces / settings / documents / reports` 页面与相关组件已迁到 Tailwind utility class，样式就近跟随组件维护
 - `working tree` `Add Docker infra commands and dev guide`
   - 根目录新增 `pnpm infra:up` / `pnpm infra:down` / `pnpm infra:logs`
   - 新增本地开发指引文档，明确推荐“应用跑宿主机，依赖跑 Docker Compose”

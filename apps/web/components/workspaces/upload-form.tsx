@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
+import { buttonStyles, cn, ui } from "@/lib/ui";
+
 export function UploadForm({ workspaceId }: { workspaceId: string }) {
   const router = useRouter();
   const [directoryPath, setDirectoryPath] = useState("资料库");
@@ -83,24 +85,25 @@ export function UploadForm({ workspaceId }: { workspaceId: string }) {
   }
 
   return (
-    <form onSubmit={onSubmit} className="assistant-settings-subcard form">
+    <form onSubmit={onSubmit} className={cn(ui.subcard, "grid gap-4")}>
       <h3>上传资料</h3>
-      <label>
+      <label className={ui.label}>
         目录路径
         <input
+          className={ui.input}
           value={directoryPath}
           onChange={(e) => setDirectoryPath(e.target.value)}
           placeholder="例如：资料库/合同/供应商"
         />
       </label>
-      <label>
+      <label className={ui.label}>
         文件
-        <input required name="file" type="file" />
+        <input className={ui.input} required name="file" type="file" />
       </label>
-      <button disabled={isPending} type="submit">
+      <button className={buttonStyles()} disabled={isPending} type="submit">
         {isPending ? "刷新中..." : "上传"}
       </button>
-      {status ? <p>{status}</p> : null}
+      {status ? <p className={ui.muted}>{status}</p> : null}
     </form>
   );
 }

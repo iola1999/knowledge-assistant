@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
+import { buttonStyles, ui } from "@/lib/ui";
+
 export function DeleteDocumentButton({
   workspaceId,
   documentId,
@@ -42,16 +44,16 @@ export function DeleteDocumentButton({
   }
 
   return (
-    <div className="stack">
+    <div className="grid gap-2">
       <button
-        className="button-danger"
+        className={buttonStyles({ variant: "danger" })}
         disabled={isPending}
         onClick={handleDelete}
         type="button"
       >
         {isPending ? "返回中..." : "删除文档"}
       </button>
-      {status ? <p className="error">{status}</p> : null}
+      {status ? <p className={ui.error}>{status}</p> : null}
     </div>
   );
 }

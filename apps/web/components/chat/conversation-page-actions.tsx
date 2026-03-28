@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
+import { buttonStyles, ui } from "@/lib/ui";
+
 export function ConversationPageActions({
   conversationId,
   workspaceId,
@@ -50,9 +52,9 @@ export function ConversationPageActions({
   }
 
   return (
-    <div className="assistant-page-actions">
+    <div className="flex flex-wrap items-center justify-end gap-2">
       <button
-        className="button-secondary"
+        className={buttonStyles({ variant: "secondary", size: "sm" })}
         disabled={isPending}
         onClick={handleShare}
         type="button"
@@ -60,14 +62,14 @@ export function ConversationPageActions({
         分享
       </button>
       <button
-        className="button-secondary"
+        className={buttonStyles({ variant: "secondary", size: "sm" })}
         disabled={isPending}
         onClick={handleDelete}
         type="button"
       >
         删除
       </button>
-      {status ? <span className="assistant-page-actions-status muted">{status}</span> : null}
+      {status ? <span className={ui.muted}>{status}</span> : null}
     </div>
   );
 }

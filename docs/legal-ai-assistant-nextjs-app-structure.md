@@ -64,9 +64,17 @@ apps/web/
 │  ├─ db/
 │  ├─ sse/
 │  ├─ api/
+│  ├─ ui.ts
 │  └─ guards/
 └─ hooks/
 ```
+
+前端样式约束补充：
+
+- Web 端统一使用 `Tailwind CSS v4`。
+- `app/globals.css` 只保留 theme token 与 base reset，不再堆积页面级/组件级样式。
+- 共享设计 token、按钮和面板等 primitive 放在 `lib/ui.ts`。
+- 页面和组件样式优先跟随组件本身维护，而不是回到单一大 CSS 文件。
 
 ## 3. 页面职责
 

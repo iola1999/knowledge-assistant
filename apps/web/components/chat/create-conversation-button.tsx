@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
+import { buttonStyles, ui } from "@/lib/ui";
+
 export function CreateConversationButton({
   workspaceId,
   label = "新建对话",
@@ -42,11 +44,11 @@ export function CreateConversationButton({
   }
 
   return (
-    <div className="stack">
-      <button disabled={isPending} onClick={handleClick} type="button">
+    <div className="grid gap-2">
+      <button className={buttonStyles()} disabled={isPending} onClick={handleClick} type="button">
         {isPending ? "进入中..." : label}
       </button>
-      {status ? <p className="error">{status}</p> : null}
+      {status ? <p className={ui.error}>{status}</p> : null}
     </div>
   );
 }

@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
+import { buttonStyles, cn, ui } from "@/lib/ui";
+
 export function CreateReportForm({
   workspaceId,
   conversationId,
@@ -48,20 +50,21 @@ export function CreateReportForm({
   }
 
   return (
-    <form onSubmit={onSubmit} className="card form">
+    <form onSubmit={onSubmit} className={cn(ui.panel, "grid gap-4")}>
       <h3>新建报告</h3>
-      <label>
+      <label className={ui.label}>
         报告标题
         <input
+          className={ui.input}
           value={title}
           onChange={(event) => setTitle(event.target.value)}
           placeholder="例如：供应商合同审查意见"
         />
       </label>
-      <button disabled={isPending} type="submit">
+      <button className={buttonStyles()} disabled={isPending} type="submit">
         {isPending ? "跳转中..." : "创建报告"}
       </button>
-      {status ? <p>{status}</p> : null}
+      {status ? <p className={ui.muted}>{status}</p> : null}
     </form>
   );
 }

@@ -7,6 +7,7 @@ import { getDb, reports, reportSections, workspaces } from "@law-doc/db";
 import { auth } from "@/auth";
 import { GenerateSectionButton } from "@/components/reports/generate-section-button";
 import { OutlineButton } from "@/components/reports/outline-button";
+import { buttonStyles, cn, ui } from "@/lib/ui";
 
 export default async function ReportPage({
   params,
@@ -45,28 +46,31 @@ export default async function ReportPage({
     .orderBy(asc(reportSections.orderIndex));
 
   return (
-    <div className="stack">
-      <div className="card">
-        <div className="toolbar">
-          <div>
+    <div className={ui.pageNarrow}>
+      <div className={cn(ui.panelLarge, "grid gap-4")}>
+        <div className={ui.toolbar}>
+          <div className="space-y-1">
             <h1>{report[0].title}</h1>
-            <p className="muted">状态：{report[0].status}</p>
+            <p className={ui.muted}>状态：{report[0].status}</p>
           </div>
-          <Link href={`/api/reports/${reportId}/export-docx`} className="card">
+          <Link
+            href={`/api/reports/${reportId}/export-docx`}
+            className={buttonStyles({ variant: "secondary" })}
+          >
             导出 DOCX
           </Link>
         </div>
-        <div className="toolbar">
+        <div className={ui.toolbar}>
           <OutlineButton reportId={reportId} />
-          <p className="muted">先生成大纲，再按章节逐步补全文本。</p>
+          <p className={ui.muted}>先生成大纲，再按章节逐步补全文本。</p>
         </div>
       </div>
-      <div className="card">
+      <div className={cn(ui.panel, "grid gap-4")}>
         <h3>章节</h3>
-        <ul className="list">
+        <ul className="grid gap-3">
           {sections.map((section) => (
-            <li key={section.id}>
-              <div className="toolbar">
+            <li key={section.id} className="grid gap-3 rounded-3xl border border-app-border bg-app-surface-soft/80 p-4">
+              <div className={ui.toolbar}>
                 <div>
                   <strong>{section.title}</strong> · {section.status}
                 </div>
@@ -77,12 +81,12 @@ export default async function ReportPage({
                 />
               </div>
               {section.contentMarkdown ? (
-                <div className="muted">{section.contentMarkdown}</div>
+                <div className={cn(ui.muted, "whitespace-pre-wrap")}>{section.contentMarkdown}</div>
               ) : null}
             </li>
           ))}
         </ul>
-        {sections.length === 0 ? <p className="muted">当前还没有章节，请先生成大纲。</p> : null}
+        {sections.length === 0 ? <p className={ui.muted}>当前还没有章节，请先生成大纲。</p> : null}
       </div>
     </div>
   );

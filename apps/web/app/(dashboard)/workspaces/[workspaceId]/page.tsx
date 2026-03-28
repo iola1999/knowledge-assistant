@@ -15,6 +15,7 @@ import { Composer } from "@/components/chat/composer";
 import { ConversationPageActions } from "@/components/chat/conversation-page-actions";
 import { WorkspaceShell } from "@/components/workspaces/workspace-shell";
 import { chooseWorkspaceConversationWithMeta } from "@/lib/api/conversations";
+import { cn, ui } from "@/lib/ui";
 
 export default async function WorkspacePage({
   params,
@@ -119,26 +120,31 @@ export default async function WorkspacePage({
       }
     >
       {activeConversation ? (
-        <div className="conversation-stage">
-          <div className="conversation-stage-panel">
-            <header className="conversation-stage-header">
-              <div className="stack">
-                <p className="workspace-panel-eyebrow">Conversation</p>
+        <div className="mx-auto w-full max-w-[1040px]">
+          <div className={cn(ui.panelLarge, "grid min-h-[calc(100vh-132px)] content-start gap-5 p-6")}>
+            <header className="flex items-start justify-between gap-3">
+              <div className="space-y-2">
+                <p className={ui.eyebrow}>Conversation</p>
                 <h1>{activeConversation.title}</h1>
-                <p className="muted">
+                <p className={ui.muted}>
                   当前会话持续沉淀在 {workspace.title} 里，引用会继续指向该空间下的资料。
                 </p>
               </div>
             </header>
 
-            <div className="conversation-thread">
+            <div className="grid gap-4">
               {thread.length > 0 ? (
                 thread.map((message) => (
                   <article
                     key={message.id}
-                    className={`conversation-bubble conversation-bubble-${message.role}`}
+                    className={cn(
+                      "grid max-w-[720px] gap-2 rounded-[20px] border border-app-border px-4 py-4",
+                      message.role === "user"
+                        ? "ml-auto bg-app-surface-strong/80"
+                        : "bg-white/92",
+                    )}
                   >
-                    <div className="conversation-bubble-head">
+                    <div className="flex items-center justify-between gap-3 text-[13px]">
                       <strong>
                         {message.role === "assistant"
                           ? "AI 助手"
@@ -146,16 +152,16 @@ export default async function WorkspacePage({
                             ? "你"
                             : message.role}
                       </strong>
-                      <span className="muted">{message.status}</span>
+                      <span className="text-app-muted">{message.status}</span>
                     </div>
-                    <div className="conversation-bubble-body">{message.contentMarkdown}</div>
+                    <div className="whitespace-pre-wrap leading-7">{message.contentMarkdown}</div>
                     {(citationsByMessage.get(message.id) ?? []).length > 0 ? (
-                      <div className="citation-list">
+                      <div className="flex flex-wrap gap-2">
                         {(citationsByMessage.get(message.id) ?? []).map((citation) => (
                           <Link
                             key={citation.id}
                             href={`/workspaces/${workspaceId}/documents/${citation.documentId}?anchorId=${citation.anchorId}`}
-                            className="citation-link"
+                            className="inline-flex items-center rounded-full border border-app-border bg-app-surface-soft px-3 py-1 text-[13px] hover:border-app-border-strong"
                           >
                             {citation.label}
                           </Link>
@@ -165,13 +171,13 @@ export default async function WorkspacePage({
                   </article>
                 ))
               ) : (
-                <div className="conversation-empty muted">
+                <div className={ui.muted}>
                   这一轮还没有消息，从底部输入框继续提问。
                 </div>
               )}
             </div>
 
-            <div className="conversation-composer-wrap">
+            <div className="mt-auto">
               <Composer
                 conversationId={activeConversation.id}
                 workspaceId={workspaceId}
@@ -186,12 +192,12 @@ export default async function WorkspacePage({
           </div>
         </div>
       ) : (
-        <div className="new-question-stage">
-          <div className="new-question-stage-panel">
-            <div className="new-question-stage-copy">
-              <p className="workspace-panel-eyebrow">New Question</p>
+        <div className="grid min-h-[calc(100vh-158px)] place-items-center">
+          <div className={cn(ui.panelLarge, "w-full max-w-[820px] gap-5 px-8 py-8")}>
+            <div className="grid justify-items-center gap-3 text-center">
+              <p className={ui.eyebrow}>New Question</p>
               <h1>{workspace.title}</h1>
-              <p className="muted">
+              <p className={cn(ui.muted, "max-w-[58ch]")}>
                 先把要解决的问题直接写出来。资料库维护、上传和空间名称调整，都统一收到左侧“当前空间设置”里。
               </p>
             </div>

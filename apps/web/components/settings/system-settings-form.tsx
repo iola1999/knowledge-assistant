@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 
 import type { SystemSettingRow, SystemSettingSection } from "@/lib/api/system-settings";
+import { buttonStyles, cn, ui } from "@/lib/ui";
 
 function flattenSettings(rows: SystemSettingRow[]) {
   return rows.reduce<Record<string, string>>((acc, row) => {
@@ -90,22 +91,23 @@ export function SystemSettingsForm({
   }
 
   return (
-    <form className="settings-form" onSubmit={onSubmit}>
+    <form className="grid gap-4" onSubmit={onSubmit}>
       {sections.map((section) => (
-        <section key={section.id} className="card stack">
-          <div className="stack">
+        <section key={section.id} className={cn(ui.panel, "grid gap-4")}>
+          <div className="grid gap-2">
             <h2>{section.title}</h2>
-            <p className="muted">{section.description}</p>
+            <p className={ui.muted}>{section.description}</p>
           </div>
-          <div className="form">
+          <div className="grid gap-4">
             {section.items.map((setting) => (
-              <label key={setting.settingKey}>
-                <code>{setting.settingKey}</code>
-                <span className="muted">
+              <label key={setting.settingKey} className={ui.label}>
+                <code className={ui.codeChip}>{setting.settingKey}</code>
+                <span className={ui.muted}>
                   {setting.description ?? "当前设置还没有补充说明。"}
                 </span>
                 {setting.inputKind === "textarea" ? (
                   <textarea
+                    className={ui.textarea}
                     rows={4}
                     value={values[setting.settingKey] ?? ""}
                     onChange={(event) =>
@@ -118,6 +120,7 @@ export function SystemSettingsForm({
                 ) : (
                   <input
                     autoComplete="off"
+                    className={ui.input}
                     type={setting.inputKind}
                     value={values[setting.settingKey] ?? ""}
                     onChange={(event) =>
@@ -134,15 +137,15 @@ export function SystemSettingsForm({
         </section>
       ))}
 
-      <div className="card stack">
-        <div className="toolbar">
-          <button disabled={isPending} type="submit">
+      <div className={cn(ui.panel, "grid gap-4")}>
+        <div className={ui.toolbar}>
+          <button className={buttonStyles()} disabled={isPending} type="submit">
             {isPending ? "刷新中..." : "保存系统设置"}
           </button>
-          <p className="muted">保存后需要重启 `pnpm dev` 才会让后台进程统一生效。</p>
+          <p className={ui.muted}>保存后需要重启 `pnpm dev` 才会让后台进程统一生效。</p>
         </div>
         {status ? (
-          <p className={status.tone === "error" ? "error" : "muted"}>
+          <p className={status.tone === "error" ? ui.error : ui.muted}>
             {status.message}
           </p>
         ) : null}
