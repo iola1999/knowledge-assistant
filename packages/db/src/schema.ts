@@ -102,9 +102,7 @@ export const users = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
   },
-  (table) => ({
-    usernameUid: uniqueIndex("users_username_uid").on(table.username),
-  }),
+  (table) => [uniqueIndex("users_username_uid").on(table.username)],
 );
 
 export const sessions = pgTable(
@@ -118,10 +116,10 @@ export const sessions = pgTable(
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => ({
-    sessionTokenUid: uniqueIndex("sessions_token_uid").on(table.sessionToken),
-    sessionsUserIdx: index("sessions_user_idx").on(table.userId),
-  }),
+  (table) => [
+    uniqueIndex("sessions_token_uid").on(table.sessionToken),
+    index("sessions_user_idx").on(table.userId),
+  ],
 );
 
 export const systemSettings = pgTable("system_settings", {
@@ -150,13 +148,10 @@ export const workspaces = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     archivedAt: timestamp("archived_at", { withTimezone: true }),
   },
-  (table) => ({
-    workspaceUserSlugUid: uniqueIndex("workspaces_user_slug_uid").on(
-      table.userId,
-      table.slug,
-    ),
-    workspacesUserIdx: index("workspaces_user_idx").on(table.userId),
-  }),
+  (table) => [
+    uniqueIndex("workspaces_user_slug_uid").on(table.userId, table.slug),
+    index("workspaces_user_idx").on(table.userId),
+  ],
 );
 
 export const documents = pgTable(
@@ -179,16 +174,10 @@ export const documents = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     archivedAt: timestamp("archived_at", { withTimezone: true }),
   },
-  (table) => ({
-    documentsWorkspacePathUid: uniqueIndex("documents_workspace_path_uid").on(
-      table.workspaceId,
-      table.logicalPath,
-    ),
-    documentsWorkspaceDirIdx: index("documents_workspace_dir_idx").on(
-      table.workspaceId,
-      table.directoryPath,
-    ),
-  }),
+  (table) => [
+    uniqueIndex("documents_workspace_path_uid").on(table.workspaceId, table.logicalPath),
+    index("documents_workspace_dir_idx").on(table.workspaceId, table.directoryPath),
+  ],
 );
 
 export const parseArtifacts = pgTable(
@@ -202,9 +191,7 @@ export const parseArtifacts = pgTable(
     parserVersion: varchar("parser_version", { length: 64 }).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => ({
-    parseArtifactsShaUid: uniqueIndex("parse_artifacts_sha_uid").on(table.sha256),
-  }),
+  (table) => [uniqueIndex("parse_artifacts_sha_uid").on(table.sha256)],
 );
 
 export const documentVersions = pgTable(
@@ -229,13 +216,10 @@ export const documentVersions = pgTable(
     metadataJson: jsonb("metadata_json").$type<Record<string, unknown>>(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => ({
-    documentVersionsDocVersionUid: uniqueIndex("document_versions_doc_version_uid").on(
-      table.documentId,
-      table.version,
-    ),
-    documentVersionsShaIdx: index("document_versions_sha_idx").on(table.sha256),
-  }),
+  (table) => [
+    uniqueIndex("document_versions_doc_version_uid").on(table.documentId, table.version),
+    index("document_versions_sha_idx").on(table.sha256),
+  ],
 );
 
 export const documentJobs = pgTable(
@@ -256,10 +240,10 @@ export const documentJobs = pgTable(
     startedAt: timestamp("started_at", { withTimezone: true }),
     finishedAt: timestamp("finished_at", { withTimezone: true }),
   },
-  (table) => ({
-    documentJobsVersionIdx: index("document_jobs_version_idx").on(table.documentVersionId),
-    documentJobsQueueUid: uniqueIndex("document_jobs_queue_uid").on(table.queueJobId),
-  }),
+  (table) => [
+    index("document_jobs_version_idx").on(table.documentVersionId),
+    uniqueIndex("document_jobs_queue_uid").on(table.queueJobId),
+  ],
 );
 
 export const documentPages = pgTable(
@@ -275,12 +259,9 @@ export const documentPages = pgTable(
     textLength: integer("text_length"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => ({
-    documentPagesVersionPageUid: uniqueIndex("document_pages_version_page_uid").on(
-      table.documentVersionId,
-      table.pageNo,
-    ),
-  }),
+  (table) => [
+    uniqueIndex("document_pages_version_page_uid").on(table.documentVersionId, table.pageNo),
+  ],
 );
 
 export const documentBlocks = pgTable(
@@ -300,12 +281,9 @@ export const documentBlocks = pgTable(
     metadataJson: jsonb("metadata_json").$type<Record<string, unknown>>(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => ({
-    documentBlocksVersionPageIdx: index("document_blocks_version_page_idx").on(
-      table.documentVersionId,
-      table.pageNo,
-    ),
-  }),
+  (table) => [
+    index("document_blocks_version_page_idx").on(table.documentVersionId, table.pageNo),
+  ],
 );
 
 export const documentChunks = pgTable(
@@ -334,13 +312,10 @@ export const documentChunks = pgTable(
     tokenCount: integer("token_count"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => ({
-    documentChunksWorkspaceIdx: index("document_chunks_workspace_idx").on(table.workspaceId),
-    documentChunksVersionPageIdx: index("document_chunks_version_page_idx").on(
-      table.documentVersionId,
-      table.pageStart,
-    ),
-  }),
+  (table) => [
+    index("document_chunks_workspace_idx").on(table.workspaceId),
+    index("document_chunks_version_page_idx").on(table.documentVersionId, table.pageStart),
+  ],
 );
 
 export const citationAnchors = pgTable(
@@ -367,13 +342,10 @@ export const citationAnchors = pgTable(
     bboxJson: jsonb("bbox_json").$type<{ x1: number; y1: number; x2: number; y2: number }>(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => ({
-    citationAnchorsChunkIdx: index("citation_anchors_chunk_idx").on(table.chunkId),
-    citationAnchorsDocPageIdx: index("citation_anchors_doc_page_idx").on(
-      table.documentVersionId,
-      table.pageNo,
-    ),
-  }),
+  (table) => [
+    index("citation_anchors_chunk_idx").on(table.chunkId),
+    index("citation_anchors_doc_page_idx").on(table.documentVersionId, table.pageNo),
+  ],
 );
 
 export const conversations = pgTable(
@@ -392,9 +364,7 @@ export const conversations = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     archivedAt: timestamp("archived_at", { withTimezone: true }),
   },
-  (table) => ({
-    conversationsWorkspaceIdx: index("conversations_workspace_idx").on(table.workspaceId),
-  }),
+  (table) => [index("conversations_workspace_idx").on(table.workspaceId)],
 );
 
 export const messages = pgTable(
@@ -410,12 +380,9 @@ export const messages = pgTable(
     structuredJson: jsonb("structured_json").$type<Record<string, unknown>>(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => ({
-    messagesConversationIdx: index("messages_conversation_idx").on(
-      table.conversationId,
-      table.createdAt,
-    ),
-  }),
+  (table) => [
+    index("messages_conversation_idx").on(table.conversationId, table.createdAt),
+  ],
 );
 
 export const messageCitations = pgTable(
@@ -442,9 +409,7 @@ export const messageCitations = pgTable(
     ordinal: integer("ordinal").notNull().default(0),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => ({
-    messageCitationsMessageIdx: index("message_citations_message_idx").on(table.messageId),
-  }),
+  (table) => [index("message_citations_message_idx").on(table.messageId)],
 );
 
 export const reports = pgTable(
@@ -462,9 +427,7 @@ export const reports = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => ({
-    reportsWorkspaceIdx: index("reports_workspace_idx").on(table.workspaceId),
-  }),
+  (table) => [index("reports_workspace_idx").on(table.workspaceId)],
 );
 
 export const reportSections = pgTable(
@@ -485,12 +448,9 @@ export const reportSections = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => ({
-    reportSectionsReportOrderUid: uniqueIndex("report_sections_report_order_uid").on(
-      table.reportId,
-      table.orderIndex,
-    ),
-  }),
+  (table) => [
+    uniqueIndex("report_sections_report_order_uid").on(table.reportId, table.orderIndex),
+  ],
 );
 
 export const retrievalRuns = pgTable(
@@ -510,9 +470,7 @@ export const retrievalRuns = pgTable(
     topK: integer("top_k").notNull().default(6),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => ({
-    retrievalRunsWorkspaceIdx: index("retrieval_runs_workspace_idx").on(table.workspaceId),
-  }),
+  (table) => [index("retrieval_runs_workspace_idx").on(table.workspaceId)],
 );
 
 export const retrievalResults = pgTable(
@@ -533,12 +491,9 @@ export const retrievalResults = pgTable(
     rerankScoreBp: integer("rerank_score_bp"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => ({
-    retrievalResultsRunRankUid: uniqueIndex("retrieval_results_run_rank_uid").on(
-      table.retrievalRunId,
-      table.rank,
-    ),
-  }),
+  (table) => [
+    uniqueIndex("retrieval_results_run_rank_uid").on(table.retrievalRunId, table.rank),
+  ],
 );
 
 export const toolRuns = pgTable(
@@ -560,10 +515,10 @@ export const toolRuns = pgTable(
     errorMessage: text("error_message"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => ({
-    toolRunsWorkspaceIdx: index("tool_runs_workspace_idx").on(table.workspaceId),
-    toolRunsConversationIdx: index("tool_runs_conversation_idx").on(table.conversationId),
-  }),
+  (table) => [
+    index("tool_runs_workspace_idx").on(table.workspaceId),
+    index("tool_runs_conversation_idx").on(table.conversationId),
+  ],
 );
 
 export const modelRuns = pgTable(
@@ -588,8 +543,8 @@ export const modelRuns = pgTable(
     errorMessage: text("error_message"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => ({
-    modelRunsWorkspaceIdx: index("model_runs_workspace_idx").on(table.workspaceId),
-    modelRunsConversationIdx: index("model_runs_conversation_idx").on(table.conversationId),
-  }),
+  (table) => [
+    index("model_runs_workspace_idx").on(table.workspaceId),
+    index("model_runs_conversation_idx").on(table.conversationId),
+  ],
 );
