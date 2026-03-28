@@ -21,6 +21,7 @@ import {
   reportSections,
 } from "@law-doc/db";
 import {
+  describeRetrievalProvider,
   scoreToBasisPoints,
   searchWorkspaceKnowledge,
 } from "@law-doc/retrieval";
@@ -70,7 +71,7 @@ export async function searchWorkspaceKnowledgeHandler(input: unknown) {
         mode: "kb_only",
         rawQueriesJson: {
           filters: args.filters ?? null,
-          provider: "qdrant_dense_keyword_rerank",
+          provider: describeRetrievalProvider(),
         },
         topK: args.top_k,
       })

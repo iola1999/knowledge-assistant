@@ -107,6 +107,7 @@
 
 - parser 的主流程也要测，不只测 `utils`。
 - 对 OCR 未实现的路径，要明确断言失败行为，不要静默通过。
+- OCR 默认保持关闭；只有扫描件、图片型 PDF 或无文本层材料才需要启用。
 
 ## 5. 怎么运行测试
 
@@ -159,16 +160,19 @@ pnpm verify
 截至当前阶段，下一批任务优先级如下：
 
 1. parser 继续升级：
-   - 真实 OCR provider 接入（保持当前 disabled/mock fallback 契约）
+   - 真实 OCR provider 接入（保持当前 disabled/mock fallback 契约；默认不开）
    - 更稳的结构化 heading / table / block 映射
    - 页码与坐标质量提升
 2. grounded final answer：
    - Agent SDK evidence dossier 输出
    - 结构化回答结果在 UI 中展示 `confidence / unsupported_reason / missing_information`
    - 继续补强 `anchor_id` 校验边界与测试
-3. 工具时间线 / SSE：
+3. retrieval provider：
+   - 百炼优先的 embedding / rerank 配置与观测
+   - sparse/BM25 接入
+4. 工具时间线 / SSE：
    - 工具开始、结束、回答流式增量
-4. 文档阅读器能力：
+5. 文档阅读器能力：
    - 更真实的锚点跳转
    - 页内高亮
 

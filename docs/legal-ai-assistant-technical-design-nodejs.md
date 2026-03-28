@@ -46,6 +46,12 @@
 - 富文本编辑器：`Tiptap`
 - PDF 阅读：`PDF.js`
 
+当前 provider 策略补充：
+
+- Agent 决策规划仍固定使用 Anthropic + `@anthropic-ai/claude-agent-sdk`
+- embedding / rerank 服务优先接阿里云百炼（DashScope / Model Studio）
+- OCR 默认关闭，只有扫描件、图片型 PDF、无文本层材料才启用
+
 ### 2.2 为什么主检索选 Qdrant，不选 OpenViking
 
 结论：
@@ -1141,8 +1147,10 @@ CI 执行顺序：
   - 已支持长条款分段
   - 仍未加入表格上下文摘要和更细的 clause-aware 切分
 - retrieval：
-  - 当前是 dense 向量检索 + 规则重排
-  - 尚未接入真正的 sparse/BM25 与外部 reranker
+  - 当前已支持本地 hashed embedding fallback
+  - 当前已支持百炼优先的 embedding provider 选择
+  - 当前已支持百炼优先的 rerank provider 选择，失败时回退本地规则重排
+  - 尚未接入真正的 sparse/BM25
 - grounded answer：
   - 已引入结构化 final-answer pass
   - 已去掉基于用户问题文本的模糊 citation 回填
@@ -1151,9 +1159,13 @@ CI 执行顺序：
 ### 19.3 当前缺口
 
 - parser 仍缺：
-  - 真实 OCR provider 接入（当前只有 `disabled/mock`）
+  - 真实 OCR provider 接入（当前只有 `disabled/mock`，且默认关闭）
   - 更真实的 PDF 坐标与页内定位
   - 更高保真的版面结构恢复
+- retrieval 仍缺：
+  - sparse/BM25 检索
+  - provider 配置透出到观测和管理页面
+  - 外部 rerank 回放与回归测试
 - answer layer 仍缺：
   - Agent SDK 直接输出 evidence dossier
   - `confidence / unsupported_reason / missing_information` 的前端显式展示
@@ -1196,7 +1208,19 @@ CI 执行顺序：
 - `heading_path` 与 `section_label` 对合同/法规类文档更稳定。
 - parser 单测继续覆盖主流程。
 
-### 20.2 P1: Grounded Final Answer
+### 20.2 P0.5: Retrieval Provider Hardening
+
+目标：
+
+- 把知识库检索的向量与重排链路稳定收敛到“百炼优先，本地可退化”。
+
+优先做：
+
+1. DashScope embedding / rerank 参数配置和错误观测。
+2. sparse/BM25 接入并形成真正 hybrid retrieval。
+3. 为 retrieval provider 和 rerank fallback 补更多测试。
+
+### 20.3 P1: Grounded Final Answer
 
 目标：
 
@@ -1213,7 +1237,7 @@ CI 执行顺序：
 - 最终答案结构中必须显式携带 citations。
 - 无依据时返回 unsupported / missing info，而不是自由发挥。
 
-### 20.3 P2: Tool Timeline 与阅读器增强
+### 20.4 P2: Tool Timeline 与阅读器增强
 
 目标：
 
@@ -1225,7 +1249,7 @@ CI 执行顺序：
 2. 文档页内锚点定位。
 3. 引用 hover 与目录路径展示强化。
 
-### 20.4 P3: 外部检索工具实装
+### 20.5 P3: 外部检索工具实装
 
 目标：
 

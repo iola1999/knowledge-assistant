@@ -9,10 +9,16 @@ import {
   textContainsToken,
   uniqueNormalized,
 } from "./scoring";
+import {
+  describeRetrievalProvider,
+  getEmbeddingBatchSize,
+  parseDashScopeRerankResponse,
+  resolveEmbeddingProvider,
+  resolveRerankProvider,
+} from "./providers";
 
 const DEFAULT_COLLECTION_NAME = "legal_chunks";
 const DEFAULT_HASH_VECTOR_SIZE = 256;
-const DEFAULT_EMBED_BATCH_SIZE = 16;
 const DEFAULT_QUERY_CANDIDATE_LIMIT = 36;
 
 type PayloadSchema =
@@ -84,6 +90,10 @@ type OpenAiCompatibleEmbeddingsResponse = {
   data?: Array<{ embedding?: number[] }>;
 };
 
+type SearchCandidate = WorkspaceKnowledgeSearchResult & {
+  keywordScore: number;
+};
+
 type RetrievalPointPayload = {
   workspace_id: string;
   document_id: string;
@@ -113,16 +123,6 @@ function getRequiredEnv(name: string) {
     throw new Error(`${name} is not configured`);
   }
   return value;
-}
-
-function getOptionalPositiveInt(name: string, fallback: number) {
-  const value = process.env[name];
-  if (!value) {
-    return fallback;
-  }
-
-  const parsed = Number.parseInt(value, 10);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
 function clampScore(score: number) {
@@ -156,19 +156,22 @@ function getQdrantClient() {
 }
 
 async function fetchRemoteEmbeddings(texts: string[]) {
-  const url = getRequiredEnv("EMBEDDING_API_URL");
-  const apiKey = process.env.EMBEDDING_API_KEY;
-  const model = process.env.EMBEDDING_MODEL;
+  const provider = resolveEmbeddingProvider();
+  if (provider.type === "local_hash") {
+    throw new Error("Remote embedding provider is not configured");
+  }
 
-  const response = await fetch(url, {
+  const response = await fetch(provider.url, {
     method: "POST",
     headers: {
       "content-type": "application/json",
-      ...(apiKey ? { authorization: `Bearer ${apiKey}` } : {}),
+      ...(provider.apiKey ? { authorization: `Bearer ${provider.apiKey}` } : {}),
     },
     body: JSON.stringify({
       input: texts,
-      ...(model ? { model } : {}),
+      ...(provider.model ? { model: provider.model } : {}),
+      ...(provider.type === "dashscope_compatible" ? { encoding_format: "float" } : {}),
+      ...(provider.dimensions ? { dimensions: provider.dimensions } : {}),
     }),
   });
 
@@ -197,7 +200,12 @@ async function resolveVectorSize() {
         }
       }
 
-      if (process.env.EMBEDDING_API_URL) {
+      const provider = resolveEmbeddingProvider();
+      if (provider.type !== "local_hash" && provider.dimensions) {
+        return provider.dimensions;
+      }
+
+      if (provider.type !== "local_hash") {
         const [probe] = await fetchRemoteEmbeddings(["dimension probe"]);
         if (!probe?.length) {
           throw new Error("Failed to infer embedding vector size");
@@ -279,12 +287,13 @@ export async function embedTexts(texts: string[]) {
     return [] as number[][];
   }
 
-  if (!process.env.EMBEDDING_API_URL) {
+  const provider = resolveEmbeddingProvider();
+  if (provider.type === "local_hash") {
     const dimensions = await resolveVectorSize();
     return texts.map((text) => buildHashedEmbedding(text, dimensions));
   }
 
-  const batchSize = getOptionalPositiveInt("EMBEDDING_BATCH_SIZE", DEFAULT_EMBED_BATCH_SIZE);
+  const batchSize = getEmbeddingBatchSize(provider);
   const result: number[][] = [];
 
   for (let index = 0; index < texts.length; index += batchSize) {
@@ -406,6 +415,98 @@ function buildSearchFilter(
   return { must };
 }
 
+function buildRerankDocumentText(item: WorkspaceKnowledgeSearchResult) {
+  return [
+    item.documentPath,
+    item.sectionLabel ?? "",
+    ...item.headingPath,
+    item.snippet,
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
+function sortCandidatesByScore<T extends WorkspaceKnowledgeSearchResult>(items: T[]) {
+  return [...items].sort((left, right) => right.score - left.score);
+}
+
+async function rerankCandidates(
+  query: string,
+  candidates: SearchCandidate[],
+): Promise<WorkspaceKnowledgeSearchResult[]> {
+  if (!candidates.length) {
+    return [];
+  }
+
+  const provider = resolveRerankProvider();
+  if (provider.type === "local_heuristic") {
+    return sortCandidatesByScore(
+      candidates.map(({ keywordScore: _keywordScore, ...item }) => item),
+    );
+  }
+
+  try {
+    const response = await fetch(provider.url, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${provider.apiKey}`,
+      },
+      body: JSON.stringify({
+        model: provider.model,
+        input: {
+          query,
+          documents: candidates.map((item) => buildRerankDocumentText(item)),
+        },
+        parameters: {
+          top_n: Math.min(provider.topN ?? candidates.length, candidates.length),
+          return_documents: false,
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`DashScope rerank failed with ${response.status}`);
+    }
+
+    const payload = await response.json();
+    const rerankScores = new Map(
+      parseDashScopeRerankResponse(payload).map((item) => [
+        item.index,
+        clampScore(item.relevance_score),
+      ]),
+    );
+
+    return sortCandidatesByScore(
+      candidates.map(({ keywordScore, ...item }, index) => {
+        const rerankScore = rerankScores.get(index);
+        if (typeof rerankScore !== "number") {
+          return item;
+        }
+
+        const exactBoost =
+          textContainsToken(item.snippet, query) ||
+          textContainsToken(item.sectionLabel ?? "", query)
+            ? 0.05
+            : 0;
+        const finalScore = clampScore(
+          rerankScore * 0.82 + keywordScore * 0.13 + item.rawScore * 0.05 + exactBoost,
+        );
+
+        return {
+          ...item,
+          rerankScore: roundScore(rerankScore),
+          score: roundScore(finalScore),
+        };
+      }),
+    );
+  } catch {
+    return sortCandidatesByScore(
+      candidates.map(({ keywordScore: _keywordScore, ...item }) => item),
+    );
+  }
+}
+
 export async function searchWorkspaceKnowledge(
   params: WorkspaceKnowledgeSearchParams,
 ): Promise<WorkspaceKnowledgeSearchResult[]> {
@@ -424,7 +525,9 @@ export async function searchWorkspaceKnowledge(
     filter: buildSearchFilter(params.workspaceId, params.filters) as never,
   });
 
-  const reranked = results
+  const reranked = await rerankCandidates(
+    params.query,
+    results
     .map((item) => {
       const payload = (item.payload ?? {}) as RetrievalPointPayload;
       if (!payload.anchor_id || !payload.chunk_id || !matchesPostFilters(payload, params.filters)) {
@@ -456,10 +559,11 @@ export async function searchWorkspaceKnowledge(
         rawScore: roundScore(denseScore),
         rerankScore: roundScore(rerankScore),
         score: roundScore(finalScore),
-      } satisfies WorkspaceKnowledgeSearchResult;
+        keywordScore: roundScore(keywordScore),
+      } satisfies SearchCandidate;
     })
-    .filter((item): item is WorkspaceKnowledgeSearchResult => item !== null)
-    .sort((left, right) => right.score - left.score);
+    .filter((item): item is SearchCandidate => item !== null),
+  );
 
   const deduped: WorkspaceKnowledgeSearchResult[] = [];
   const seen = new Set<string>();
@@ -483,3 +587,5 @@ export async function searchWorkspaceKnowledge(
 export function scoreToBasisPoints(score: number) {
   return toRoundedBasisPoints(score);
 }
+
+export { describeRetrievalProvider } from "./providers";
