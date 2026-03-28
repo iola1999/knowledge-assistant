@@ -12,6 +12,7 @@ describe("buildSystemSettingSeedRows", () => {
     const rows = buildSystemSettingSeedRows({
       REDIS_URL: "redis://custom:6379",
       ANTHROPIC_API_KEY: "secret-key",
+      BRAVE_SEARCH_API_KEY: "brave-secret",
     });
 
     expect(rows.find((row) => row.settingKey === "redis_url")).toMatchObject({
@@ -24,9 +25,19 @@ describe("buildSystemSettingSeedRows", () => {
       valueText: "secret-key",
       isSecret: true,
     });
+    expect(rows.find((row) => row.settingKey === "brave_search_api_key")).toMatchObject({
+      settingKey: "brave_search_api_key",
+      valueText: "brave-secret",
+      isSecret: true,
+    });
     expect(rows.find((row) => row.settingKey === "qdrant_collection")).toMatchObject({
       settingKey: "qdrant_collection",
       valueText: "knowledge_chunks",
+    });
+    expect(rows.find((row) => row.settingKey === "auth_allow_registration")).toMatchObject({
+      settingKey: "auth_allow_registration",
+      valueText: "true",
+      isSecret: false,
     });
     expect(rows.some((row) => row.settingKey === "auth_trust_host")).toBe(false);
   });

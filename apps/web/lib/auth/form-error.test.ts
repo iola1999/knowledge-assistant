@@ -12,6 +12,16 @@ describe("getAuthFormErrorMessage", () => {
     ).toBe("用户名或密码不正确。如尚未创建账号，请先注册。");
   });
 
+  it("removes the registration hint when registration is closed", () => {
+    expect(
+      getAuthFormErrorMessage({
+        error: new Error("CredentialsSignin"),
+        mode: "login",
+        registrationEnabled: false,
+      }),
+    ).toBe("用户名或密码不正确");
+  });
+
   it("translates common registration validation errors", () => {
     expect(
       getAuthFormErrorMessage({
@@ -26,6 +36,13 @@ describe("getAuthFormErrorMessage", () => {
         mode: "register",
       }),
     ).toBe("用户名至少 3 个字符，密码至少 6 个字符。");
+
+    expect(
+      getAuthFormErrorMessage({
+        error: "Registration is disabled",
+        mode: "register",
+      }),
+    ).toBe("当前未开放注册");
   });
 
   it("keeps unknown messages unchanged", () => {

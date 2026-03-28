@@ -6,6 +6,12 @@ const SYSTEM_SETTING_DEFINITIONS = [
     description: "Public base URL for the web app.",
   },
   {
+    settingKey: "auth_allow_registration",
+    envName: "AUTH_ALLOW_REGISTRATION",
+    defaultValue: "true",
+    description: "Whether new users can create accounts.",
+  },
+  {
     settingKey: "agent_runtime_url",
     envName: "AGENT_RUNTIME_URL",
     defaultValue: "http://localhost:4001",
@@ -85,6 +91,43 @@ const SYSTEM_SETTING_DEFINITIONS = [
     defaultValue: "",
     description:
       "Optional comma-separated domain allowlist for fetch tools. Leave empty to allow any domain.",
+  },
+  {
+    settingKey: "web_search_provider",
+    envName: "WEB_SEARCH_PROVIDER",
+    defaultValue: "",
+    description: "Web search provider override. Current supported value: brave.",
+  },
+  {
+    settingKey: "brave_search_api_key",
+    envName: "BRAVE_SEARCH_API_KEY",
+    defaultValue: "",
+    isSecret: true,
+    description: "Brave Search API key.",
+  },
+  {
+    settingKey: "brave_search_api_url",
+    envName: "BRAVE_SEARCH_API_URL",
+    defaultValue: "https://api.search.brave.com/res/v1/web/search",
+    description: "Brave Search API endpoint override.",
+  },
+  {
+    settingKey: "web_search_country",
+    envName: "WEB_SEARCH_COUNTRY",
+    defaultValue: "CN",
+    description: "Default country code passed to the web search provider.",
+  },
+  {
+    settingKey: "web_search_search_lang",
+    envName: "WEB_SEARCH_SEARCH_LANG",
+    defaultValue: "zh",
+    description: "Default search language passed to the web search provider.",
+  },
+  {
+    settingKey: "web_search_ui_lang",
+    envName: "WEB_SEARCH_UI_LANG",
+    defaultValue: "zh-CN",
+    description: "Default UI language passed to the web search provider.",
   },
   {
     settingKey: "anthropic_api_key",

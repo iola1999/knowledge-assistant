@@ -63,7 +63,7 @@ export function AccountDisplayNameForm({ initialDisplayName }: AccountDisplayNam
       <div className="grid gap-2">
         <p className={ui.eyebrow}>Profile</p>
         <h2>显示名称</h2>
-        <p className={ui.muted}>更新后会同步显示在账号页和工作区左下角。</p>
+        <p className={ui.muted}>更新后会同步显示在账号页和工作区左下角</p>
       </div>
 
       <label className={ui.label}>

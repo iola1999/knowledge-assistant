@@ -3,9 +3,15 @@ import { eq } from "drizzle-orm";
 import { hashPassword } from "@knowledge-assistant/auth";
 import { getDb, users } from "@knowledge-assistant/db";
 
+import { readRegistrationEnabled } from "@/lib/auth/registration";
+
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
+  if (!(await readRegistrationEnabled())) {
+    return Response.json({ error: "Registration is disabled" }, { status: 403 });
+  }
+
   const body = (await request.json()) as {
     username?: string;
     password?: string;

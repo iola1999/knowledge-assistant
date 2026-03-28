@@ -72,7 +72,7 @@ export function SystemSettingsForm({
 
       setStatus({
         tone: "muted",
-        message: "已保存。重启 `pnpm dev` 后生效。",
+        message: "已保存，重启 `pnpm dev` 后生效",
       });
 
       startTransition(() => {
@@ -146,6 +146,20 @@ export function SystemSettingsForm({
                         }))
                       }
                     />
+                  ) : setting.inputKind === "boolean" ? (
+                    <select
+                      className={ui.select}
+                      value={values[setting.settingKey] || "false"}
+                      onChange={(event) =>
+                        setValues((current) => ({
+                          ...current,
+                          [setting.settingKey]: event.target.value,
+                        }))
+                      }
+                    >
+                      <option value="true">开启</option>
+                      <option value="false">关闭</option>
+                    </select>
                   ) : (
                     <input
                       autoComplete="off"

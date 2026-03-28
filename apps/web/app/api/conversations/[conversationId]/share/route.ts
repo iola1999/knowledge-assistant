@@ -144,12 +144,12 @@ export async function POST(
       const code =
         error && typeof error === "object" && "code" in error ? String(error.code) : "";
       if (code !== "23505" || attempt === 2) {
-        return Response.json({ error: "开启分享失败。" }, { status: 500 });
+        return Response.json({ error: "开启分享失败" }, { status: 500 });
       }
     }
   }
 
-  return Response.json({ error: "开启分享失败。" }, { status: 500 });
+  return Response.json({ error: "开启分享失败" }, { status: 500 });
 }
 
 export async function DELETE(

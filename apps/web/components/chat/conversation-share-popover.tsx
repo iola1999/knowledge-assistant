@@ -25,6 +25,15 @@ export function ConversationSharePopover({
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const loadControllerRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    void loadShare();
+
+    return () => {
+      loadControllerRef.current?.abort();
+    };
+  }, [conversationId]);
 
   useEffect(() => {
     if (!open) {
@@ -52,37 +61,64 @@ export function ConversationSharePopover({
     };
   }, [open]);
 
-  async function loadShare() {
+  async function loadShare({ reset = false }: { reset?: boolean } = {}) {
+    loadControllerRef.current?.abort();
+    const controller = new AbortController();
+    loadControllerRef.current = controller;
+
     setIsLoading(true);
-    setShare(null);
     setError(null);
+    if (reset) {
+      setShare(null);
+    }
 
     try {
       const response = await fetch(`/api/conversations/${conversationId}/share`, {
         method: "GET",
+        cache: "no-store",
+        signal: controller.signal,
       });
       const body = (await response.json().catch(() => null)) as
         | { error?: string; share?: ShareState }
         | null;
 
+      if (controller.signal.aborted) {
+        return;
+      }
+
       if (!response.ok || !body?.share) {
-        setError(body?.error ?? "加载分享状态失败。");
+        setError(body?.error ?? "加载分享状态失败");
         return;
       }
 
       setShare(body.share);
+    } catch (fetchError) {
+      if (
+        fetchError instanceof DOMException &&
+        fetchError.name === "AbortError"
+      ) {
+        return;
+      }
+
+      setError("加载分享状态失败");
     } finally {
-      setIsLoading(false);
+      if (!controller.signal.aborted) {
+        setIsLoading(false);
+      }
+
+      if (loadControllerRef.current === controller) {
+        loadControllerRef.current = null;
+      }
     }
   }
 
-  async function handleToggleOpen() {
+  function handleToggleOpen() {
     const nextOpen = !open;
     setOpen(nextOpen);
     setStatus(null);
 
-    if (nextOpen) {
-      await loadShare();
+    if (nextOpen && !share && !isLoading) {
+      void loadShare({ reset: Boolean(error) });
     }
   }
 
@@ -100,12 +136,12 @@ export function ConversationSharePopover({
         | null;
 
       if (!response.ok || !body?.share) {
-        setError(body?.error ?? "开启分享失败。");
+        setError(body?.error ?? "开启分享失败");
         return;
       }
 
       setShare(body.share);
-      setStatus("公开分享已开启。");
+      setStatus("公开分享已开启");
     } finally {
       setIsSubmitting(false);
     }
@@ -125,12 +161,12 @@ export function ConversationSharePopover({
         | null;
 
       if (!response.ok || !body?.share) {
-        setError(body?.error ?? "关闭分享失败。");
+        setError(body?.error ?? "关闭分享失败");
         return;
       }
 
       setShare(body.share);
-      setStatus("分享已关闭。");
+      setStatus("分享已关闭");
     } finally {
       setIsSubmitting(false);
     }
@@ -143,10 +179,10 @@ export function ConversationSharePopover({
 
     try {
       await navigator.clipboard.writeText(share.shareUrl);
-      setStatus("分享链接已复制。");
+      setStatus("分享链接已复制");
       setError(null);
     } catch {
-      setError("复制链接失败。");
+      setError("复制链接失败");
     }
   }
 
@@ -204,23 +240,23 @@ export function ConversationSharePopover({
               </span>
             </div>
             <p className="text-[13px] leading-5 text-app-muted">
-              持有链接的人可直接查看会话，资料引用不提供跳转。
+              持有链接的人可直接查看会话，资料引用不提供跳转
             </p>
           </div>
 
           {isLoading ? (
-            <div className="px-1 py-3 text-[13px] text-app-muted">加载中...</div>
+            <div className="px-1 py-3 text-[13px] text-app-muted">加载中</div>
           ) : !share ? (
             <div className="grid gap-3 px-1 py-2">
               <p className={cn(ui.error, "text-[13px] leading-5")}>
-                {error ?? "加载分享状态失败。"}
+                {error ?? "加载分享状态失败"}
               </p>
               <div className="flex flex-wrap items-center gap-2">
                 <button
                   className={buttonStyles({ variant: "secondary", size: "sm" })}
                   disabled={isSubmitting}
                   onClick={() => {
-                    void loadShare();
+                    void loadShare({ reset: true });
                   }}
                   type="button"
                 >

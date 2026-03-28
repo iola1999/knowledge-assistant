@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { and, asc, eq, inArray, isNull } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import {
@@ -119,28 +118,19 @@ export default async function SharedConversationPage({
 
   return (
     <main className={cn(ui.pageNarrow, "min-h-screen max-w-[980px] gap-5 py-10")}>
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="grid gap-3">
-          <div className="grid gap-2">
-            <p className={ui.eyebrow}>Shared Conversation</p>
-            <h1 className="max-w-[720px]">{sharedConversation.title}</h1>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <span className="inline-flex items-center rounded-full border border-app-border bg-app-surface-soft px-3 py-1 text-[12px] text-app-muted-strong">
-              公开只读
-            </span>
-            <span className="inline-flex items-center rounded-full border border-app-border bg-white px-3 py-1 text-[12px] text-app-muted-strong">
-              资料引用不提供跳转
-            </span>
-          </div>
+      <div className="grid gap-3">
+        <div className="grid gap-2">
+          <p className={ui.eyebrow}>Shared Conversation</p>
+          <h1 className="max-w-[720px]">{sharedConversation.title}</h1>
         </div>
-
-        <Link
-          href="/login"
-          className="inline-flex min-h-9 items-center rounded-full border border-app-border bg-white px-3 text-sm text-app-muted-strong transition hover:border-app-border-strong hover:text-app-text"
-        >
-          登录
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <span className="inline-flex items-center rounded-full border border-app-border bg-app-surface-soft px-3 py-1 text-[12px] text-app-muted-strong">
+            公开只读
+          </span>
+          <span className="inline-flex items-center rounded-full border border-app-border bg-white px-3 py-1 text-[12px] text-app-muted-strong">
+            资料引用不提供跳转
+          </span>
+        </div>
       </div>
 
       <section className={cn(ui.panelLarge, "grid gap-4 p-5 md:p-6")}>
@@ -241,7 +231,7 @@ export default async function SharedConversationPage({
             );
           })
         ) : (
-          <p className={ui.muted}>当前会话还没有可分享的消息。</p>
+          <p className={ui.muted}>当前会话还没有可分享的消息</p>
         )}
       </section>
     </main>

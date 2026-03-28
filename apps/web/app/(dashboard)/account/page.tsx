@@ -16,7 +16,7 @@ export default async function AccountPage() {
           <div className="space-y-2">
             <p className={ui.eyebrow}>Account</p>
             <h1>账号与安全</h1>
-            <p className={ui.muted}>管理当前登录账号的基础安全操作。</p>
+            <p className={ui.muted}>管理当前登录账号的基础安全操作</p>
           </div>
           <Link href="/workspaces" className={buttonStyles({ variant: "secondary", size: "sm" })}>
             返回空间列表

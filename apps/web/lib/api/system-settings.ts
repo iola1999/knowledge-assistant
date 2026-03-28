@@ -7,7 +7,9 @@ export type SystemSettingRow = {
   description: string | null;
 };
 
-export type SystemSettingInputKind = "text" | "password" | "textarea";
+export const AUTH_ALLOW_REGISTRATION_SETTING_KEY = "auth_allow_registration";
+
+export type SystemSettingInputKind = "text" | "password" | "textarea" | "boolean";
 
 export type SystemSettingField = SystemSettingRow & {
   inputKind: SystemSettingInputKind;
@@ -27,6 +29,7 @@ const SECTION_DEFINITIONS = [
     description: "前端、Agent、Parser 的基础地址和工具访问白名单。",
     match: (settingKey: string) =>
       settingKey.startsWith("app_") ||
+      settingKey.startsWith("auth_") ||
       settingKey.startsWith("agent_runtime_") ||
       settingKey.startsWith("parser_service_") ||
       settingKey.startsWith("fetch_"),
@@ -43,9 +46,11 @@ const SECTION_DEFINITIONS = [
   {
     id: "model",
     title: "模型与检索策略",
-    description: "Anthropic、embedding、DashScope、rerank 等模型侧配置。",
+    description: "Anthropic、联网搜索、embedding、DashScope、rerank 等模型侧配置。",
     match: (settingKey: string) =>
       settingKey.startsWith("anthropic_") ||
+      settingKey.startsWith("web_search_") ||
+      settingKey.startsWith("brave_search_") ||
       settingKey.startsWith("embedding_") ||
       settingKey.startsWith("dashscope_") ||
       settingKey.startsWith("rerank_"),
@@ -60,9 +65,16 @@ const SECTION_DEFINITIONS = [
 
 const KNOWN_SETTING_ORDER = [
   "app_url",
+  AUTH_ALLOW_REGISTRATION_SETTING_KEY,
   "agent_runtime_url",
   "parser_service_url",
   "fetch_allowed_domains",
+  "web_search_provider",
+  "brave_search_api_key",
+  "brave_search_api_url",
+  "web_search_country",
+  "web_search_search_lang",
+  "web_search_ui_lang",
   "redis_url",
   "qdrant_url",
   "qdrant_collection",
@@ -120,11 +132,39 @@ function getInputKind(setting: SystemSettingRow): SystemSettingInputKind {
     return "password";
   }
 
+  if (setting.settingKey === AUTH_ALLOW_REGISTRATION_SETTING_KEY) {
+    return "boolean";
+  }
+
   if (setting.settingKey === "fetch_allowed_domains") {
     return "textarea";
   }
 
   return "text";
+}
+
+export function parseSystemSettingBoolean(
+  valueText: string | null | undefined,
+  defaultValue = false,
+) {
+  if (valueText == null) {
+    return defaultValue;
+  }
+
+  const normalized = valueText.trim().toLowerCase();
+  if (!normalized) {
+    return defaultValue;
+  }
+
+  if (["1", "true", "yes", "on", "enabled"].includes(normalized)) {
+    return true;
+  }
+
+  if (["0", "false", "no", "off", "disabled"].includes(normalized)) {
+    return false;
+  }
+
+  return defaultValue;
 }
 
 export function buildSystemSettingSections(rows: SystemSettingRow[]) {

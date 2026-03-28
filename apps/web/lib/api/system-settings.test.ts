@@ -1,8 +1,10 @@
 import { describe, expect, test } from "vitest";
 
 import {
+  AUTH_ALLOW_REGISTRATION_SETTING_KEY,
   buildSystemSettingSections,
   normalizeSystemSettingUpdates,
+  parseSystemSettingBoolean,
 } from "./system-settings";
 
 describe("buildSystemSettingSections", () => {
@@ -71,6 +73,52 @@ describe("buildSystemSettingSections", () => {
       inputKind: "textarea",
     });
   });
+
+  test("groups web search settings into the model section", () => {
+    const sections = buildSystemSettingSections([
+      {
+        settingKey: "web_search_provider",
+        valueText: "brave",
+        isSecret: false,
+        description: "Web search provider.",
+      },
+      {
+        settingKey: "brave_search_api_key",
+        valueText: "secret",
+        isSecret: true,
+        description: "Brave API key.",
+      },
+    ]);
+
+    expect(sections.map((section) => section.id)).toEqual(["model"]);
+    expect(sections[0]?.items).toEqual([
+      expect.objectContaining({
+        settingKey: "web_search_provider",
+        inputKind: "text",
+      }),
+      expect.objectContaining({
+        settingKey: "brave_search_api_key",
+        inputKind: "password",
+      }),
+    ]);
+  });
+
+  test("treats registration gate as an application boolean setting", () => {
+    const sections = buildSystemSettingSections([
+      {
+        settingKey: AUTH_ALLOW_REGISTRATION_SETTING_KEY,
+        valueText: "false",
+        isSecret: false,
+        description: "Whether new users can register.",
+      },
+    ]);
+
+    expect(sections.map((section) => section.id)).toEqual(["application"]);
+    expect(sections[0]?.items[0]).toMatchObject({
+      settingKey: AUTH_ALLOW_REGISTRATION_SETTING_KEY,
+      inputKind: "boolean",
+    });
+  });
 });
 
 describe("normalizeSystemSettingUpdates", () => {
@@ -117,5 +165,20 @@ describe("normalizeSystemSettingUpdates", () => {
         ["s3_bucket"],
       ),
     ).toThrow("Unknown system setting: unknown_key");
+  });
+});
+
+describe("parseSystemSettingBoolean", () => {
+  test("recognizes common true and false variants", () => {
+    expect(parseSystemSettingBoolean("true")).toBe(true);
+    expect(parseSystemSettingBoolean(" enabled ")).toBe(true);
+    expect(parseSystemSettingBoolean("0", true)).toBe(false);
+    expect(parseSystemSettingBoolean("off", true)).toBe(false);
+  });
+
+  test("falls back when the stored value is empty or invalid", () => {
+    expect(parseSystemSettingBoolean("", true)).toBe(true);
+    expect(parseSystemSettingBoolean("unknown", false)).toBe(false);
+    expect(parseSystemSettingBoolean(null, true)).toBe(true);
   });
 });
