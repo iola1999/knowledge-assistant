@@ -25,7 +25,7 @@ export function LogoutButton() {
       >
         {isPending ? "退出中..." : "退出登录"}
       </button>
-      <p className={ui.muted}>退出后会跳转回登录页。</p>
+      <p className={ui.muted}>退出后会跳转回登录页</p>
     </div>
   );
 }

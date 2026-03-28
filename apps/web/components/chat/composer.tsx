@@ -114,8 +114,8 @@ export function Composer({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className={cn(ui.muted, "max-w-[42ch] text-[13px]")}>
           {variant === "stage"
-            ? "助手会优先使用当前空间里的资料和对话上下文。"
-            : "消息会写入当前会话，并开始推送工具时间线。"}
+            ? "助手会优先使用当前空间里的资料和对话上下文"
+            : "消息会写入当前会话，并开始推送工具时间线"}
         </div>
         <button className={buttonStyles()} disabled={isPending} type="submit">
           {isPending ? "刷新中..." : submitLabel}

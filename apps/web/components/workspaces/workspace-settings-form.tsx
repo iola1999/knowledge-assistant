@@ -57,7 +57,7 @@ export function WorkspaceSettingsForm({
       <div className="grid gap-1">
         <h1>设置</h1>
         <p className={cn(ui.muted, "text-[13px] leading-5")}>
-          修改空间名称和预置提示词。
+          修改空间名称和预置提示词
         </p>
       </div>
 
@@ -86,7 +86,7 @@ export function WorkspaceSettingsForm({
           placeholder="例如：默认使用简体中文；先给结论，再列依据；结论必须标注资料出处。"
         />
         <span className={cn(ui.muted, "text-[13px] leading-5")}>
-          适合放稳定不变的回答要求，例如输出结构、引用要求、默认语言和优先关注点。尽量保持简短。
+          适合放稳定不变的回答要求，例如输出结构、引用要求、默认语言和优先关注点。尽量保持简短
         </span>
       </label>
 

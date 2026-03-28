@@ -57,7 +57,7 @@ export function AccountPasswordForm() {
       <div className="grid gap-2">
         <p className={ui.eyebrow}>Security</p>
         <h2>修改密码</h2>
-        <p className={ui.muted}>使用当前密码确认身份，再设置新的登录密码。</p>
+        <p className={ui.muted}>使用当前密码确认身份，再设置新的登录密码</p>
       </div>
 
       <label className={ui.label}>

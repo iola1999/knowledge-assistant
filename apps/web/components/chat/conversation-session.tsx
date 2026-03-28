@@ -293,7 +293,7 @@ export function ConversationSession({
             );
           })
         ) : (
-          <div className={ui.muted}>这一轮还没有消息，从底部输入框继续提问。</div>
+          <div className={ui.muted}>这一轮还没有消息，从底部输入框继续提问</div>
         )}
       </div>
     </>
