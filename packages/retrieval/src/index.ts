@@ -3,9 +3,9 @@ import {
   buildDirectoryPrefixes,
   buildHashedEmbedding,
   chunkTextSnippet,
+  computeBm25SparseScores,
   computeKeywordScore,
   normalizeToken,
-  normalizeWhitespace,
   textContainsToken,
   uniqueNormalized,
 } from "./scoring";
@@ -92,6 +92,7 @@ type OpenAiCompatibleEmbeddingsResponse = {
 };
 
 type SearchCandidate = WorkspaceKnowledgeSearchResult & {
+  bm25Score: number;
   keywordScore: number;
 };
 
@@ -445,6 +446,18 @@ function buildRerankDocumentText(item: WorkspaceKnowledgeSearchResult) {
     .join("\n");
 }
 
+function buildSparseSearchText(payload: RetrievalPointPayload) {
+  return [
+    payload.document_path,
+    payload.section_label ?? "",
+    ...payload.heading_path,
+    ...payload.keywords,
+    payload.chunk_text,
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
 function sortCandidatesByScore<T extends WorkspaceKnowledgeSearchResult>(items: T[]) {
   return [...items].sort((left, right) => right.score - left.score);
 }
@@ -498,18 +511,23 @@ async function rerankCandidates(
 
     return sortCandidatesByScore(
       candidates.map(({ keywordScore, ...item }, index) => {
+        const bm25Score = candidates[index]?.bm25Score ?? 0;
         const rerankScore = rerankScores.get(index);
         if (typeof rerankScore !== "number") {
           return item;
         }
 
         const exactBoost =
-          textContainsToken(item.snippet, query) ||
-          textContainsToken(item.sectionLabel ?? "", query)
+            textContainsToken(item.snippet, query) ||
+            textContainsToken(item.sectionLabel ?? "", query)
             ? 0.05
             : 0;
         const finalScore = clampScore(
-          rerankScore * 0.82 + keywordScore * 0.13 + item.rawScore * 0.05 + exactBoost,
+          rerankScore * 0.72 +
+            bm25Score * 0.13 +
+            keywordScore * 0.1 +
+            item.rawScore * 0.05 +
+            exactBoost,
         );
 
         return {
@@ -544,18 +562,34 @@ export async function searchWorkspaceKnowledge(
     filter: buildSearchFilter(params.workspaceId, params.filters) as never,
   });
 
-  const reranked = await rerankCandidates(
-    params.query,
-    results
+  const denseCandidates = results
     .map((item) => {
       const payload = (item.payload ?? {}) as RetrievalPointPayload;
       if (!payload.anchor_id || !payload.chunk_id || !matchesPostFilters(payload, params.filters)) {
         return null;
       }
 
+      return {
+        item,
+        payload,
+      };
+    })
+    .filter((item): item is NonNullable<typeof item> => item !== null);
+  const bm25Scores = computeBm25SparseScores(
+    params.query,
+    denseCandidates.map((candidate) => buildSparseSearchText(candidate.payload)),
+  );
+
+  const reranked = await rerankCandidates(
+    params.query,
+    denseCandidates
+    .map(({ item, payload }, index) => {
       const denseScore = clampScore(typeof item.score === "number" ? item.score : 0);
+      const bm25Score = bm25Scores[index] ?? 0;
       const keywordScore = computeKeywordScore(params.query, payload);
-      const rerankScore = clampScore(denseScore * 0.72 + keywordScore * 0.28);
+      const rerankScore = clampScore(
+        denseScore * 0.52 + bm25Score * 0.28 + keywordScore * 0.2,
+      );
       const exactBoost =
         textContainsToken(payload.chunk_text, params.query) ||
         textContainsToken(payload.section_label ?? "", params.query)
@@ -578,10 +612,10 @@ export async function searchWorkspaceKnowledge(
         rawScore: roundScore(denseScore),
         rerankScore: roundScore(rerankScore),
         score: roundScore(finalScore),
+        bm25Score: roundScore(bm25Score),
         keywordScore: roundScore(keywordScore),
       } satisfies SearchCandidate;
     })
-    .filter((item): item is SearchCandidate => item !== null),
   );
 
   const deduped: WorkspaceKnowledgeSearchResult[] = [];

@@ -97,7 +97,7 @@ flowchart LR
 - `/api/conversations/[conversationId]/stream` 现在主要回放已落库消息，不代表完整的 token 级流式输出或工具时间线。
 - `search_web_general`、`search_statutes`、`create_report_outline`、`write_report_section` 仍包含明显占位实现，需要后续替换为真实 provider 或真实生成流程。
 - OCR 真实 provider 尚未接入；当前仅支持关闭或 mock，并继续保持 disabled 直到商业 API 方案确定。
-- retrieval 还未完成 sparse/BM25 混合检索。
+- retrieval 已补上 dense 候选窗口内的 BM25 混合打分，但仍未完成更完整的 sparse 候选扩展。
 - 前端与文案仍存在少量去法律化未收口残留。
 
 ## 4. 运行时分层
@@ -229,7 +229,7 @@ flowchart LR
 
 优先级统一以 [implementation-tracker.md](/Users/fan/project/tmp/law-doc/docs/implementation-tracker.md) 为准。当前重点仍然是：
 
-1. sparse/BM25 混合检索
+1. sparse/BM25 混合检索深化与回归
 2. grounded answer 与证据展示
 3. SSE 工具时间线
 4. OCR 商业 API provider 方案确认后的接入

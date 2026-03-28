@@ -38,7 +38,7 @@
 - 报告链路已具备“创建 -> 默认大纲 -> 章节生成 -> DOCX 导出”的基础版，但当前章节生成仍偏占位实现，不代表完整研究写作能力。
 - parser 已有无文本 PDF 的 OCR 降级路径，但真实 OCR provider 仍未接入；当前仅有 `disabled/mock` 级别能力。
 - OCR 下一步不再尝试本地 provider；待商业 API 方案确定后再接入，当前继续保持默认关闭。
-- retrieval 已具备 dense + keyword/heuristic + 可选 DashScope rerank 的基础版，但尚未完成 tracker 目标中的 sparse/BM25 混合检索。
+- retrieval 已具备 dense + BM25 候选窗口混合打分 + 可选 DashScope rerank 的基础版，但仍未完成更完整的 sparse 候选扩展与回归。
 - 去法律化重定位已完成大部分命名与主流程调整，但仍需继续做回归清理，避免通用定位被后续改动带偏。
 
 ## 2. 最近完成
@@ -59,6 +59,7 @@
 - `working tree` Document implementation snapshot and current gap assessment
 - `working tree` Finish de-legalization brand cleanup for workspace shell and add regression guard
 - `working tree` Reconfirm OCR stays disabled pending commercial API decision and verify current batch with `pnpm verify`
+- `working tree` Add BM25 scoring over dense retrieval candidates with regression tests
 - `f0e431a` Prioritize DashScope retrieval providers
 - `70aa665` Add parser OCR fallback and grounded answer validation
 
@@ -70,7 +71,9 @@
 - OCR 商业 API provider 方案待定
   - 当前继续保持 `disabled`
   - 候选方向优先考虑百炼，但在 provider 口径确认前暂不开发 OCR 接入
-- sparse/BM25 混合检索与 rerank 回归测试。
+- sparse/BM25 混合检索深化
+  - 当前已补 dense 候选窗口上的 BM25 打分
+  - 后续仍需要更完整的 sparse 候选扩展与 rerank 回归测试
 - SSE 工具时间线和 grounded answer 状态信息前端补齐。
 - `search_web_general` / `search_statutes` / 报告章节生成仍有占位能力，需要后续逐步替换为真实 provider 或真实生成流程。
 

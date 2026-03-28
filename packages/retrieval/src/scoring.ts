@@ -146,6 +146,99 @@ export function textContainsToken(text: string, token: string) {
   return normalizeToken(text).includes(normalizeToken(token));
 }
 
+function countTokenOccurrences(text: string, token: string) {
+  const normalizedText = normalizeToken(text);
+  const normalizedToken = normalizeToken(token);
+
+  if (!normalizedText || !normalizedToken) {
+    return 0;
+  }
+
+  let count = 0;
+  let fromIndex = 0;
+
+  while (fromIndex < normalizedText.length) {
+    const matchIndex = normalizedText.indexOf(normalizedToken, fromIndex);
+    if (matchIndex === -1) {
+      break;
+    }
+
+    count += 1;
+    fromIndex = matchIndex + normalizedToken.length;
+  }
+
+  return count;
+}
+
+export function computeBm25SparseScores(
+  query: string,
+  documents: string[],
+  options?: {
+    k1?: number;
+    b?: number;
+  },
+) {
+  if (!documents.length) {
+    return [];
+  }
+
+  const queryTokens = uniqueNormalized(extractStructuredTokens(query));
+  if (!queryTokens.length) {
+    return documents.map(() => 0);
+  }
+
+  const k1 = options?.k1 ?? 1.2;
+  const b = options?.b ?? 0.75;
+  const normalizedDocuments = documents.map((document) => normalizeWhitespace(document));
+  const documentLengths = normalizedDocuments.map(
+    (document) => Math.max(extractStructuredTokens(document).length, 1),
+  );
+  const averageDocumentLength =
+    documentLengths.reduce((sum, value) => sum + value, 0) / documentLengths.length;
+  const documentFrequencies = new Map(
+    queryTokens.map((token) => [
+      token,
+      normalizedDocuments.filter((candidate) => textContainsToken(candidate, token)).length,
+    ]),
+  );
+
+  const scores = normalizedDocuments.map((document, documentIndex) => {
+    let score = 0;
+
+    for (const token of queryTokens) {
+      const documentFrequency = documentFrequencies.get(token) ?? 0;
+
+      if (documentFrequency === 0) {
+        continue;
+      }
+
+      const termFrequency = countTokenOccurrences(document, token);
+      if (termFrequency === 0) {
+        continue;
+      }
+
+      const inverseDocumentFrequency = Math.log(
+        1 + (normalizedDocuments.length - documentFrequency + 0.5) / (documentFrequency + 0.5),
+      );
+      const normalization =
+        k1 * (1 - b + b * (documentLengths[documentIndex]! / averageDocumentLength));
+
+      score +=
+        inverseDocumentFrequency *
+        ((termFrequency * (k1 + 1)) / (termFrequency + normalization));
+    }
+
+    return score;
+  });
+
+  const maxScore = Math.max(...scores);
+  if (!Number.isFinite(maxScore) || maxScore <= 0) {
+    return documents.map(() => 0);
+  }
+
+  return scores.map((score) => Number((score / maxScore).toFixed(6)));
+}
+
 export function computeKeywordScore(
   query: string,
   payload: RetrievalPointPayloadForScoring,

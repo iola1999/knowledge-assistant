@@ -4,6 +4,7 @@ import {
   buildDirectoryPrefixes,
   buildHashedEmbedding,
   chunkTextSnippet,
+  computeBm25SparseScores,
   computeKeywordScore,
   extractStructuredTokens,
 } from "./scoring";
@@ -68,5 +69,20 @@ describe("retrieval scoring helpers", () => {
     expect(strong).toBeGreaterThan(weak);
     expect(strong).toBeGreaterThan(0.5);
     expect(weak).toBeLessThan(0.3);
+  });
+
+  test("computes higher bm25 sparse scores for lexically matching documents", () => {
+    const [strong, weak] = computeBm25SparseScores("上线检查清单", [
+      "资料库/项目A/发布手册.pdf\n第8节 上线检查\n上线前需完成回归测试，并核对上线检查清单。",
+      "资料库/项目A/会议纪要.md\n会议纪要\n本周主要讨论排期与分工。",
+    ]);
+
+    expect(strong).toBeGreaterThan(weak);
+    expect(strong).toBeGreaterThan(0);
+    expect(weak).toBe(0);
+  });
+
+  test("returns zero bm25 sparse scores when the query has no retrievable tokens", () => {
+    expect(computeBm25SparseScores("   ", ["第一份材料", "第二份材料"])).toEqual([0, 0]);
   });
 });
