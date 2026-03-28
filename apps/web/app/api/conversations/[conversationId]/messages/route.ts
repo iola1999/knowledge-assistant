@@ -8,6 +8,7 @@ import {
 import { enqueueConversationResponse } from "@knowledge-assistant/queue";
 
 import { auth } from "@/auth";
+import { buildConversationPrompt } from "@/lib/api/workspace-prompt";
 import { requireOwnedConversation } from "@/lib/guards/resources";
 
 export const runtime = "nodejs";
@@ -111,7 +112,10 @@ export async function POST(
       conversationId,
       userMessageId: userMessage.id,
       assistantMessageId: assistantMessage.id,
-      prompt: content,
+      prompt: buildConversationPrompt({
+        content,
+        workspacePrompt: conversation.workspacePrompt,
+      }),
     });
 
     return Response.json(

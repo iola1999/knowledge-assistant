@@ -4,12 +4,23 @@ import { z } from "zod";
 import { getDb, workspaces } from "@knowledge-assistant/db";
 
 import { auth } from "@/auth";
+import {
+  normalizeWorkspacePrompt,
+  WORKSPACE_PROMPT_MAX_LENGTH,
+} from "@/lib/api/workspace-prompt";
 
 export const runtime = "nodejs";
 
 const workspacePatchSchema = z.object({
-  title: z.string().trim().min(1, "title is required").max(200).optional(),
-  description: z.string().trim().max(500).optional(),
+  title: z.string().trim().min(1, "空间名称不能为空。").max(200).optional(),
+  workspacePrompt: z
+    .string()
+    .trim()
+    .max(
+      WORKSPACE_PROMPT_MAX_LENGTH,
+      `预置提示词不能超过 ${WORKSPACE_PROMPT_MAX_LENGTH} 个字符。`,
+    )
+    .optional(),
   industry: z.string().trim().max(80).optional(),
 });
 
@@ -75,7 +86,10 @@ export async function PATCH(
     .update(workspaces)
     .set({
       title: nextData.title ?? workspace.title,
-      description: nextData.description ?? workspace.description,
+      workspacePrompt:
+        nextData.workspacePrompt !== undefined
+          ? normalizeWorkspacePrompt(nextData.workspacePrompt)
+          : workspace.workspacePrompt,
       industry: nextData.industry ?? workspace.industry,
       updatedAt: new Date(),
     })

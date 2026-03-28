@@ -158,8 +158,7 @@ export default async function WorkspaceSettingsPage({
             sectionId="general"
             workspaceId={workspace.id}
             initialTitle={workspace.title}
-            initialDescription={workspace.description}
-            initialIndustry={workspace.industry}
+            initialPrompt={workspace.workspacePrompt}
           />
 
           <section id="knowledge-base" className={cn(ui.panelLarge, "grid gap-4 p-6")}>

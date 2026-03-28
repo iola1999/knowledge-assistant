@@ -20,6 +20,7 @@ export async function requireOwnedConversation(
     .select({
       id: conversations.id,
       workspaceId: conversations.workspaceId,
+      workspacePrompt: workspaces.workspacePrompt,
       title: conversations.title,
       mode: conversations.mode,
       status: conversations.status,

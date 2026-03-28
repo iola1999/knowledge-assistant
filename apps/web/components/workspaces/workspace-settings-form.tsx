@@ -3,25 +3,23 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
+import { WORKSPACE_PROMPT_MAX_LENGTH } from "@/lib/api/workspace-prompt";
 import { buttonStyles, cn, ui } from "@/lib/ui";
 
 export function WorkspaceSettingsForm({
   sectionId,
   workspaceId,
   initialTitle,
-  initialDescription,
-  initialIndustry,
+  initialPrompt,
 }: {
   sectionId?: string;
   workspaceId: string;
   initialTitle: string;
-  initialDescription?: string | null;
-  initialIndustry?: string | null;
+  initialPrompt?: string | null;
 }) {
   const router = useRouter();
   const [title, setTitle] = useState(initialTitle);
-  const [description, setDescription] = useState(initialDescription ?? "");
-  const [industry, setIndustry] = useState(initialIndustry ?? "");
+  const [workspacePrompt, setWorkspacePrompt] = useState(initialPrompt ?? "");
   const [status, setStatus] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -36,8 +34,7 @@ export function WorkspaceSettingsForm({
       },
       body: JSON.stringify({
         title,
-        description,
-        industry,
+        workspacePrompt,
       }),
     });
     const body = (await response.json().catch(() => null)) as
@@ -56,11 +53,13 @@ export function WorkspaceSettingsForm({
   }
 
   return (
-    <form id={sectionId} onSubmit={onSubmit} className={cn(ui.panelLarge, "grid gap-4")}>
+    <form id={sectionId} onSubmit={onSubmit} className={cn(ui.panelLarge, "grid gap-5 p-6")}>
       <div className="grid gap-2">
         <p className={ui.eyebrow}>General</p>
         <h2>空间信息</h2>
-        <p className={ui.muted}>这里维护空间名称、说明和行业标签，方便后续长期稳定使用。</p>
+        <p className={ui.muted}>
+          这里维护空间名称和统一提示词。统一提示词会在每次提问时自动附加给助手。
+        </p>
       </div>
 
       <label className={ui.label}>
@@ -73,25 +72,27 @@ export function WorkspaceSettingsForm({
         />
       </label>
       <label className={ui.label}>
-        行业
-        <input
-          className={ui.input}
-          value={industry}
-          onChange={(event) => setIndustry(event.target.value)}
-        />
-      </label>
-      <label className={ui.label}>
-        空间说明
+        <span className="flex items-center justify-between gap-3">
+          <span>预置提示词</span>
+          <span className="text-[12px] font-normal text-app-muted">
+            {workspacePrompt.length}/{WORKSPACE_PROMPT_MAX_LENGTH}
+          </span>
+        </span>
         <textarea
           className={ui.textarea}
-          rows={4}
-          value={description}
-          onChange={(event) => setDescription(event.target.value)}
+          rows={5}
+          maxLength={WORKSPACE_PROMPT_MAX_LENGTH}
+          value={workspacePrompt}
+          onChange={(event) => setWorkspacePrompt(event.target.value)}
+          placeholder="例如：默认使用简体中文；先给结论，再列依据；结论必须标注资料出处。"
         />
+        <span className={cn(ui.muted, "text-[13px] leading-5")}>
+          适合放稳定不变的回答要求，例如输出结构、引用要求、默认语言和优先关注点。尽量保持简短。
+        </span>
       </label>
 
       <div className="flex flex-wrap items-center gap-3">
-        <button className={buttonStyles()} disabled={isPending} type="submit">
+        <button className={cn(buttonStyles(), "justify-self-start")} disabled={isPending} type="submit">
           {isPending ? "保存中..." : "保存空间设置"}
         </button>
         {status ? <span className={ui.muted}>{status}</span> : null}

@@ -33,6 +33,7 @@ user
 ## 2. 关键设计
 
 - `workspace` 是知识隔离和会话上下文的核心边界。
+- `workspace` 可携带 `workspace_prompt`，用于附加到该空间内每轮对话的统一回答要求。
 - `documents` 保存逻辑文档信息，`document_versions` 保存版本化文件。
 - `document_blocks / document_chunks / citation_anchors` 支撑检索、阅读和引用。
 - `messages` 保存用户与助手消息，`message_citations` 保存回答中的引用映射。
