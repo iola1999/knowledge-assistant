@@ -67,40 +67,43 @@ export function WorkspaceShell({
   return (
     <div className="grid min-h-screen grid-cols-1 xl:h-[100dvh] xl:grid-cols-[258px_minmax(0,1fr)] xl:overflow-hidden">
       <aside className="flex min-h-screen flex-col gap-4 border-b border-app-border bg-app-sidebar px-4 py-4 xl:min-h-0 xl:h-[100dvh] xl:border-r xl:border-b-0 xl:overflow-hidden">
-        <div className="grid gap-3">
-          <Link href="/workspaces" className="flex items-center gap-3 px-1 py-1">
-            <span className="grid size-9 place-items-center rounded-xl bg-app-accent/12 font-serif text-sm font-semibold text-app-accent">
+        <div className="grid gap-4">
+          <Link href="/workspaces" className="group flex items-center gap-3 px-1.5 py-1 transition-opacity hover:opacity-80">
+            <span className="grid size-[38px] shrink-0 place-items-center rounded-xl bg-app-primary font-serif text-[15px] font-semibold text-app-primary-contrast shadow-sm">
               {workspaceBranding.badgeLabel}
             </span>
             <span className="grid gap-0.5">
-              <strong className="font-serif text-[1.02rem]">
+              <strong className="font-serif text-[15px] leading-tight text-app-text">
                 {workspaceBranding.productName}
               </strong>
-              <span className="text-[10px] uppercase tracking-[0.16em] text-app-muted">
+              <span className="text-[11px] font-medium tracking-wide text-app-muted-strong">
                 {workspaceBranding.productTagline}
               </span>
             </span>
           </Link>
-          <Link
-            href={`/workspaces/${workspace.id}`}
-            className={cn(
-              "inline-flex min-h-11 items-center gap-2 rounded-full border px-4 text-sm font-medium transition",
-              activeView === "chat" && !activeConversationId
-                ? "border-app-border-strong bg-white text-app-text shadow-soft"
-                : "border-app-border bg-white/80 text-app-text hover:bg-white",
-            )}
-          >
-            <span className="grid size-[18px] place-items-center rounded-full bg-app-surface-strong text-[15px] leading-none">
-              +
-            </span>
-            新建问题
-          </Link>
+          <div className="px-1">
+            <Link
+              href={`/workspaces/${workspace.id}`}
+              className={cn(
+                "group flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border text-[14px] font-medium transition-all",
+                activeView === "chat" && !activeConversationId
+                  ? "border-app-primary bg-app-primary text-app-primary-contrast shadow-sm"
+                  : "border-app-border-strong bg-white text-app-text shadow-sm hover:bg-app-surface-soft hover:shadow-soft",
+              )}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="transition-transform group-hover:scale-110">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              新建会话
+            </Link>
+          </div>
         </div>
 
-        <div className="flex min-h-0 flex-1 flex-col gap-3 border-t border-app-border pt-3">
-          <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.08em] text-app-muted">
-            <span>历史会话</span>
-            <span className="text-[11px] normal-case tracking-normal">
+        <div className="flex min-h-0 flex-1 flex-col gap-3 border-t border-app-border/60 pt-4">
+          <div className="flex items-center justify-between px-1.5">
+            <span className="text-[12px] font-medium text-app-muted-strong">历史会话</span>
+            <span className="grid min-w-5 place-items-center rounded-[5px] bg-white/80 px-1 py-0.5 text-[10px] font-semibold text-app-muted shadow-sm">
               {activeConversations.length}
             </span>
           </div>
