@@ -10,7 +10,11 @@ import {
   resolveComposerAttachmentStatus,
   type ComposerAttachmentStatus,
 } from "@/lib/api/conversation-attachments";
-import { resolveComposerHeading, resolveComposerSubmitStatus } from "@/lib/api/composer";
+import {
+  resolveComposerHeading,
+  resolveComposerStageTextareaSizing,
+  resolveComposerSubmitStatus,
+} from "@/lib/api/composer";
 import { SUPPORTED_UPLOAD_ACCEPT } from "@/lib/api/upload-policy";
 import { buttonStyles, cn, ui } from "@/lib/ui";
 
@@ -101,6 +105,8 @@ export function Composer({
     Boolean(firstAttachmentError) ||
     hasPendingAttachments ||
     hasNoReadyAttachments;
+  const isStage = variant === "stage";
+  const stageTextareaSizing = resolveComposerStageTextareaSizing(rows);
 
   useEffect(() => {
     setAttachments((current) => mergeAttachments(current, initialAttachments));
@@ -122,14 +128,32 @@ export function Composer({
   }, [attachments]);
 
   useEffect(() => {
-    if (variant !== "stage" || !textareaRef.current) {
+    if (!isStage || !textareaRef.current) {
       return;
     }
 
     const next = textareaRef.current;
-    next.style.height = "0px";
-    next.style.height = `${Math.max(72, Math.min(next.scrollHeight, 220))}px`;
-  }, [content, variant]);
+
+    function syncHeight() {
+      next.style.height = "0px";
+
+      const nextHeight = Math.max(
+        stageTextareaSizing.minHeight,
+        Math.min(next.scrollHeight, stageTextareaSizing.maxHeight),
+      );
+
+      next.style.height = `${nextHeight}px`;
+      next.style.overflowY =
+        next.scrollHeight > stageTextareaSizing.maxHeight ? "auto" : "hidden";
+    }
+
+    syncHeight();
+    window.addEventListener("resize", syncHeight);
+
+    return () => {
+      window.removeEventListener("resize", syncHeight);
+    };
+  }, [content, isStage, stageTextareaSizing.maxHeight, stageTextareaSizing.minHeight]);
 
   async function pollAttachmentJob(localId: string, jobId: string) {
     while (true) {
@@ -450,9 +474,9 @@ export function Composer({
     <form
       onSubmit={onSubmit}
       className={cn(
-        "grid gap-4",
-        variant === "stage"
-          ? "rounded-[30px] border border-app-border/70 bg-white/88 p-3 shadow-[0_20px_52px_rgba(23,22,18,0.06)] backdrop-blur-sm"
+        "grid gap-3",
+        isStage
+          ? "text-left"
           : `${ui.panel} gap-3`,
         className,
       )}
@@ -471,43 +495,45 @@ export function Composer({
         accept={SUPPORTED_UPLOAD_ACCEPT}
         onChange={onFileChange}
       />
-      {variant === "stage" ? (
+      {isStage ? (
         <div className="grid gap-3">
-          <div className="grid gap-3 rounded-[26px] border border-app-border/65 bg-app-surface-soft/46 px-5 py-4">
+          <div className="grid gap-3 rounded-[28px] border border-app-border/80 bg-white/94 px-5 py-4 shadow-soft md:px-6 md:py-5">
             <textarea
               ref={textareaRef}
               required
-              rows={rows ?? 3}
+              rows={stageTextareaSizing.minRows}
               value={content}
               onChange={(e) => setContent(e.target.value)}
               placeholder={placeholder}
               className={cn(
-                "min-h-[72px] w-full resize-none bg-transparent px-0 py-1 text-[15px] leading-7 text-app-text outline-none placeholder:text-app-muted",
+                "w-full resize-none bg-transparent px-0 py-0 text-[15px] leading-7 text-app-text outline-none placeholder:text-app-muted md:text-[16px]",
                 textareaClassName,
               )}
             />
-            <div className="flex items-center justify-between gap-3 border-t border-app-border/55 pt-3">
-              {workspaceId ? (
-                <button
-                  type="button"
-                  className="inline-flex size-10 shrink-0 items-center justify-center rounded-full text-app-muted-strong transition hover:bg-white/72 hover:text-app-text"
-                  onClick={() => fileInputRef.current?.click()}
-                  aria-label="上传临时文件"
-                >
-                  <svg viewBox="0 0 20 20" fill="none" className="size-5" aria-hidden="true">
-                    <path
-                      d="M10 4.5v11M4.5 10h11"
-                      stroke="currentColor"
-                      strokeWidth="1.7"
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                </button>
-              ) : (
-                <div className="size-10 shrink-0" aria-hidden="true" />
-              )}
+            <div className="flex items-center justify-between gap-3 pt-1">
+              <div className="flex min-h-10 items-center gap-2">
+                {workspaceId ? (
+                  <button
+                    type="button"
+                    className="inline-flex size-9 shrink-0 items-center justify-center rounded-2xl text-app-muted-strong transition hover:bg-app-surface-soft hover:text-app-text md:size-10"
+                    onClick={() => fileInputRef.current?.click()}
+                    aria-label="上传临时文件"
+                  >
+                    <svg viewBox="0 0 20 20" fill="none" className="size-5" aria-hidden="true">
+                      <path
+                        d="M10 4.5v11M4.5 10h11"
+                        stroke="currentColor"
+                        strokeWidth="1.7"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                  </button>
+                ) : (
+                  <div className="size-9 shrink-0 md:size-10" aria-hidden="true" />
+                )}
+              </div>
               <button
-                className="inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-app-primary text-app-primary-contrast transition hover:bg-[#25211c] disabled:cursor-not-allowed disabled:opacity-55"
+                className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-app-primary text-app-primary-contrast transition hover:bg-[#25211c] disabled:cursor-not-allowed disabled:opacity-55 md:size-11"
                 disabled={isPending || hasPendingAttachments}
                 type="submit"
                 aria-label={submitLabel}

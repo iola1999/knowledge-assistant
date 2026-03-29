@@ -15,6 +15,20 @@ export function resolveComposerHeading(input: {
   };
 }
 
+const STAGE_COMPOSER_LINE_HEIGHT = 28;
+const STAGE_COMPOSER_MAX_HEIGHT = STAGE_COMPOSER_LINE_HEIGHT * 8;
+
+export function resolveComposerStageTextareaSizing(rows?: number | null) {
+  const requestedRows = Number.isFinite(rows) ? Math.trunc(rows ?? 1) : 1;
+  const minRows = Math.max(1, Math.min(requestedRows, 3));
+
+  return {
+    minRows,
+    minHeight: STAGE_COMPOSER_LINE_HEIGHT * minRows,
+    maxHeight: STAGE_COMPOSER_MAX_HEIGHT,
+  };
+}
+
 export function resolveComposerSubmitStatus(agentError?: string | null) {
   if (!agentError?.trim()) {
     return null;

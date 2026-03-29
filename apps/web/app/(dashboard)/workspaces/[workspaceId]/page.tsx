@@ -202,11 +202,11 @@ export default async function WorkspacePage({
               conversationId={activeConversation.id}
               workspaceId={workspaceId}
               variant="stage"
-              rows={3}
+              rows={1}
               placeholder="继续追问、要求整理成结论，或让助手基于资料补充论证"
               submitLabel="继续"
               className="border-transparent bg-transparent p-0 shadow-none backdrop-blur-0"
-              textareaClassName="min-h-[72px] bg-transparent"
+              textareaClassName="bg-transparent"
               initialAttachments={attachmentRows.map((attachment) => ({
                 id: attachment.id,
                 attachmentId: attachment.id,
@@ -241,11 +241,11 @@ export default async function WorkspacePage({
             <Composer
               workspaceId={workspaceId}
               variant="stage"
-              rows={5}
+              rows={2}
               placeholder="例如：请基于本空间资料，总结新版发布流程的关键变化，并列出仍需补充的信息"
               submitLabel="开始对话"
               className="mx-auto w-full max-w-[920px] text-left"
-              textareaClassName="min-h-[120px] bg-transparent"
+              textareaClassName="bg-transparent"
               initialAttachments={[]}
             />
           </div>
