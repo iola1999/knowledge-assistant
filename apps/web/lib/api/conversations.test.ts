@@ -4,8 +4,10 @@ import { CONVERSATION_STATUS } from "@knowledge-assistant/contracts";
 import {
   chooseWorkspaceConversation,
   chooseWorkspaceConversationWithMeta,
+  formatConversationSidebarUpdatedAt,
   groupWorkspaceConversations,
   normalizeConversationTitle,
+  resolveConversationDeleteRedirect,
 } from "./conversations";
 
 describe("conversation helpers", () => {
@@ -142,5 +144,60 @@ describe("conversation helpers", () => {
     expect(grouped.active.map((item) => item.id)).toEqual(["active-1", "active-2"]);
     expect(grouped.archived.map((item) => item.id)).toEqual(["archived-1"]);
   });
-});
 
+  test("formats recent sidebar activity in relative minutes", () => {
+    expect(
+      formatConversationSidebarUpdatedAt(
+        new Date("2026-03-29T11:55:00Z"),
+        new Date("2026-03-29T12:00:00Z"),
+      ),
+    ).toBe("5分钟前");
+  });
+
+  test("formats recent sidebar activity in relative days", () => {
+    expect(
+      formatConversationSidebarUpdatedAt(
+        new Date("2026-03-26T12:00:00Z"),
+        new Date("2026-03-29T12:00:00Z"),
+      ),
+    ).toBe("3天前");
+  });
+
+  test("formats older sidebar activity as month and day", () => {
+    expect(
+      formatConversationSidebarUpdatedAt(
+        new Date("2026-03-12T12:00:00Z"),
+        new Date("2026-03-29T12:00:00Z"),
+      ),
+    ).toBe("3月12日");
+  });
+
+  test("formats cross-year sidebar activity with the year", () => {
+    expect(
+      formatConversationSidebarUpdatedAt(
+        new Date("2025-12-31T12:00:00Z"),
+        new Date("2026-03-29T12:00:00Z"),
+      ),
+    ).toBe("2025年12月31日");
+  });
+
+  test("redirects to workspace root after deleting the active conversation", () => {
+    expect(
+      resolveConversationDeleteRedirect({
+        workspaceId: "workspace-1",
+        deletedConversationId: "conversation-2",
+        activeConversationId: "conversation-2",
+      }),
+    ).toBe("/workspaces/workspace-1");
+  });
+
+  test("keeps the current page when deleting a different conversation", () => {
+    expect(
+      resolveConversationDeleteRedirect({
+        workspaceId: "workspace-1",
+        deletedConversationId: "conversation-3",
+        activeConversationId: "conversation-2",
+      }),
+    ).toBeNull();
+  });
+});

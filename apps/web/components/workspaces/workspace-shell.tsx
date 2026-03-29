@@ -4,6 +4,7 @@ import { CONVERSATION_STATUS, type ConversationStatus } from "@knowledge-assista
 
 import { isSuperAdminUsername } from "@/lib/auth/super-admin";
 import { workspaceBranding } from "@/lib/branding";
+import { formatConversationSidebarUpdatedAt } from "@/lib/api/conversations";
 import { cn, ui } from "@/lib/ui";
 import { WorkspaceBreadcrumbSwitcher } from "@/components/workspaces/workspace-breadcrumb-switcher";
 import { WorkspaceUserPanel } from "@/components/workspaces/workspace-user-panel";
@@ -35,13 +36,6 @@ type WorkspaceShellProps = {
   topActions?: ReactNode;
   children: ReactNode;
 };
-
-function formatSidebarDate(value: Date) {
-  return new Intl.DateTimeFormat("zh-CN", {
-    month: "2-digit",
-    day: "2-digit",
-  }).format(value);
-}
 
 export function WorkspaceShell({
   workspace,
@@ -116,18 +110,17 @@ export function WorkspaceShell({
                 key={conversation.id}
                 href={`/workspaces/${workspace.id}?conversationId=${conversation.id}`}
                 className={cn(
-                  "flex items-center justify-between gap-3 rounded-2xl border p-3 text-sm transition",
+                  "flex items-center gap-3 rounded-2xl px-4 py-3 text-sm transition",
                   conversation.id === activeConversationId
-                    ? "border-app-border bg-white shadow-soft"
-                    : "border-transparent bg-transparent hover:border-app-border hover:bg-white/70",
+                    ? "bg-white text-app-text shadow-soft"
+                    : "text-app-muted-strong hover:bg-white/72 hover:text-app-text",
                 )}
               >
-                <div className="grid min-w-0 gap-1">
-                  <strong className="truncate text-sm">{conversation.title}</strong>
-                  <span className={cn(ui.muted, "text-xs leading-5")}>继续当前会话</span>
-                </div>
-                <span className="shrink-0 text-xs text-app-muted">
-                  {formatSidebarDate(conversation.updatedAt)}
+                <strong className="min-w-0 flex-1 truncate text-[15px] font-medium">
+                  {conversation.title}
+                </strong>
+                <span className="shrink-0 text-[12px] text-app-muted">
+                  {formatConversationSidebarUpdatedAt(conversation.updatedAt)}
                 </span>
               </Link>
             ))}

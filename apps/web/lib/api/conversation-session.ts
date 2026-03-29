@@ -11,8 +11,8 @@ export type ConversationChatMessage = {
 export type ConversationMessageCitation = {
   id: string;
   messageId: string;
-  anchorId: string;
-  documentId: string;
+  anchorId?: string | null;
+  documentId?: string | null;
   label: string;
 };
 

@@ -182,22 +182,30 @@ export function ConversationSession({
   initialMessages,
   initialTimelineMessagesByAssistant,
   initialCitations,
+  streamEnabled = true,
+  sourceLinksEnabled = true,
+  readOnly = false,
+  emptyStateMessage = "这一轮还没有消息",
 }: {
   conversationId: string;
-  workspaceId: string;
-  assistantMessageId: string | null;
-  assistantStatus: MessageStatus | null;
+  workspaceId?: string | null;
+  assistantMessageId?: string | null;
+  assistantStatus?: MessageStatus | null;
   initialMessages: ChatMessage[];
-  initialTimelineMessagesByAssistant: TimelineMessagesByAssistant;
-  initialCitations: MessageCitation[];
+  initialTimelineMessagesByAssistant?: TimelineMessagesByAssistant;
+  initialCitations?: MessageCitation[];
+  streamEnabled?: boolean;
+  sourceLinksEnabled?: boolean;
+  readOnly?: boolean;
+  emptyStateMessage?: string;
 }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [chatMessages, setChatMessages] = useState(initialMessages);
   const [timelineMessagesByAssistant, setTimelineMessagesByAssistant] = useState(
-    initialTimelineMessagesByAssistant,
+    initialTimelineMessagesByAssistant ?? {},
   );
-  const [messageCitations, setMessageCitations] = useState(initialCitations);
+  const [messageCitations, setMessageCitations] = useState(initialCitations ?? []);
   const [runtimeStatus, setRuntimeStatus] = useState<string | null>(
     assistantStatus === MESSAGE_STATUS.STREAMING ? "助手正在分析问题并生成回答..." : null,
   );
@@ -208,26 +216,28 @@ export function ConversationSession({
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const [regeneratingMessageId, setRegeneratingMessageId] = useState<string | null>(null);
   const chatMessagesRef = useRef(initialMessages);
-  const messageCitationsRef = useRef(initialCitations);
+  const messageCitationsRef = useRef(initialCitations ?? []);
   const seenTimelineIdsRef = useRef(
-    flattenTimelineMessageIds(initialTimelineMessagesByAssistant),
+    flattenTimelineMessageIds(initialTimelineMessagesByAssistant ?? {}),
   );
   const copiedTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     setChatMessages(initialMessages);
-    setTimelineMessagesByAssistant(initialTimelineMessagesByAssistant);
-    setMessageCitations(initialCitations);
+    setTimelineMessagesByAssistant(initialTimelineMessagesByAssistant ?? {});
+    setMessageCitations(initialCitations ?? []);
     setMessageViewModes({});
     setActionStatusByMessage({});
     setCopiedMessageId(null);
     setRegeneratingMessageId(null);
     chatMessagesRef.current = initialMessages;
-    messageCitationsRef.current = initialCitations;
+    messageCitationsRef.current = initialCitations ?? [];
     setRuntimeStatus(
       assistantStatus === MESSAGE_STATUS.STREAMING ? "助手正在分析问题并生成回答..." : null,
     );
-    seenTimelineIdsRef.current = flattenTimelineMessageIds(initialTimelineMessagesByAssistant);
+    seenTimelineIdsRef.current = flattenTimelineMessageIds(
+      initialTimelineMessagesByAssistant ?? {},
+    );
   }, [
     assistantStatus,
     initialCitations,
@@ -252,7 +262,11 @@ export function ConversationSession({
   }, []);
 
   useEffect(() => {
-    if (!assistantMessageId || assistantStatus !== MESSAGE_STATUS.STREAMING) {
+    if (
+      !streamEnabled ||
+      !assistantMessageId ||
+      assistantStatus !== MESSAGE_STATUS.STREAMING
+    ) {
       return;
     }
 
@@ -375,7 +389,7 @@ export function ConversationSession({
     return () => {
       source.close();
     };
-  }, [assistantMessageId, assistantStatus, conversationId, router]);
+  }, [assistantMessageId, assistantStatus, conversationId, router, streamEnabled]);
 
   const citationsByMessage = new Map<string, MessageCitation[]>();
   for (const citation of messageCitations) {
@@ -384,14 +398,16 @@ export function ConversationSession({
     citationsByMessage.set(citation.messageId, group);
   }
 
-  const regeneratableTurn = findRegeneratableConversationTurn(
-    chatMessages.map((message): RetryableConversationMessage => ({
-      id: message.id,
-      role: message.role,
-      status: message.status,
-      contentMarkdown: message.contentMarkdown,
-    })),
-  );
+  const regeneratableTurn = readOnly
+    ? null
+    : findRegeneratableConversationTurn(
+        chatMessages.map((message): RetryableConversationMessage => ({
+          id: message.id,
+          role: message.role,
+          status: message.status,
+          contentMarkdown: message.contentMarkdown,
+        })),
+      );
 
   function setMessageView(messageId: string, nextView: MessageViewMode) {
     setMessageViewModes((current) => ({
@@ -542,16 +558,33 @@ export function ConversationSession({
                 {selectedView === "sources" ? (
                   <div className="grid gap-2.5">
                     {citations.map((citation, index) => (
-                      <Link
-                        key={citation.id}
-                        href={`/workspaces/${workspaceId}/documents/${citation.documentId}?anchorId=${citation.anchorId}`}
-                        className="grid gap-1 rounded-[20px] border border-app-border/55 bg-white/70 px-4 py-3 transition hover:border-app-border-strong hover:bg-white"
-                      >
-                        <span className="text-[11px] uppercase tracking-[0.12em] text-app-muted">
-                          资料 {index + 1}
-                        </span>
-                        <span className="text-[14px] leading-6 text-app-text">{citation.label}</span>
-                      </Link>
+                      sourceLinksEnabled &&
+                      workspaceId &&
+                      citation.documentId &&
+                      citation.anchorId ? (
+                        <Link
+                          key={citation.id}
+                          href={`/workspaces/${workspaceId}/documents/${citation.documentId}?anchorId=${citation.anchorId}`}
+                          className="grid gap-1 rounded-[20px] border border-app-border/55 bg-white/70 px-4 py-3 transition hover:border-app-border-strong hover:bg-white"
+                        >
+                          <span className="text-[11px] uppercase tracking-[0.12em] text-app-muted">
+                            资料 {index + 1}
+                          </span>
+                          <span className="text-[14px] leading-6 text-app-text">{citation.label}</span>
+                        </Link>
+                      ) : (
+                        <div
+                          key={citation.id}
+                          aria-disabled="true"
+                          title={sourceLinksEnabled ? undefined : "公开页不提供资料跳转"}
+                          className="grid gap-1 rounded-[20px] border border-app-border/55 bg-white/70 px-4 py-3 text-left"
+                        >
+                          <span className="text-[11px] uppercase tracking-[0.12em] text-app-muted">
+                            资料 {index + 1}
+                          </span>
+                          <span className="text-[14px] leading-6 text-app-text">{citation.label}</span>
+                        </div>
+                      )
                     ))}
                   </div>
                 ) : (
@@ -632,7 +665,7 @@ export function ConversationSession({
           );
         })
       ) : (
-        <div className={ui.muted}>这一轮还没有消息，从底部输入框继续提问</div>
+        <div className={ui.muted}>{emptyStateMessage}</div>
       )}
     </div>
   );

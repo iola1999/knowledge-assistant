@@ -75,3 +75,36 @@ export function formatConversationUpdatedAt(value: Date) {
     hour12: false,
   }).format(value);
 }
+
+export function formatConversationSidebarUpdatedAt(
+  value: Date,
+  now = new Date(),
+) {
+  const diffMs = now.getTime() - value.getTime();
+  const minute = 60 * 1000;
+  const hour = 60 * minute;
+  const day = 24 * hour;
+  const week = 7 * day;
+
+  if (diffMs < minute) {
+    return "刚刚";
+  }
+
+  if (diffMs < hour) {
+    return `${Math.max(1, Math.floor(diffMs / minute))}分钟前`;
+  }
+
+  if (diffMs < day) {
+    return `${Math.max(1, Math.floor(diffMs / hour))}小时前`;
+  }
+
+  if (diffMs < week) {
+    return `${Math.max(1, Math.floor(diffMs / day))}天前`;
+  }
+
+  if (value.getFullYear() === now.getFullYear()) {
+    return `${value.getMonth() + 1}月${value.getDate()}日`;
+  }
+
+  return `${value.getFullYear()}年${value.getMonth() + 1}月${value.getDate()}日`;
+}

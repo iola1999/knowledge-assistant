@@ -473,24 +473,7 @@ export function Composer({
       />
       {variant === "stage" ? (
         <div className="grid gap-3">
-          <div className="flex items-end gap-3 rounded-[26px] border border-app-border/65 bg-app-surface-soft/46 px-4 py-3">
-            {workspaceId ? (
-              <button
-                type="button"
-                className="inline-flex size-10 shrink-0 items-center justify-center rounded-full text-app-muted-strong transition hover:bg-white/72 hover:text-app-text"
-                onClick={() => fileInputRef.current?.click()}
-                aria-label="上传临时文件"
-              >
-                <svg viewBox="0 0 20 20" fill="none" className="size-5" aria-hidden="true">
-                  <path
-                    d="M10 4.5v11M4.5 10h11"
-                    stroke="currentColor"
-                    strokeWidth="1.7"
-                    strokeLinecap="round"
-                  />
-                </svg>
-              </button>
-            ) : null}
+          <div className="grid gap-3 rounded-[26px] border border-app-border/65 bg-app-surface-soft/46 px-5 py-4">
             <textarea
               ref={textareaRef}
               required
@@ -499,28 +482,47 @@ export function Composer({
               onChange={(e) => setContent(e.target.value)}
               placeholder={placeholder}
               className={cn(
-                "min-h-[72px] w-full resize-none bg-transparent px-0 py-2 text-[15px] leading-7 text-app-text outline-none placeholder:text-app-muted",
+                "min-h-[72px] w-full resize-none bg-transparent px-0 py-1 text-[15px] leading-7 text-app-text outline-none placeholder:text-app-muted",
                 textareaClassName,
               )}
             />
-            <button
-              className="inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-app-primary text-app-primary-contrast transition hover:bg-[#25211c] disabled:cursor-not-allowed disabled:opacity-55"
-              disabled={
-                isPending || hasPendingAttachments
-              }
-              type="submit"
-              aria-label={submitLabel}
-            >
-              <svg viewBox="0 0 20 20" fill="none" className="size-5" aria-hidden="true">
-                <path
-                  d="M10 4.167v11.666m0-11.666 4.166 4.166M10 4.167 5.833 8.333"
-                  stroke="currentColor"
-                  strokeWidth="1.7"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </button>
+            <div className="flex items-center justify-between gap-3 border-t border-app-border/55 pt-3">
+              {workspaceId ? (
+                <button
+                  type="button"
+                  className="inline-flex size-10 shrink-0 items-center justify-center rounded-full text-app-muted-strong transition hover:bg-white/72 hover:text-app-text"
+                  onClick={() => fileInputRef.current?.click()}
+                  aria-label="上传临时文件"
+                >
+                  <svg viewBox="0 0 20 20" fill="none" className="size-5" aria-hidden="true">
+                    <path
+                      d="M10 4.5v11M4.5 10h11"
+                      stroke="currentColor"
+                      strokeWidth="1.7"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                </button>
+              ) : (
+                <div className="size-10 shrink-0" aria-hidden="true" />
+              )}
+              <button
+                className="inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-app-primary text-app-primary-contrast transition hover:bg-[#25211c] disabled:cursor-not-allowed disabled:opacity-55"
+                disabled={isPending || hasPendingAttachments}
+                type="submit"
+                aria-label={submitLabel}
+              >
+                <svg viewBox="0 0 20 20" fill="none" className="size-5" aria-hidden="true">
+                  <path
+                    d="M10 4.167v11.666m0-11.666 4.166 4.166M10 4.167 5.833 8.333"
+                    stroke="currentColor"
+                    strokeWidth="1.7"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
+            </div>
           </div>
 
           {attachments.length > 0 ? (
