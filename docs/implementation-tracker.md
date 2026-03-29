@@ -1,6 +1,6 @@
 # 实施跟踪
 
-版本：v0.6
+版本：v0.7
 日期：2026-03-29
 
 > 本文件是项目的执行跟踪文档。
@@ -11,34 +11,37 @@
 
 ## 1. 当前阶段
 
-当前阶段：`P0 Web / BFF 主链路拉通`
+当前阶段：`P0 对话链路收口优先`
 
 阶段目标：
 
-- 先把“注册登录 -> 工作空间 -> 上传资料 -> 查看处理状态 -> 创建对话 -> 阅读文档 -> 回访报告”做顺。
-- 在此基础上补 parser、retrieval、grounded answer、SSE 等可信回答底座。
+- 先把“工作空间 -> 创建对话 -> 消息入队 -> agent-runtime -> tool timeline -> assistant streaming -> grounded final answer -> citations -> 分享/回访”做顺。
+- 当前阶段允许可用工具先返回明确标注的 mock 结果，只要不破坏消息结构、SSE 事件、失败语义和 citation 契约。
+- 资料解析、切块质量、OCR 和更深的 retrieval 优化暂缓；除非它们直接阻断对话链路联调，否则不优先推进。
 
 当前结论：
 
-- 传统主链路已经具备基础可用性。
-- 资料管理 CRUD 已补齐基础版。
-- 第一版口径是“助手优先、问答优先”；报告保留 Agent 生成与导出，不做平台内编辑器。
-- 会话管理、文档阅读器和上传任务反馈都已有基础版。
+- 传统主链路已经具备基础可用性，但当前最需要收口的是对话链路完成态，而不是继续扩 parser 和 retrieval 范围。
+- 资料管理 CRUD、会话管理、文档阅读器和上传任务反馈都已有基础版，可支撑当前阶段联调。
+- 第一版口径仍然是“助手优先、问答优先”；报告保留 Agent 生成与导出，不做平台内编辑器。
 - 主会话链路的 assistant draft streaming 已打通，Claude Agent SDK 仍留在独立 `agent-runtime` 进程中负责决策与工具调用。
+- 当前阶段接受“工具先 mock，链路先跑通”的策略，但 mock 输出必须显式标识，不能伪造引用或外部证据。
 - 本地开发一键启动脚本已补齐。
 - 数据库与应用升级开始从 ad-hoc bootstrap 收敛到 versioned SQL migrations + tracked app upgrades。
 - 已新增生产单机 Docker 多容器部署资产与基础健康检查。
-- 当前最缺的不是更多 agent 花样，而是先把 P0 承诺和实际实现对齐，再继续深化 retrieval / grounded answer / SSE。
+- 当前最缺的不是更多 agent 花样，而是先把 P0 承诺和实际实现对齐，把主会话链路、SSE、完成态刷新和 citation 展示彻底走顺。
 - 产品整体已切换为通用知识库助手定位，但保留 `search_statutes` 专项工具。
 
 当前实现快照：
 
 - `web -> BullMQ conversation.respond -> agent-runtime -> grounded final answer -> citations` 主问答链路已通；发送消息后会先落 user message + assistant placeholder，再异步生成最终回答。
 - 问答策略已固定为“本地资料优先 + 联网查询补充”；不再保留 `kb_only / kb_plus_web` 模式切换与相关设置入口。
+- 账号认证仍采用 `Auth.js` JWT session，但服务端现在会把有效 session `jti` 记录到 Redis，并在每次读取 session 时做 allowlist 校验与 TTL 续期；登出、改密和后续管理员强制下线都可走这层撤销机制。
 - 首屏提问区已支持先上传“会话级临时资料”；首条消息创建会话后会自动认领这些附件，并把它们连同 locator 信息一起送给 agent。
 - 账号页已补齐修改密码与退出登录的基础入口；工作空间当前只保留软删除，不再提供归档。
 - `/api/conversations/[conversationId]/stream` 现在会持续推送数据库里的 `tool` 消息、assistant draft `answer_delta` 和完成/失败事件；前端会在当前会话里实时更新 assistant 气泡。
 - 当前回答流式是“数据库轮询 + assistant draft 持久化”链路；它已经满足 P0 的流式呈现，但仍不是 provider 直连 token transport，最终 grounded answer 与 citations 仍在完成态统一落库。
+- 本地缺少真实 provider 时，主会话链路已经允许回退到 mock tool / mock assistant chunk，用于验证队列、事件流、前端状态切换和错误处理。
 - `presign -> documents/document_versions/document_jobs -> BullMQ parse/chunk/embed/index` 上传消化链路已通，解析结果会落到 `document_pages / document_blocks / document_chunks / citation_anchors`，并同步进入 Qdrant。
 - 会话级临时资料走独立的 `attachments/presign -> conversation_attachments -> parse/chunk/index(parse-only finalize)` 链路；它会生成 `document_pages / document_blocks / document_chunks / citation_anchors`，但不会写入 Qdrant。
 - 上传链路已明确收口：OCR 明确保持 disabled，图片/扫描件暂不纳入当前可用范围，前后端会直接限制并提示。
@@ -46,14 +49,16 @@
 - 新增 `search_conversation_attachments` tool，临时资料现在可在回答中被检索、引用，并跳转到对应文档块或行号附近。
 - 会话已支持生成公开只读分享链接；匿名访问共享会话时，内部资料引用不提供跳转，外部链接仍可打开。
 - 系统参数页和 `system_settings` 已经接管大部分 provider / infra 配置，并新增了注册开关；`DATABASE_URL` 与 `AUTH_SECRET` 继续保持 env-only。
-- 报告链路已具备“创建 -> 默认大纲 -> 章节生成 -> DOCX 导出”的基础版，但当前章节生成仍偏占位实现，不代表完整研究写作能力。
+- 报告链路已具备“创建 -> 默认大纲 -> 章节生成 -> DOCX 导出”的基础版；当前阶段只要求它不阻断主会话链路，不把研究/写作能力深化作为优先项。
 - parser 已有无文本 PDF 的 OCR 降级路径，但真实 OCR provider 仍未接入；当前仅有 `disabled/mock` 级别能力。
 - OCR 下一步不再尝试本地 provider；待商业 API 方案确定后再接入，当前继续保持默认关闭。
-- retrieval 已具备 dense + BM25 候选窗口混合打分 + 可选 DashScope rerank 的基础版，但仍未完成更完整的 sparse 候选扩展与回归。
+- retrieval 已具备 dense + BM25 候选窗口混合打分 + 可选 DashScope rerank 的基础版；后续深化在当前阶段降级为非阻塞项。
 - 去法律化重定位已完成大部分命名与主流程调整，但仍需继续做回归清理，避免通用定位被后续改动带偏。
 
 ## 2. 最近完成
 
+- `working tree` Add Redis-backed JWT session allowlist and revoke all sessions on password change
+- `working tree` Reprioritize roadmap around conversation-chain-first delivery and explicit mock-tool allowance
 - `working tree` Remove workspace archive controls and switch workspace delete to soft delete
 - `working tree` Add account security page with password change and logout
 - `working tree` Add read-only conversation sharing with revocable share links and public share page
@@ -85,41 +90,44 @@
 
 ## 3. 活跃待办
 
+- 主会话链路完成态收口
+  - 当前已能展示 tool start / completed / failed、assistant `answer_delta`、`answer_done`、`run_failed`
+  - 仍需收口 assistant placeholder 到 completed/failed 的状态切换、页面刷新后的最终态一致性，以及失败后的可恢复路径
+  - grounded final answer、citations 和引用跳转仍在完成态刷新后统一呈现，需要继续减少切换断层
+- 工具契约与 mock 策略
+  - 当前阶段允许 `search_web_general` / `search_statutes` / 报告生成等工具先返回明确标识的 mock 或基础结果
+  - tool response 必须保持稳定契约，能持续驱动 tool timeline、assistant draft、completed/failed 和前端展示
+  - mock 结果不得伪造 citation、置信度覆盖度或外部来源
+- grounded answer 证据 dossier 与更清晰的证据展示
+  - 继续补 evidence dossier、引用说明和完成态切换体验
+  - 收口 citation 刷新、阅读器联动和分享页最终态一致性
+- 会话级临时资料
+  - 当前已支持上传、解析、会话绑定、本地检索和引用跳转
+  - 当前只修阻断对话链路的附件问题；草稿附件清理和显式管理入口暂列次优先级
 - 去法律化后的回归清理与文案收口
   - 继续检查其余页面和占位实现中的垂类默认文案
   - 回归补齐相关测试，防止后续再漂回法律垂类默认文案
-- OCR 商业 API provider 方案待定
-  - 当前继续保持 `disabled`
-  - 候选方向优先考虑百炼，但在 provider 口径确认前暂不开发 OCR 接入
-- 主会话链路后的回答可信度与收尾体验
-  - 当前已能展示 tool start / completed / failed、assistant `answer_delta`、`answer_done`、`run_failed`
-  - grounded final answer、citations 和引用跳转仍在完成态刷新后统一呈现
-  - 仍需继续补 evidence dossier、引用说明和完成态切换体验
-- 会话级临时资料
-  - 当前已支持上传、解析、会话绑定、本地检索和引用跳转
-  - 仍缺草稿附件清理和更显式的附件管理入口
-- 工具占位实现替换与研究/写作链路增强
-  - `search_web_general` / `search_statutes` / 报告章节生成仍有占位能力，但当前不再优先于主会话链路打磨
-- grounded answer 证据 dossier 与更清晰的证据展示
-- sparse/BM25 混合检索深化
-  - 当前已补 dense 候选窗口上的 BM25 打分
-  - 后续仍需要更完整的 sparse 候选扩展与 rerank 回归测试
+- 暂缓项
+  - OCR 商业 API provider 接入继续保持 `disabled`，在 provider 口径确认前不开发
+  - parser / chunking 质量深化暂缓，除非直接阻断会话链路或临时附件链路
+  - sparse/BM25 混合检索深化与 rerank 回归测试暂缓，待主会话链路稳定后再恢复
 
 ## 4. 下一步
 
 默认按以下顺序推进：
 
-1. 稳定主会话链路的完成态体验
-2. Agent evidence dossier / grounded answer 证据展示 / citation 刷新与阅读器联动
-3. sparse retrieval 深化与引用准确性回归
-4. 工具占位实现替换并回到真实研究/写作链路
-5. OCR 商业 API provider 方案确认后再接入
+1. 稳定主会话链路的完成态与失败态体验
+2. 固化 tool timeline、mock tool contract 和前端状态切换
+3. 收口 grounded answer 证据展示、citation 刷新和阅读器/分享页联动
+4. 只修阻断主链路的会话级临时资料问题
+5. 主链路稳定后，再恢复 retrieval 深化、真实工具 provider 和 OCR 方案评估
 
 ## 5. 风险与注意事项
 
 - 当前改造默认允许破坏性重置，不保留旧数据兼容层。
 - 本地一键启动脚本只代管应用进程；基础设施默认通过 `pnpm infra:up` 拉起。
 - `AUTH_SECRET` 不进入 `system_settings`。
+- JWT 登录态现在依赖 Redis allowlist；如果 Redis 不可用，服务端应按会话失效处理，而不是继续无状态放行旧 token。
 - `/settings` 保存的是数据库配置，不会热更新到已运行进程。
 - OCR 不要默认开启。
 - OCR 当前明确保持 disabled，不应在未确认商业 provider 前继续扩展本地实现。
@@ -127,3 +135,5 @@
 - PDF 阅读器当前仍是基础版，没有 bbox 级高亮。
 - 当前 SSE 已支持数据库轮询驱动的 assistant draft `answer_delta`；不要把它误判为 provider 直连 token stream。
 - 当前最终 grounded answer、structured state 和 citations 仍在完成态统一落库，前端依赖刷新后显示最终版本。
+- 当前阶段允许工具 mock，但 mock 输出必须显式可识别，且不能伪造 workspace 证据、citation 或外部来源。
+- parser、chunking、OCR 和 retrieval 深化当前都不是默认插队项；只有在它们直接阻断对话链路时才提前处理。

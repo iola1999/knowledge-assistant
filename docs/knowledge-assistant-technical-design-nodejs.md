@@ -1,6 +1,6 @@
 # 通用知识库 Agent 助手技术设计（Node.js / Next.js / Claude Agent SDK）
 
-版本：v0.6
+版本：v0.7
 日期：2026-03-29
 
 > 文档角色说明：
@@ -18,6 +18,8 @@
 - Web 框架使用 Next.js。
 - 文档解析允许使用 Python。
 - Agent 决策与规划固定使用 `@anthropic-ai/claude-agent-sdk`。
+- 当前阶段执行策略是“先收口对话链路，再补真实工具能力”；非核心工具允许先返回明确标识的 mock 结果。
+- 文档解析、切块质量、OCR 和更深的 retrieval 优化当前默认暂缓，除非它们直接阻断对话链路联调。
 
 第一版产品核心：
 
@@ -50,6 +52,7 @@
 
 - Agent 规划固定 Anthropic
 - embedding / rerank 优先 DashScope，未配置时回退本地方案
+- 当前阶段若工具 provider 未就绪，可先返回显式 mock 结果以维持 tool contract、SSE 事件和前端完成态联调
 - OCR 默认关闭，只有扫描件、图片型 PDF 或无文本层材料才启用
 - OCR provider 暂不推进本地实现；后续待商业 API 口径确认后再接入，候选方向优先考虑百炼
 
@@ -90,6 +93,7 @@ flowchart LR
 当前实现快照：
 
 - `Next.js BFF` 已经承接注册登录、工作空间、上传签名、文档管理、会话消息落库、报告基础操作和文档阅读页。
+- 账号认证仍使用 `Auth.js` 的 JWT session，但服务端会把有效 session `jti` 记录到 Redis，并在每次读取 session 时执行 allowlist 校验与 TTL 续期；登出、改密和后续管理员强制下线都依赖这层撤销能力。
 - `Next.js BFF` 已补齐会话分享管理，可为单个会话生成 bearer-style 公开链接，并提供匿名只读分享页。
 - 工作空间当前不再提供归档入口；删除改为软删除，已删除空间会从默认列表和资源访问链路中隐藏。
 - `BullMQ Worker` 已经跑通 `parse -> chunk -> embed -> index` 流程，解析产物会同时落 PostgreSQL 与 Qdrant。
@@ -99,6 +103,7 @@ flowchart LR
 - `Agent Runtime` 现在会抽取 Claude Agent SDK 的 assistant text delta，并把 assistant draft 持久化回 `messages`，供前端会话气泡实时更新。
 - 当本地缺少 `ANTHROPIC_API_KEY` 时，`Agent Runtime` 会回退到 mock tool + mock assistant chunk，保证主会话链路、SSE 和 UI 可以本地演示与联调。
 - Agent 工具调用事件现在会以 `messages.role = "tool"` 持久化到数据库，并由 `/api/conversations/[conversationId]/stream` 作为 SSE 工具时间线持续推送到前端；同一路 SSE 也会推送 assistant `answer_delta` / `answer_done` / `run_failed`。
+- 当前阶段对非核心工具的要求是“先保持稳定契约和可观测事件流”；真实 provider 是否接齐不是阻塞主会话链路的前置条件。
 - `Python Parser Service` 已支持 PDF / DOCX / text 基础解析、结构块构建、无文本 PDF 的 OCR 降级入口。
 - 首条消息前可先上传“会话级临时资料”；这条链路会走 `parse/chunk/citation anchor`，但明确跳过 embedding 和 Qdrant indexing。
 - 会话级临时资料会落到 `conversation_attachments`，回答阶段可通过独立 MCP tool 检索，并继续复用 `citation_anchors -> message_citations -> 阅读页跳转` 链路。
@@ -107,11 +112,13 @@ flowchart LR
 当前已知缺口：
 
 - 当前回答流式是“数据库轮询 + assistant draft 持久化”链路，不是 provider 直连 token transport；最终 grounded answer、structured state 和 citations 仍在完成态统一落库。
-- `search_web_general`、`search_statutes`、`create_report_outline`、`write_report_section` 仍包含明显占位实现，需要后续替换为真实 provider 或真实生成流程。
+- 主会话链路的 completed/failed 收尾体验、citation 刷新与完成态展示仍需要继续收口。
+- 当前允许部分工具继续使用 mock 或基础结果；这些工具当前的主要要求是稳定契约、显式标注和不伪造引用，而不是立刻接齐真实 provider。
 - OCR 真实 provider 尚未接入；当前仅支持关闭或 mock，并继续保持 disabled 直到商业 API 方案确定。
-- retrieval 已补上 dense 候选窗口内的 BM25 混合打分，但仍未完成更完整的 sparse 候选扩展。
+- retrieval 已补上 dense 候选窗口内的 BM25 混合打分，但更完整的 sparse 候选扩展不是当前阶段的主线。
 - 前端与文案仍存在少量去法律化未收口残留。
 - 会话级临时资料当前只做 parse-only 本地检索，不进入工作空间全局检索，也还没有后台清理任务。
+- parser / chunking 质量深化在当前阶段只处理阻断会话链路的缺口，不主动扩范围。
 
 ## 4. 运行时分层
 
@@ -247,13 +254,14 @@ flowchart LR
 
 - `search_statutes` 是保留的专项工具，用于法律条文或法规引用场景。
 - 其他工具和主流程都以通用知识库助手为中心组织。
+- 当前阶段允许 `search_web_general`、`search_statutes`、报告生成相关工具先返回 mock 或基础结果，只要输出契约稳定、mock 身份明确、且不伪造 citation。
 
 ## 8. 当前阶段关注点
 
-优先级统一以 [implementation-tracker.md](/Users/fan/project/tmp/law-doc/docs/implementation-tracker.md) 为准。当前重点仍然是：
+优先级统一以 [implementation-tracker.md](/Users/fan/project/tmp/law-doc/docs/implementation-tracker.md) 为准。当前重点调整为：
 
-1. 基于已打通的主会话链路，继续稳住回答完成态和前端收尾体验
-2. grounded answer 与证据展示 / citation 联动
-3. retrieval 深化
-4. 工具占位实现替换与研究/写作链路增强
-5. OCR 商业 API provider 方案确认后的接入
+1. 基于已打通的主会话链路，先稳住回答完成态、失败态和前端收尾体验
+2. 固化 tool timeline、mock tool contract、assistant streaming 和 completed/failed 事件
+3. grounded answer 与证据展示 / citation 联动
+4. 只处理阻断会话链路的临时附件、解析和检索问题
+5. 主链路稳定后，再恢复真实工具 provider、retrieval 深化和 OCR 接入评估
