@@ -108,3 +108,19 @@ export function formatConversationSidebarUpdatedAt(
 
   return `${value.getFullYear()}年${value.getMonth() + 1}月${value.getDate()}日`;
 }
+
+export function resolveConversationDeleteRedirect({
+  workspaceId,
+  deletedConversationId,
+  activeConversationId,
+}: {
+  workspaceId: string;
+  deletedConversationId: string;
+  activeConversationId?: string;
+}) {
+  if (deletedConversationId !== activeConversationId) {
+    return null;
+  }
+
+  return `/workspaces/${workspaceId}`;
+}

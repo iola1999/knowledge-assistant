@@ -4,9 +4,9 @@ import { CONVERSATION_STATUS, type ConversationStatus } from "@knowledge-assista
 
 import { isSuperAdminUsername } from "@/lib/auth/super-admin";
 import { workspaceBranding } from "@/lib/branding";
-import { formatConversationSidebarUpdatedAt } from "@/lib/api/conversations";
 import { cn, ui } from "@/lib/ui";
 import { WorkspaceBreadcrumbSwitcher } from "@/components/workspaces/workspace-breadcrumb-switcher";
+import { WorkspaceConversationSidebarItem } from "@/components/workspaces/workspace-conversation-sidebar-item";
 import { WorkspaceUserPanel } from "@/components/workspaces/workspace-user-panel";
 
 type WorkspaceListItem = {
@@ -106,23 +106,12 @@ export function WorkspaceShell({
           </div>
           <div className="flex min-h-0 flex-col gap-2 overflow-auto">
             {activeConversations.map((conversation) => (
-              <Link
+              <WorkspaceConversationSidebarItem
                 key={conversation.id}
-                href={`/workspaces/${workspace.id}?conversationId=${conversation.id}`}
-                className={cn(
-                  "flex items-center gap-3 rounded-2xl px-4 py-3 text-sm transition",
-                  conversation.id === activeConversationId
-                    ? "bg-white text-app-text shadow-soft"
-                    : "text-app-muted-strong hover:bg-white/72 hover:text-app-text",
-                )}
-              >
-                <strong className="min-w-0 flex-1 truncate text-[15px] font-medium">
-                  {conversation.title}
-                </strong>
-                <span className="shrink-0 text-[12px] text-app-muted">
-                  {formatConversationSidebarUpdatedAt(conversation.updatedAt)}
-                </span>
-              </Link>
+                workspaceId={workspace.id}
+                conversation={conversation}
+                activeConversationId={activeConversationId}
+              />
             ))}
             {activeConversations.length === 0 ? (
               <div className={ui.muted}>当前还没有历史会话。</div>
