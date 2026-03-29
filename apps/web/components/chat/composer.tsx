@@ -84,10 +84,23 @@ export function Composer({
   const [isPending, startTransition] = useTransition();
   const [attachments, setAttachments] = useState<ComposerAttachment[]>(initialAttachments);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const draftUploadIdRef = useRef<string>(
     typeof crypto !== "undefined" ? crypto.randomUUID() : `${Date.now()}-draft`,
   );
   const pollingJobIdsRef = useRef(new Set<string>());
+  const attachmentStatuses = attachments.map((attachment) => attachment.status);
+  const firstAttachmentError =
+    attachments.find((attachment) => attachment.errorMessage)?.errorMessage ?? null;
+  const hasPendingAttachments = !canSubmitWithAttachments(attachmentStatuses);
+  const hasNoReadyAttachments =
+    attachments.length > 0 && !hasReadyAttachments(attachmentStatuses);
+  const showFooterMessages =
+    Boolean(helperText && workspaceId) ||
+    Boolean(status) ||
+    Boolean(firstAttachmentError) ||
+    hasPendingAttachments ||
+    hasNoReadyAttachments;
 
   useEffect(() => {
     setAttachments((current) => mergeAttachments(current, initialAttachments));
@@ -107,6 +120,16 @@ export function Composer({
       void pollAttachmentJob(attachment.id, attachment.documentJobId);
     }
   }, [attachments]);
+
+  useEffect(() => {
+    if (variant !== "stage" || !textareaRef.current) {
+      return;
+    }
+
+    const next = textareaRef.current;
+    next.style.height = "0px";
+    next.style.height = `${Math.max(72, Math.min(next.scrollHeight, 220))}px`;
+  }, [content, variant]);
 
   async function pollAttachmentJob(localId: string, jobId: string) {
     while (true) {
@@ -366,7 +389,7 @@ export function Composer({
     event.preventDefault();
     const prompt = content.trim();
     if (!prompt) return;
-    if (!canSubmitWithAttachments(attachments.map((attachment) => attachment.status))) {
+    if (hasPendingAttachments) {
       setStatus("临时文件仍在解析中，等状态变成可用后再发送。");
       return;
     }
@@ -429,7 +452,7 @@ export function Composer({
       className={cn(
         "grid gap-4",
         variant === "stage"
-          ? "rounded-[28px] border border-app-border/70 bg-white/82 p-5 shadow-soft backdrop-blur-sm"
+          ? "rounded-[30px] border border-app-border/70 bg-white/88 p-3 shadow-[0_20px_52px_rgba(23,22,18,0.06)] backdrop-blur-sm"
           : `${ui.panel} gap-3`,
         className,
       )}
@@ -440,50 +463,68 @@ export function Composer({
           {heading.description ? <p className={ui.muted}>{heading.description}</p> : null}
         </div>
       ) : null}
-      <textarea
-        required
-        rows={rows ?? (variant === "stage" ? 6 : 4)}
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-        placeholder={placeholder}
-        className={cn(
-          ui.textarea,
-          variant === "stage"
-            ? "min-h-[176px] rounded-[24px] border-app-border/70 bg-app-surface-soft/65 px-5 py-4 text-[15px] leading-7"
-            : "min-h-[120px]",
-          textareaClassName,
-        )}
+      <input
+        ref={fileInputRef}
+        className="hidden"
+        type="file"
+        multiple
+        accept={SUPPORTED_UPLOAD_ACCEPT}
+        onChange={onFileChange}
       />
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      {variant === "stage" ? (
         <div className="grid gap-3">
-          {workspaceId ? (
-            <div className="flex flex-wrap items-center gap-3">
-              <input
-                ref={fileInputRef}
-                className="hidden"
-                type="file"
-                multiple
-                accept={SUPPORTED_UPLOAD_ACCEPT}
-                onChange={onFileChange}
-              />
+          <div className="flex items-end gap-3 rounded-[26px] border border-app-border/65 bg-app-surface-soft/46 px-4 py-3">
+            {workspaceId ? (
               <button
                 type="button"
-                className={buttonStyles({ variant: "secondary", size: "sm" })}
+                className="inline-flex size-10 shrink-0 items-center justify-center rounded-full text-app-muted-strong transition hover:bg-white/72 hover:text-app-text"
                 onClick={() => fileInputRef.current?.click()}
+                aria-label="上传临时文件"
               >
-                上传临时文件
+                <svg viewBox="0 0 20 20" fill="none" className="size-5" aria-hidden="true">
+                  <path
+                    d="M10 4.5v11M4.5 10h11"
+                    stroke="currentColor"
+                    strokeWidth="1.7"
+                    strokeLinecap="round"
+                  />
+                </svg>
               </button>
-              <span className={cn(ui.muted, "text-[13px]")}>
-                上传后会自动解析，不进入主资料检索；解析完成后会随当前会话一起提供给助手。
-              </span>
-            </div>
-          ) : (
-            <div className={cn(ui.muted, "max-w-[44ch] text-[13px]")}>
-              {helperText ?? "消息会写入当前会话，并开始推送工具时间线"}
-            </div>
-          )}
+            ) : null}
+            <textarea
+              ref={textareaRef}
+              required
+              rows={rows ?? 3}
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              placeholder={placeholder}
+              className={cn(
+                "min-h-[72px] w-full resize-none bg-transparent px-0 py-2 text-[15px] leading-7 text-app-text outline-none placeholder:text-app-muted",
+                textareaClassName,
+              )}
+            />
+            <button
+              className="inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-app-primary text-app-primary-contrast transition hover:bg-[#25211c] disabled:cursor-not-allowed disabled:opacity-55"
+              disabled={
+                isPending || hasPendingAttachments
+              }
+              type="submit"
+              aria-label={submitLabel}
+            >
+              <svg viewBox="0 0 20 20" fill="none" className="size-5" aria-hidden="true">
+                <path
+                  d="M10 4.167v11.666m0-11.666 4.166 4.166M10 4.167 5.833 8.333"
+                  stroke="currentColor"
+                  strokeWidth="1.7"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </button>
+          </div>
+
           {attachments.length > 0 ? (
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap items-center gap-2 px-1">
               {attachments.map((attachment) => {
                 const tone =
                   attachment.status === "ready"
@@ -495,11 +536,11 @@ export function Composer({
                 const content = (
                   <span
                     className={cn(
-                      "inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[13px]",
+                      "inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[12px]",
                       tone,
                     )}
                   >
-                    <span className="max-w-[220px] truncate">{attachment.sourceFilename}</span>
+                    <span className="max-w-[180px] truncate">{attachment.sourceFilename}</span>
                     <span>
                       {attachment.status === "ready"
                         ? "可用"
@@ -524,37 +565,71 @@ export function Composer({
             </div>
           ) : null}
         </div>
-        <button
-          className={buttonStyles()}
-          disabled={
-            isPending || !canSubmitWithAttachments(attachments.map((attachment) => attachment.status))
-          }
-          type="submit"
-        >
-          {isPending ? "刷新中..." : submitLabel}
-        </button>
-      </div>
-      <div className="grid gap-1">
-        {helperText && workspaceId ? (
-          <p className={cn(ui.muted, "text-[13px]")}>{helperText}</p>
-        ) : null}
-        {status ? <p className={cn(ui.muted, "text-[13px]")}>{status}</p> : null}
-        {attachments.some((attachment) => attachment.errorMessage) ? (
-          <p className={cn(ui.muted, "text-[13px] text-rose-700")}>
-            {attachments.find((attachment) => attachment.errorMessage)?.errorMessage}
-          </p>
-        ) : null}
-        {!canSubmitWithAttachments(attachments.map((attachment) => attachment.status)) ? (
-          <p className={cn(ui.muted, "text-[13px]")}>
-            附件仍在解析中，发送按钮会在全部完成或失败后可用。
-          </p>
-        ) : null}
-        {attachments.length > 0 && !hasReadyAttachments(attachments.map((attachment) => attachment.status)) ? (
-          <p className={cn(ui.muted, "text-[13px]")}>
-            当前没有可用附件，失败的文件不会被送给助手。
-          </p>
-        ) : null}
-      </div>
+      ) : (
+        <>
+          <textarea
+            ref={textareaRef}
+            required
+            rows={rows ?? 4}
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            placeholder={placeholder}
+            className={cn(ui.textarea, "min-h-[120px]", textareaClassName)}
+          />
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="grid gap-3">
+              {workspaceId ? (
+                <div className="flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    className={buttonStyles({ variant: "secondary", size: "sm" })}
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    上传临时文件
+                  </button>
+                  <span className={cn(ui.muted, "text-[13px]")}>
+                    上传后会自动解析，不进入主资料检索；解析完成后会随当前会话一起提供给助手。
+                  </span>
+                </div>
+              ) : (
+                <div className={cn(ui.muted, "max-w-[44ch] text-[13px]")}>
+                  {helperText ?? "消息会写入当前会话，并开始推送工具时间线"}
+                </div>
+              )}
+            </div>
+            <button
+              className={buttonStyles()}
+              disabled={
+                isPending || hasPendingAttachments
+              }
+              type="submit"
+            >
+              {isPending ? "刷新中..." : submitLabel}
+            </button>
+          </div>
+        </>
+      )}
+      {showFooterMessages ? (
+        <div className="grid gap-1">
+          {helperText && workspaceId ? (
+            <p className={cn(ui.muted, "text-[13px]")}>{helperText}</p>
+          ) : null}
+          {status ? <p className={cn(ui.muted, "text-[13px]")}>{status}</p> : null}
+          {firstAttachmentError ? (
+            <p className={cn(ui.muted, "text-[13px] text-rose-700")}>{firstAttachmentError}</p>
+          ) : null}
+          {hasPendingAttachments ? (
+            <p className={cn(ui.muted, "text-[13px]")}>
+              附件仍在解析中，发送按钮会在全部完成或失败后可用。
+            </p>
+          ) : null}
+          {hasNoReadyAttachments ? (
+            <p className={cn(ui.muted, "text-[13px]")}>
+              当前没有可用附件，失败的文件不会被送给助手。
+            </p>
+          ) : null}
+        </div>
+      ) : null}
     </form>
   );
 }

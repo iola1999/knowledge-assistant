@@ -8,7 +8,7 @@ import { conversations, getDb, messageCitations, messages } from "@knowledge-ass
 import { enqueueConversationResponse } from "@knowledge-assistant/queue";
 
 import { auth } from "@/auth";
-import { findRetryableConversationTurn } from "@/lib/api/conversation-retry";
+import { findRegeneratableConversationTurn } from "@/lib/api/conversation-retry";
 import { buildConversationPrompt } from "@/lib/api/workspace-prompt";
 import { requireOwnedConversation } from "@/lib/guards/resources";
 
@@ -45,15 +45,17 @@ export async function POST(
       .limit(4)
   ).reverse();
 
-  const retryableTurn = findRetryableConversationTurn(recentChatMessages);
-  if (!retryableTurn) {
+  const regeneratableTurn = findRegeneratableConversationTurn(recentChatMessages);
+  if (!regeneratableTurn) {
     return Response.json(
-      { error: "当前没有可重试的失败回答。" },
+      { error: "当前没有可重新生成的回答。" },
       { status: 400 },
     );
   }
 
-  await db.delete(messageCitations).where(eq(messageCitations.messageId, retryableTurn.assistantMessageId));
+  await db
+    .delete(messageCitations)
+    .where(eq(messageCitations.messageId, regeneratableTurn.assistantMessageId));
 
   await db
     .update(messages)
@@ -62,15 +64,15 @@ export async function POST(
       contentMarkdown: "",
       structuredJson: null,
     })
-    .where(eq(messages.id, retryableTurn.assistantMessageId));
+    .where(eq(messages.id, regeneratableTurn.assistantMessageId));
 
   try {
     await enqueueConversationResponse({
       conversationId,
-      userMessageId: retryableTurn.userMessageId,
-      assistantMessageId: retryableTurn.assistantMessageId,
+      userMessageId: regeneratableTurn.userMessageId,
+      assistantMessageId: regeneratableTurn.assistantMessageId,
       prompt: buildConversationPrompt({
-        content: retryableTurn.promptContent,
+        content: regeneratableTurn.promptContent,
         workspacePrompt: conversation.workspacePrompt,
       }),
     });
@@ -84,8 +86,8 @@ export async function POST(
 
     return Response.json(
       {
-        assistantMessageId: retryableTurn.assistantMessageId,
-        userMessageId: retryableTurn.userMessageId,
+        assistantMessageId: regeneratableTurn.assistantMessageId,
+        userMessageId: regeneratableTurn.userMessageId,
       },
       { status: 202 },
     );
@@ -101,7 +103,7 @@ export async function POST(
           agent_error: message,
         },
       })
-      .where(eq(messages.id, retryableTurn.assistantMessageId));
+      .where(eq(messages.id, regeneratableTurn.assistantMessageId));
 
     return Response.json(
       { error: `重新生成失败：${message}` },

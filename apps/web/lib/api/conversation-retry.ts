@@ -7,7 +7,7 @@ export type RetryableConversationMessage = {
   contentMarkdown: string;
 };
 
-export function findRetryableConversationTurn(messages: RetryableConversationMessage[]) {
+export function findRegeneratableConversationTurn(messages: RetryableConversationMessage[]) {
   const lastMessage = messages.at(-1);
   const previousMessage = messages.at(-2);
 
@@ -15,10 +15,11 @@ export function findRetryableConversationTurn(messages: RetryableConversationMes
     return null;
   }
 
-  if (
-    lastMessage.role !== MESSAGE_ROLE.ASSISTANT ||
-    lastMessage.status !== MESSAGE_STATUS.FAILED
-  ) {
+  if (lastMessage.role !== MESSAGE_ROLE.ASSISTANT) {
+    return null;
+  }
+
+  if (lastMessage.status === MESSAGE_STATUS.STREAMING) {
     return null;
   }
 
@@ -31,4 +32,14 @@ export function findRetryableConversationTurn(messages: RetryableConversationMes
     userMessageId: previousMessage.id,
     promptContent: previousMessage.contentMarkdown,
   };
+}
+
+export function findRetryableConversationTurn(messages: RetryableConversationMessage[]) {
+  const regeneratableTurn = findRegeneratableConversationTurn(messages);
+
+  if (!regeneratableTurn || messages.at(-1)?.status !== MESSAGE_STATUS.FAILED) {
+    return null;
+  }
+
+  return regeneratableTurn;
 }

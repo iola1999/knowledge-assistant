@@ -20,6 +20,7 @@ import { ConversationPageActions } from "@/components/chat/conversation-page-act
 import { ConversationSession } from "@/components/chat/conversation-session";
 import { WorkspaceShell } from "@/components/workspaces/workspace-shell";
 import { resolveComposerAttachmentStatus } from "@/lib/api/conversation-attachments";
+import { groupAssistantProcessMessages } from "@/lib/api/conversation-process";
 import { chooseWorkspaceConversationWithMeta } from "@/lib/api/conversations";
 import { cn, ui } from "@/lib/ui";
 
@@ -88,7 +89,6 @@ export default async function WorkspacePage({
         .orderBy(asc(messages.createdAt))
     : [];
   const chatThread = thread.filter((message) => message.role !== MESSAGE_ROLE.TOOL);
-  const toolTimelineMessages = thread.filter((message) => message.role === MESSAGE_ROLE.TOOL);
   const activeAssistantMessage =
     [...chatThread]
       .reverse()
@@ -157,15 +157,8 @@ export default async function WorkspacePage({
       }
     >
       {activeConversation ? (
-        <div className="mx-auto flex h-full min-h-0 w-full max-w-[1280px] flex-col overflow-hidden">
-          <header className="grid shrink-0 gap-2 border-b border-app-border/70 pb-5">
-            <p className={ui.eyebrow}>Conversation</p>
-            <h1 className="text-[28px] font-semibold tracking-[-0.02em] text-app-text md:text-[34px]">
-              {activeConversation.title}
-            </h1>
-          </header>
-
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain py-6 pr-1 md:py-8">
+        <div className="mx-auto flex h-full min-h-0 w-full max-w-[1080px] flex-col overflow-hidden">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain py-4 pr-1 md:py-5">
             <ConversationSession
               conversationId={activeConversation.id}
               workspaceId={workspaceId}
@@ -175,14 +168,17 @@ export default async function WorkspacePage({
                   ? activeAssistantMessage.status
                   : null
               }
-              initialTimelineMessages={toolTimelineMessages.map((message) => ({
-                id: message.id,
-                status: message.status,
-                contentMarkdown: message.contentMarkdown,
-                createdAt: message.createdAt.toISOString(),
-                structuredJson:
-                  (message.structuredJson as Record<string, unknown> | null | undefined) ?? null,
-              }))}
+              initialTimelineMessagesByAssistant={groupAssistantProcessMessages(
+                thread.map((message) => ({
+                  id: message.id,
+                  role: message.role,
+                  status: message.status,
+                  contentMarkdown: message.contentMarkdown,
+                  createdAt: message.createdAt,
+                  structuredJson:
+                    (message.structuredJson as Record<string, unknown> | null | undefined) ?? null,
+                })),
+              )}
               initialMessages={chatThread.map((message) => ({
                 id: message.id,
                 role: message.role,
@@ -206,11 +202,11 @@ export default async function WorkspacePage({
               conversationId={activeConversation.id}
               workspaceId={workspaceId}
               variant="stage"
-              rows={4}
+              rows={3}
               placeholder="继续追问、要求整理成结论，或让助手基于资料补充论证"
-              submitLabel="发送"
+              submitLabel="继续"
               className="border-transparent bg-transparent p-0 shadow-none backdrop-blur-0"
-              textareaClassName="min-h-[132px] bg-white/92"
+              textareaClassName="min-h-[72px] bg-transparent"
               initialAttachments={attachmentRows.map((attachment) => ({
                 id: attachment.id,
                 attachmentId: attachment.id,
@@ -245,13 +241,11 @@ export default async function WorkspacePage({
             <Composer
               workspaceId={workspaceId}
               variant="stage"
-              rows={8}
-              title="输入 / 粘贴你的问题"
-              description="告诉助手你想分析什么、整理什么，或希望它基于当前空间资料完成什么任务。"
+              rows={5}
               placeholder="例如：请基于本空间资料，总结新版发布流程的关键变化，并列出仍需补充的信息"
               submitLabel="开始对话"
-              className="text-left shadow-card"
-              textareaClassName="min-h-[220px] bg-white/90"
+              className="mx-auto w-full max-w-[920px] text-left"
+              textareaClassName="min-h-[120px] bg-transparent"
               initialAttachments={[]}
             />
           </div>
