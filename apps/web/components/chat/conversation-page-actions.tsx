@@ -8,7 +8,7 @@ import {
   MoreHorizontalIcon,
   TrashIcon,
 } from "@/components/icons";
-import { ui } from "@/lib/ui";
+import { cn, menuItemStyles, ui } from "@/lib/ui";
 import { ConversationSharePopover } from "@/components/chat/conversation-share-popover";
 import { ActionDialog } from "@/components/shared/action-dialog";
 import { formatConversationMetaTimestamp } from "@/lib/api/conversations";
@@ -122,72 +122,83 @@ export function ConversationPageActions({
         >
           <MoreHorizontalIcon className="size-[18px]" aria-hidden="true" />
         </button>
-        <ConversationSharePopover conversationId={conversationId} />
+        <ConversationSharePopover
+          conversationId={conversationId}
+          onOpen={() => setIsMenuOpen(false)}
+        />
 
         {isMenuOpen ? (
           <div
             id={menuId}
             role="dialog"
             aria-label="当前会话信息与更多操作"
-            className="absolute right-0 top-[calc(100%+10px)] z-20 w-[min(360px,calc(100vw-24px))] overflow-hidden rounded-[28px] border border-app-border bg-white/98 shadow-card backdrop-blur-md"
+            className="absolute right-0 top-[calc(100%+10px)] z-20 w-[min(320px,calc(100vw-24px))] overflow-hidden rounded-2xl border border-app-border bg-white/98 p-1.5 shadow-card backdrop-blur-md"
           >
-            <div className="grid gap-5 p-5">
-              <div className="grid gap-3">
-                <div className="grid gap-1.5">
-                  <p className={ui.eyebrow}>当前会话</p>
-                  <h2 className="text-[1.85rem] font-semibold leading-[1.22] tracking-[-0.03em] text-app-text">
-                    {conversationTitle}
-                  </h2>
-                </div>
+            {/* Header */}
+            <div className="px-3 pb-1 pt-2.5">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-app-accent">当前会话</p>
+              <h2 className="mt-1 truncate text-[15px] font-semibold leading-snug text-app-text">
+                {conversationTitle}
+              </h2>
+            </div>
 
-                <dl className="grid gap-3 rounded-[22px] border border-app-border/70 bg-app-surface-soft/72 p-3.5">
-                  <div className="flex items-center justify-between gap-4 text-[14px]">
-                    <dt className="text-app-muted-strong">创建者</dt>
-                    <dd className="text-right font-medium text-app-text">{creatorLabel}</dd>
-                  </div>
-                  <div className="flex items-center justify-between gap-4 text-[14px]">
-                    <dt className="text-app-muted-strong">创建于</dt>
-                    <dd className="text-right font-medium text-app-text">
-                      {formatConversationMetaTimestamp(createdAt)}
-                    </dd>
-                  </div>
-                  <div className="flex items-center justify-between gap-4 text-[14px]">
-                    <dt className="text-app-muted-strong">最后更新</dt>
-                    <dd className="text-right font-medium text-app-text">
-                      {formatConversationMetaTimestamp(updatedAt)}
-                    </dd>
-                  </div>
-                </dl>
+            <div className="mx-2 my-1.5 h-px bg-app-border/70" />
 
-                <div className="flex flex-wrap gap-2">
-                  <span className="inline-flex items-center rounded-full border border-app-border bg-white/86 px-3 py-1 text-[12px] font-medium text-app-muted-strong">
-                    {resolveConversationStatusLabel(conversationStatus)}
-                  </span>
-                  <span className="inline-flex items-center rounded-full border border-app-border bg-white/86 px-3 py-1 text-[12px] font-medium text-app-muted-strong">
-                    {messageCount} 条消息
-                  </span>
-                  <span className="inline-flex items-center rounded-full border border-app-border bg-white/86 px-3 py-1 text-[12px] font-medium text-app-muted-strong">
-                    {attachmentCount > 0 ? `${attachmentCount} 个附件` : "无附件"}
-                  </span>
-                </div>
+            {/* Meta rows */}
+            <dl className="grid gap-0.5 px-3 py-1">
+              <div className="flex items-center justify-between gap-4 py-0.5 text-[13px]">
+                <dt className="text-app-muted-strong">创建者</dt>
+                <dd className="text-right font-medium text-app-text">{creatorLabel}</dd>
               </div>
+              <div className="flex items-center justify-between gap-4 py-0.5 text-[13px]">
+                <dt className="text-app-muted-strong">创建于</dt>
+                <dd className="text-right font-medium text-app-text">
+                  {formatConversationMetaTimestamp(createdAt)}
+                </dd>
+              </div>
+              <div className="flex items-center justify-between gap-4 py-0.5 text-[13px]">
+                <dt className="text-app-muted-strong">最后更新</dt>
+                <dd className="text-right font-medium text-app-text">
+                  {formatConversationMetaTimestamp(updatedAt)}
+                </dd>
+              </div>
+            </dl>
 
-              <div className="border-t border-app-border/70 pt-4">
-                <button
-                  className="flex w-full items-center gap-3 rounded-[18px] border border-red-100 bg-red-50/72 px-3.5 py-3 text-left text-[15px] font-medium text-red-700 transition hover:border-red-200 hover:bg-red-50 focus:outline-none focus:ring-4 focus:ring-red-100"
-                  disabled={isBusy}
-                  onClick={() => {
-                    setIsMenuOpen(false);
-                    setStatus(null);
-                    setIsDeleteDialogOpen(true);
-                  }}
-                  type="button"
-                >
+            <div className="flex flex-wrap gap-1.5 px-3 pb-1 pt-1">
+              <span className="inline-flex items-center rounded-full border border-app-border bg-white/86 px-2.5 py-0.5 text-[11px] font-medium text-app-muted-strong">
+                {resolveConversationStatusLabel(conversationStatus)}
+              </span>
+              <span className="inline-flex items-center rounded-full border border-app-border bg-white/86 px-2.5 py-0.5 text-[11px] font-medium text-app-muted-strong">
+                {messageCount} 条消息
+              </span>
+              <span className="inline-flex items-center rounded-full border border-app-border bg-white/86 px-2.5 py-0.5 text-[11px] font-medium text-app-muted-strong">
+                {attachmentCount > 0 ? `${attachmentCount} 个附件` : "无附件"}
+              </span>
+            </div>
+
+            <div className="mx-2 my-1.5 h-px bg-app-border/70" />
+
+            {/* Delete action */}
+            <div className="pb-0.5 pt-0.5">
+              <button
+                className={cn(
+                  "flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left transition",
+                  menuItemStyles({ tone: "danger" }),
+                )}
+                disabled={isBusy}
+                onClick={() => {
+                  setIsMenuOpen(false);
+                  setStatus(null);
+                  setIsDeleteDialogOpen(true);
+                }}
+                type="button"
+              >
+                <span className="grid size-7 shrink-0 place-items-center rounded-lg text-red-500">
                   <TrashIcon aria-hidden="true" className="size-[18px]" />
-                  删除会话
-                </button>
-                {status ? <p className="mt-3 text-sm leading-6 text-red-600">{status}</p> : null}
-              </div>
+                </span>
+                <span className="min-w-0 flex-1 truncate text-[14px] font-medium">删除会话</span>
+              </button>
+              {status ? <p className="px-3 pb-1 text-sm leading-6 text-red-600">{status}</p> : null}
             </div>
           </div>
         ) : null}

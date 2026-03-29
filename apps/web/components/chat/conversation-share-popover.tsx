@@ -22,8 +22,10 @@ type ShareState = {
 
 export function ConversationSharePopover({
   conversationId,
+  onOpen,
 }: {
   conversationId: string;
+  onOpen?: () => void;
 }) {
   const panelId = `conversation-share-${conversationId}`;
   const [open, setOpen] = useState(false);
@@ -152,8 +154,11 @@ export function ConversationSharePopover({
     setOpen(nextOpen);
     setNotice(null);
 
-    if (nextOpen && !share && !isLoading) {
-      void loadShare({ reset: Boolean(error) });
+    if (nextOpen) {
+      onOpen?.();
+      if (!share && !isLoading) {
+        void loadShare({ reset: Boolean(error) });
+      }
     }
   }
 
