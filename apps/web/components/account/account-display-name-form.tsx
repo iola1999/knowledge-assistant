@@ -8,9 +8,13 @@ import { buttonStyles, cn, ui } from "@/lib/ui";
 
 type AccountDisplayNameFormProps = {
   initialDisplayName: string;
+  layout?: "standalone" | "compact";
 };
 
-export function AccountDisplayNameForm({ initialDisplayName }: AccountDisplayNameFormProps) {
+export function AccountDisplayNameForm({
+  initialDisplayName,
+  layout = "standalone",
+}: AccountDisplayNameFormProps) {
   const router = useRouter();
   const { update } = useSession();
   const [displayName, setDisplayName] = useState(initialDisplayName);
@@ -59,14 +63,19 @@ export function AccountDisplayNameForm({ initialDisplayName }: AccountDisplayNam
   }
 
   return (
-    <form onSubmit={onSubmit} className={cn(ui.panelLarge, "grid gap-5")}>
-      <div className="grid gap-2">
-        <p className={ui.eyebrow}>Profile</p>
-        <h2>显示名称</h2>
-        <p className={ui.muted}>更新后会同步显示在账号页和工作区左下角</p>
-      </div>
+    <form
+      onSubmit={onSubmit}
+      className={cn(layout === "standalone" ? cn(ui.panelLarge, "grid gap-5") : "grid gap-3")}
+    >
+      {layout === "standalone" ? (
+        <div className="grid gap-2">
+          <p className={ui.eyebrow}>Profile</p>
+          <h2>显示名称</h2>
+          <p className={ui.muted}>更新后会同步显示在账号页和工作区左下角</p>
+        </div>
+      ) : null}
 
-      <label className={ui.label}>
+      <label className={cn(ui.label, layout === "compact" && "gap-1.5")}>
         显示名称
         <input
           required
@@ -78,7 +87,11 @@ export function AccountDisplayNameForm({ initialDisplayName }: AccountDisplayNam
       </label>
 
       <div className="flex flex-wrap items-center gap-3">
-        <button className={buttonStyles()} disabled={isPending} type="submit">
+        <button
+          className={buttonStyles({ size: layout === "compact" ? "sm" : "md" })}
+          disabled={isPending}
+          type="submit"
+        >
           {isPending ? "提交中..." : "更新显示名称"}
         </button>
         {status ? (
