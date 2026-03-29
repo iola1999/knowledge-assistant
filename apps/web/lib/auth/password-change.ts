@@ -4,21 +4,12 @@ export const ACCOUNT_PASSWORD_MIN_LENGTH = 6;
 
 export const changePasswordSchema = z
   .object({
-    currentPassword: z.string().min(1, "当前密码不能为空。"),
     nextPassword: z
       .string()
       .min(ACCOUNT_PASSWORD_MIN_LENGTH, `新密码至少 ${ACCOUNT_PASSWORD_MIN_LENGTH} 位。`),
     confirmPassword: z.string().min(1, "请再次输入新密码。"),
   })
   .superRefine((value, ctx) => {
-    if (value.nextPassword === value.currentPassword) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["nextPassword"],
-        message: "新密码不能与当前密码相同。",
-      });
-    }
-
     if (value.nextPassword !== value.confirmPassword) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,

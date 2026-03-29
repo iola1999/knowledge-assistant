@@ -233,9 +233,6 @@ export default async function WorkspacePage({
               <h1 className="text-[30px] font-semibold tracking-[-0.02em] text-app-text md:text-[40px]">
                 {workspace.title}
               </h1>
-              <p className={cn(ui.muted, "max-w-[58ch]")}>
-                从这里开始新的研究问题。首条消息发送后，系统会自动创建会话，并把后续记录沉淀到左侧历史中。
-              </p>
             </div>
 
             <Composer

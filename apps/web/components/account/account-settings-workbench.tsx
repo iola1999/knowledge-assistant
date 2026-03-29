@@ -106,34 +106,17 @@ export function AccountSettingsWorkbench({
 
         <main className="min-w-0 px-4 py-4 md:px-6 md:py-6 xl:px-9 xl:py-8">
           <div className="mx-auto flex w-full max-w-[920px] flex-col gap-4">
-            <header className="flex flex-wrap items-end justify-between gap-3 px-1 pb-0.5">
-              <div className="grid gap-1">
-                <p className={ui.eyebrow}>Account</p>
-                <h2 className="text-[1.78rem] font-semibold text-app-text md:text-[2rem]">
-                  账号与偏好
-                </h2>
-              </div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-app-border bg-white/86 px-3.5 py-1.5 text-[13px] text-app-muted-strong shadow-soft">
-                <span className="size-2 rounded-full bg-emerald-500" />
-                当前已登录
-              </div>
+            <header className="grid gap-1 px-1 pb-0.5">
+              <p className={ui.eyebrow}>Account</p>
+              <h2 className="text-[1.78rem] font-semibold text-app-text md:text-[2rem]">
+                账号与偏好
+              </h2>
             </header>
 
             {activeSectionId === "profile" ? (
               <AccountSettingsSection title="个人资料">
                 <AccountSettingsRow title="显示名称">
                   <AccountDisplayNameForm initialDisplayName={displayName} layout="compact" />
-                </AccountSettingsRow>
-
-                <AccountSettingsRow title="登录用户名">
-                  <div className="rounded-[20px] border border-app-border bg-app-surface-soft/74 px-3.5 py-3 shadow-soft">
-                    <span className="block text-[10px] font-semibold uppercase tracking-[0.12em] text-app-muted">
-                      Username
-                    </span>
-                    <strong className="mt-1.5 block text-[1.05rem] font-semibold text-app-text">
-                      @{currentUser.username}
-                    </strong>
-                  </div>
                 </AccountSettingsRow>
               </AccountSettingsSection>
             ) : null}

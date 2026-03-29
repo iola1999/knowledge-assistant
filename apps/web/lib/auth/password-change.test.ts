@@ -5,7 +5,6 @@ import { validateChangePasswordInput } from "./password-change";
 describe("validateChangePasswordInput", () => {
   it("accepts a valid password change payload", () => {
     const result = validateChangePasswordInput({
-      currentPassword: "old-password",
       nextPassword: "new-password",
       confirmPassword: "new-password",
     });
@@ -15,7 +14,6 @@ describe("validateChangePasswordInput", () => {
 
   it("rejects a short next password", () => {
     const result = validateChangePasswordInput({
-      currentPassword: "old-password",
       nextPassword: "123",
       confirmPassword: "123",
     });
@@ -24,20 +22,17 @@ describe("validateChangePasswordInput", () => {
     expect(result.error?.issues[0]?.message).toBe("新密码至少 6 位。");
   });
 
-  it("rejects when the next password matches the current password", () => {
+  it("accepts when only the new password and confirmation are provided", () => {
     const result = validateChangePasswordInput({
-      currentPassword: "same-password",
       nextPassword: "same-password",
       confirmPassword: "same-password",
     });
 
-    expect(result.success).toBe(false);
-    expect(result.error?.issues[0]?.message).toBe("新密码不能与当前密码相同。");
+    expect(result.success).toBe(true);
   });
 
   it("rejects when confirmation does not match", () => {
     const result = validateChangePasswordInput({
-      currentPassword: "old-password",
       nextPassword: "new-password",
       confirmPassword: "different-password",
     });

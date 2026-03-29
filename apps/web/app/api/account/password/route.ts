@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 
-import { hashPassword, verifyPassword } from "@knowledge-assistant/auth";
+import { hashPassword } from "@knowledge-assistant/auth";
 import { getDb, users } from "@knowledge-assistant/db";
 
 import { auth } from "@/auth";
@@ -29,7 +29,6 @@ export async function POST(request: Request) {
   const [user] = await db
     .select({
       id: users.id,
-      passwordHash: users.passwordHash,
     })
     .from(users)
     .where(eq(users.id, userId))
@@ -37,14 +36,6 @@ export async function POST(request: Request) {
 
   if (!user) {
     return Response.json({ error: "User not found" }, { status: 404 });
-  }
-
-  const isCurrentPasswordValid = await verifyPassword(
-    parsed.data.currentPassword,
-    user.passwordHash,
-  );
-  if (!isCurrentPasswordValid) {
-    return Response.json({ error: "当前密码不正确。" }, { status: 400 });
   }
 
   const nextPasswordHash = await hashPassword(parsed.data.nextPassword);
