@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useDeferredValue, useEffect, useState, useTransition } from "react";
+import { useDeferredValue, useEffect, useMemo, useState, useTransition } from "react";
 import { DndContext, type DragEndEvent, type DragStartEvent, useDraggable, useDroppable } from "@dnd-kit/core";
 import { flexRender, getCoreRowModel, getSortedRowModel, type SortingState, useReactTable, type ColumnDef, type Row } from "@tanstack/react-table";
 import { useDropzone } from "react-dropzone";
@@ -312,56 +312,71 @@ export function KnowledgeBaseExplorer({
     setTargetDirectoryId(currentDirectoryId);
   }, [currentDirectoryId, initialCurrentPath]);
 
-  const directoryById = new Map(directories.map((directory) => [directory.id, directory] as const));
-  const directoryByPath = new Map(directories.map((directory) => [directory.path, directory] as const));
-  const currentChildren = directories.filter((directory) => directory.parentId === currentDirectory);
-  const currentDocuments = documents.filter((document) => document.directoryPath === currentPath);
-  const processingDocuments = documents.filter(
-    (document) =>
-      document.latestJob?.status === RUN_STATUS.QUEUED ||
-      document.latestJob?.status === RUN_STATUS.RUNNING ||
-      document.latestJob?.status === RUN_STATUS.FAILED,
+  const directoryByPath = useMemo(
+    () => new Map(directories.map((directory) => [directory.path, directory] as const)),
+    [directories],
+  );
+  const currentChildren = useMemo(
+    () => directories.filter((directory) => directory.parentId === currentDirectory),
+    [currentDirectory, directories],
+  );
+  const currentDocuments = useMemo(
+    () => documents.filter((document) => document.directoryPath === currentPath),
+    [currentPath, documents],
+  );
+  const processingDocuments = useMemo(
+    () =>
+      documents.filter(
+        (document) =>
+          document.latestJob?.status === RUN_STATUS.QUEUED ||
+          document.latestJob?.status === RUN_STATUS.RUNNING ||
+          document.latestJob?.status === RUN_STATUS.FAILED,
+      ),
+    [documents],
   );
 
-  const entries = [
-    ...currentChildren.map<ExplorerEntry>((directory) => ({
-      kind: "directory",
-      id: directory.id,
-      rowId: `directory:${directory.id}`,
-      name: directory.name,
-      path: directory.path,
-      createdAt: directory.createdAt,
-      updatedAt: directory.updatedAt,
-      typeLabel: "目录",
-      sizeLabel: "—",
-      statusLabel: "—",
-      searchText: `${directory.name} ${directory.path}`.toLowerCase(),
-    })),
-    ...currentDocuments.map<ExplorerEntry>((document) => ({
-      kind: "document",
-      id: document.id,
-      rowId: `document:${document.id}`,
-      name: document.sourceFilename,
-      title: document.title,
-      path: document.logicalPath,
-      documentPath: document.logicalPath,
-      directoryPath: document.directoryPath,
-      createdAt: document.createdAt,
-      updatedAt: document.updatedAt,
-      typeLabel: getDocumentTypeLabel(document),
-      sizeLabel: formatFileSize(document.latestVersion?.fileSizeBytes ?? null),
-      statusLabel: getDocumentStatusLabel(document),
-      latestJob: document.latestJob,
-      latestVersion: document.latestVersion,
-      searchText: `${document.sourceFilename} ${document.logicalPath}`.toLowerCase(),
-    })),
-  ].filter((entry) => {
-    if (!deferredSearchQuery.trim()) {
-      return true;
+  const entries = useMemo(() => {
+    const nextEntries = [
+      ...currentChildren.map<ExplorerEntry>((directory) => ({
+        kind: "directory",
+        id: directory.id,
+        rowId: `directory:${directory.id}`,
+        name: directory.name,
+        path: directory.path,
+        createdAt: directory.createdAt,
+        updatedAt: directory.updatedAt,
+        typeLabel: "目录",
+        sizeLabel: "—",
+        statusLabel: "—",
+        searchText: `${directory.name} ${directory.path}`.toLowerCase(),
+      })),
+      ...currentDocuments.map<ExplorerEntry>((document) => ({
+        kind: "document",
+        id: document.id,
+        rowId: `document:${document.id}`,
+        name: document.sourceFilename,
+        title: document.title,
+        path: document.logicalPath,
+        documentPath: document.logicalPath,
+        directoryPath: document.directoryPath,
+        createdAt: document.createdAt,
+        updatedAt: document.updatedAt,
+        typeLabel: getDocumentTypeLabel(document),
+        sizeLabel: formatFileSize(document.latestVersion?.fileSizeBytes ?? null),
+        statusLabel: getDocumentStatusLabel(document),
+        latestJob: document.latestJob,
+        latestVersion: document.latestVersion,
+        searchText: `${document.sourceFilename} ${document.logicalPath}`.toLowerCase(),
+      })),
+    ];
+    const normalizedQuery = deferredSearchQuery.trim().toLowerCase();
+
+    if (!normalizedQuery) {
+      return nextEntries;
     }
 
-    return entry.searchText.includes(deferredSearchQuery.trim().toLowerCase());
-  });
+    return nextEntries.filter((entry) => entry.searchText.includes(normalizedQuery));
+  }, [currentChildren, currentDocuments, deferredSearchQuery]);
 
   const selectedEntries = entries.filter((entry) => rowSelection[entry.rowId]);
 
@@ -372,86 +387,92 @@ export function KnowledgeBaseExplorer({
     .filter((entry) => entry.kind === "document")
     .map((entry) => entry.id);
 
-  const pathSegments = currentPath.split("/").filter(Boolean);
-  const pathBreadcrumbs = pathSegments.map((segment, index) => {
-    const path = pathSegments.slice(0, index + 1).join("/");
-    const directory = directoryByPath.get(path) ?? null;
+  const pathBreadcrumbs = useMemo(() => {
+    const pathSegments = currentPath.split("/").filter(Boolean);
 
-    return {
-      id: directory?.id ?? path,
-      label: segment,
-      path,
-    };
-  });
+    return pathSegments.map((segment, index) => {
+      const path = pathSegments.slice(0, index + 1).join("/");
+      const directory = directoryByPath.get(path) ?? null;
 
-  const columns: ColumnDef<ExplorerEntry>[] = [
-    {
-      id: "select",
-      header: ({ table }) => (
-        <SelectionCheckbox
-          checked={table.getIsAllPageRowsSelected()}
-          indeterminate={table.getIsSomePageRowsSelected()}
-          onChange={() => {
-            table.toggleAllPageRowsSelected(!table.getIsAllPageRowsSelected());
-          }}
-          label="全选当前列表"
-        />
-      ),
-      cell: ({ row }) => (
-        <SelectionCheckbox
-          checked={row.getIsSelected()}
-          onChange={() => {
-            row.toggleSelected(!row.getIsSelected());
-          }}
-          label={`选择 ${row.original.name}`}
-        />
-      ),
-      enableSorting: false,
-      size: 44,
-    },
-    {
-      id: "name",
-      accessorFn: (row) => row.name,
-      header: () => "名称",
-      sortingFn: (left, right) => {
-        if (left.original.kind !== right.original.kind) {
-          return left.original.kind === "directory" ? -1 : 1;
-        }
+      return {
+        id: directory?.id ?? path,
+        label: segment,
+        path,
+      };
+    });
+  }, [currentPath, directoryByPath]);
 
-        return left.original.name.localeCompare(right.original.name, "zh-CN");
+  const columns = useMemo<ColumnDef<ExplorerEntry>[]>(
+    () => [
+      {
+        id: "select",
+        header: ({ table }) => (
+          <SelectionCheckbox
+            checked={table.getIsAllPageRowsSelected()}
+            indeterminate={table.getIsSomePageRowsSelected()}
+            onChange={() => {
+              table.toggleAllPageRowsSelected(!table.getIsAllPageRowsSelected());
+            }}
+            label="全选当前列表"
+          />
+        ),
+        cell: ({ row }) => (
+          <SelectionCheckbox
+            checked={row.getIsSelected()}
+            onChange={() => {
+              row.toggleSelected(!row.getIsSelected());
+            }}
+            label={`选择 ${row.original.name}`}
+          />
+        ),
+        enableSorting: false,
+        size: 44,
       },
-    },
-    {
-      id: "status",
-      accessorFn: (row) => row.statusLabel,
-      header: () => "状态",
-      cell: ({ row }) => row.original.statusLabel,
-    },
-    {
-      id: "type",
-      accessorFn: (row) => row.typeLabel,
-      header: () => "类型",
-      cell: ({ row }) => row.original.typeLabel,
-    },
-    {
-      id: "size",
-      accessorFn: (row) => row.sizeLabel,
-      header: () => "大小",
-      cell: ({ row }) => row.original.sizeLabel,
-    },
-    {
-      id: "updatedAt",
-      accessorFn: (row) => row.updatedAt,
-      header: () => "更新时间",
-      cell: ({ row }) => formatTime(row.original.updatedAt),
-    },
-    {
-      id: "createdAt",
-      accessorFn: (row) => row.createdAt,
-      header: () => "创建时间",
-      cell: ({ row }) => formatTime(row.original.createdAt),
-    },
-  ];
+      {
+        id: "name",
+        accessorFn: (row) => row.name,
+        header: () => "名称",
+        sortingFn: (left, right) => {
+          if (left.original.kind !== right.original.kind) {
+            return left.original.kind === "directory" ? -1 : 1;
+          }
+
+          return left.original.name.localeCompare(right.original.name, "zh-CN");
+        },
+      },
+      {
+        id: "status",
+        accessorFn: (row) => row.statusLabel,
+        header: () => "状态",
+        cell: ({ row }) => row.original.statusLabel,
+      },
+      {
+        id: "type",
+        accessorFn: (row) => row.typeLabel,
+        header: () => "类型",
+        cell: ({ row }) => row.original.typeLabel,
+      },
+      {
+        id: "size",
+        accessorFn: (row) => row.sizeLabel,
+        header: () => "大小",
+        cell: ({ row }) => row.original.sizeLabel,
+      },
+      {
+        id: "updatedAt",
+        accessorFn: (row) => row.updatedAt,
+        header: () => "更新时间",
+        cell: ({ row }) => formatTime(row.original.updatedAt),
+      },
+      {
+        id: "createdAt",
+        accessorFn: (row) => row.createdAt,
+        header: () => "创建时间",
+        cell: ({ row }) => formatTime(row.original.createdAt),
+      },
+    ],
+    [],
+  );
 
   const table = useReactTable({
     data: entries,
@@ -762,13 +783,25 @@ export function KnowledgeBaseExplorer({
     void handleDropMove(directoryId, payload);
   }
 
+  const toolbarButtonClass = cn(
+    buttonStyles({ variant: "secondary" }),
+    "shrink-0 whitespace-nowrap",
+  );
+  const headerFieldClass =
+    "h-10 rounded-[18px] border border-app-border bg-app-surface-soft/72 px-3.5 text-[14px]";
+
   return (
     <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div className={cn(ui.panelLarge, "grid gap-5 px-5 py-5 md:px-6")}>
         <div className="flex flex-wrap items-center gap-3">
-          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 rounded-[22px] border border-app-border bg-app-surface-soft/72 px-4 py-3">
+          <div
+            className={cn(
+              headerFieldClass,
+              "flex min-w-0 flex-1 items-center gap-2 overflow-x-auto whitespace-nowrap",
+            )}
+          >
             {pathBreadcrumbs.map((item, index) => (
-              <div key={item.id} className="flex items-center gap-2">
+              <div key={item.id} className="flex shrink-0 items-center gap-2">
                 {index > 0 ? <span className="text-app-muted">/</span> : null}
                 <button
                   type="button"
@@ -792,7 +825,7 @@ export function KnowledgeBaseExplorer({
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
-              className={buttonStyles({ variant: "secondary" })}
+              className={toolbarButtonClass}
               onClick={() => {
                 setUploadStatus(null);
                 setUploadFiles([]);
@@ -803,7 +836,7 @@ export function KnowledgeBaseExplorer({
             </button>
             <button
               type="button"
-              className={buttonStyles({ variant: "secondary" })}
+              className={toolbarButtonClass}
               onClick={() => {
                 setOperationError(null);
                 setDirectoryName("");
@@ -814,7 +847,7 @@ export function KnowledgeBaseExplorer({
             </button>
             <button
               type="button"
-              className={buttonStyles({ variant: "secondary" })}
+              className={toolbarButtonClass}
               disabled={selectedEntries.length === 0}
               onClick={() => void handleDownloadSelection()}
             >
@@ -822,7 +855,7 @@ export function KnowledgeBaseExplorer({
             </button>
             <button
               type="button"
-              className={buttonStyles({ variant: "secondary" })}
+              className={toolbarButtonClass}
               disabled={selectedEntries.length === 0}
               onClick={() => {
                 setTargetDirectoryId(currentDirectory);
@@ -833,7 +866,7 @@ export function KnowledgeBaseExplorer({
             </button>
             <button
               type="button"
-              className={buttonStyles({ variant: "secondary" })}
+              className={toolbarButtonClass}
               disabled={selectedEntries.length === 0}
               onClick={() => void handleDeleteSelection()}
             >
@@ -843,14 +876,14 @@ export function KnowledgeBaseExplorer({
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
-              className={buttonStyles({ variant: "secondary" })}
+              className={toolbarButtonClass}
               onClick={() => setIsTasksOpen(true)}
             >
               处理中任务 {processingDocuments.length > 0 ? `(${processingDocuments.length})` : ""}
             </button>
             <button
               type="button"
-              className={buttonStyles({ variant: "secondary", size: "sm" })}
+              className={toolbarButtonClass}
               disabled={isPending}
               onClick={() => void refreshPage()}
             >
@@ -871,27 +904,30 @@ export function KnowledgeBaseExplorer({
                       key={header.id}
                       className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.12em] text-app-muted-strong"
                     >
-                      {header.isPlaceholder ? null : (
-                        <button
-                          type="button"
-                          className={cn(
-                            "inline-flex items-center gap-2",
-                            header.column.getCanSort() ? "hover:text-app-text" : "",
-                          )}
-                          onClick={header.column.getToggleSortingHandler()}
-                        >
-                          {flexRender(header.column.columnDef.header, header.getContext())}
-                          {header.column.getCanSort() ? (
-                            <span className="text-[10px]">
-                              {header.column.getIsSorted() === "desc"
-                                ? "↓"
-                                : header.column.getIsSorted() === "asc"
-                                  ? "↑"
-                                  : ""}
-                            </span>
-                          ) : null}
-                        </button>
-                      )}
+                      {header.isPlaceholder
+                        ? null
+                        : header.column.getCanSort()
+                          ? (
+                              <button
+                                type="button"
+                                className="inline-flex items-center gap-2 hover:text-app-text"
+                                onClick={header.column.getToggleSortingHandler()}
+                              >
+                                {flexRender(header.column.columnDef.header, header.getContext())}
+                                <span className="text-[10px]">
+                                  {header.column.getIsSorted() === "desc"
+                                    ? "↓"
+                                    : header.column.getIsSorted() === "asc"
+                                      ? "↑"
+                                      : ""}
+                                </span>
+                              </button>
+                            )
+                          : (
+                              <div className="inline-flex items-center gap-2">
+                                {flexRender(header.column.columnDef.header, header.getContext())}
+                              </div>
+                            )}
                     </th>
                   ))}
                 </tr>
