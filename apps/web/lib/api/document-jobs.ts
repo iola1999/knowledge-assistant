@@ -1,4 +1,4 @@
-import { RUN_STATUS } from "@knowledge-assistant/contracts";
+import { RUN_STATUS } from "@anchordesk/contracts";
 
 export function canRetryDocumentJob(input: { status: string }) {
   return input.status === RUN_STATUS.FAILED;

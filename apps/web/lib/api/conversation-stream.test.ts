@@ -5,7 +5,7 @@ import {
   MESSAGE_ROLE,
   MESSAGE_STATUS,
   TIMELINE_EVENT,
-} from "@knowledge-assistant/contracts";
+} from "@anchordesk/contracts";
 
 import {
   buildAssistantDeltaStreamEvent,

@@ -1,9 +1,9 @@
 import { and, eq, isNotNull } from "drizzle-orm";
-import { documentVersions, getDb } from "@knowledge-assistant/db";
+import { documentVersions, getDb } from "@anchordesk/db";
 import {
   buildContentAddressedStorageKey,
   normalizeSha256Hex,
-} from "@knowledge-assistant/storage";
+} from "@anchordesk/storage";
 
 export async function hasVerifiedContentAddressedBlob(sha256: string) {
   const normalizedSha256 = normalizeSha256Hex(sha256);

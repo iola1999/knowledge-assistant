@@ -1,8 +1,8 @@
 import { and, eq, ne } from "drizzle-orm";
-import { REPORT_STATUS } from "@knowledge-assistant/contracts";
-import { writeReportSectionHandler } from "@knowledge-assistant/agent-tools";
+import { REPORT_STATUS } from "@anchordesk/contracts";
+import { writeReportSectionHandler } from "@anchordesk/agent-tools";
 
-import { getDb, reports, reportSections } from "@knowledge-assistant/db";
+import { getDb, reports, reportSections } from "@anchordesk/db";
 
 import { auth } from "@/auth";
 import { requireOwnedReport } from "@/lib/guards/resources";

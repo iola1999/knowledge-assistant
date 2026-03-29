@@ -174,7 +174,7 @@ export async function runDbUpgradeCommand(args, options = {}) {
       resolvePnpmBinary(),
       [
         "--filter",
-        "@knowledge-assistant/db",
+        "@anchordesk/db",
         "exec",
         "node",
         "scripts/run-upgrades.mjs",

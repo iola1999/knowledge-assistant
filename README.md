@@ -1,4 +1,4 @@
-# 通用知识库 Agent 助手 (Knowledge Assistant)
+# AnchorDesk (AnchorDesk)
 
 构建一个面向个人用户和小团队的工作空间级 AI 助手。系统以用户私有资料库为主，必要时联网补充公开信息；所有关键回答默认要求可追溯、可点击、可核验。
 
@@ -17,7 +17,7 @@
 
 ## 启动与运行
 
-请参考 `docs/development-setup.md` 和 `docs/knowledge-assistant-technical-design-nodejs.md` 了解架构与本地启动方式。
+请参考 `docs/development-setup.md` 和 `docs/anchordesk-technical-design-nodejs.md` 了解架构与本地启动方式。
 
 ## 开源协议
 

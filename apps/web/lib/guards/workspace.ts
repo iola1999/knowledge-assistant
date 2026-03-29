@@ -1,6 +1,6 @@
 import { and, eq, isNull } from "drizzle-orm";
 
-import { getDb, workspaces } from "@knowledge-assistant/db";
+import { getDb, workspaces } from "@anchordesk/db";
 
 export async function requireOwnedWorkspace(workspaceId: string, userId: string) {
   const db = getDb();

@@ -12,7 +12,7 @@ import {
   type CitationLocator,
   type ParseStatus,
   type RunStatus,
-} from "@knowledge-assistant/contracts";
+} from "@anchordesk/contracts";
 import {
   citationAnchors,
   documentBlocks,
@@ -24,14 +24,14 @@ import {
   getDb,
   initRuntimeSettings,
   parseArtifacts,
-} from "@knowledge-assistant/db";
-import { serializeErrorForLog } from "@knowledge-assistant/logging";
-import { QUEUE_NAMES, getRedisConnection } from "@knowledge-assistant/queue";
+} from "@anchordesk/db";
+import { serializeErrorForLog } from "@anchordesk/logging";
+import { QUEUE_NAMES, getRedisConnection } from "@anchordesk/queue";
 import {
   deleteDocumentVersionPoints,
   embedTexts,
   upsertDocumentChunks,
-} from "@knowledge-assistant/retrieval";
+} from "@anchordesk/retrieval";
 import {
   buildContentAddressedStorageKey,
   deleteObject,
@@ -40,7 +40,7 @@ import {
   isTemporaryUploadKey,
   putJson,
   putObjectBytes,
-} from "@knowledge-assistant/storage";
+} from "@anchordesk/storage";
 import { buildChunkSeeds } from "./chunking";
 import {
   resolveDocumentIndexingMode,

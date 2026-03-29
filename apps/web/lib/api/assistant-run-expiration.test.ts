@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { MESSAGE_STATUS, TIMELINE_EVENT } from "@knowledge-assistant/contracts";
+import { MESSAGE_STATUS, TIMELINE_EVENT } from "@anchordesk/contracts";
 
 import {
   STALE_STREAMING_ASSISTANT_ERROR,

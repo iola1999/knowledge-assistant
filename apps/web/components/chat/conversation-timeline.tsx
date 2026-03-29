@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import { MESSAGE_STATUS, TIMELINE_EVENT, type MessageStatus } from "@knowledge-assistant/contracts";
+import { MESSAGE_STATUS, TIMELINE_EVENT, type MessageStatus } from "@anchordesk/contracts";
 
 import {
   canShowAssistantProcess,

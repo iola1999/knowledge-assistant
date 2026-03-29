@@ -4,7 +4,7 @@ import {
   DOCUMENT_STATUS,
   PARSE_STATUS,
   RUN_STATUS,
-} from "@knowledge-assistant/contracts";
+} from "@anchordesk/contracts";
 
 import {
   formatRelativeWorkspaceActivity,

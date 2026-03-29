@@ -5,7 +5,7 @@ import {
   DOCUMENT_TYPE,
   DOCUMENT_TYPE_VALUES,
   type DocumentType,
-} from "@knowledge-assistant/contracts";
+} from "@anchordesk/contracts";
 import { normalizeDirectoryPath } from "./directory-paths";
 
 export const documentTypeOptions = [

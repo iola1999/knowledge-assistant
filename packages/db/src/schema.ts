@@ -18,7 +18,7 @@ import {
   type ParseStatus,
   type ReportStatus,
   type RunStatus,
-} from "@knowledge-assistant/contracts";
+} from "@anchordesk/contracts";
 import {
   bigint,
   boolean,

@@ -3,7 +3,7 @@ import {
   CONVERSATION_STATUS,
   CONVERSATION_STATUS_VALUES,
   type ConversationStatus,
-} from "@knowledge-assistant/contracts";
+} from "@anchordesk/contracts";
 
 export const conversationPatchSchema = z
   .object({

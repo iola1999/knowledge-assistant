@@ -12,7 +12,7 @@ COPY scripts ./scripts
 RUN pnpm install --frozen-lockfile
 
 FROM deps AS web-build
-RUN pnpm --filter @knowledge-assistant/web build
+RUN pnpm --filter @anchordesk/web build
 
 FROM deps AS runtime
 ENV NODE_ENV=production

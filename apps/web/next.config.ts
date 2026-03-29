@@ -3,10 +3,10 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   output: "standalone",
   transpilePackages: [
-    "@knowledge-assistant/auth",
-    "@knowledge-assistant/db",
-    "@knowledge-assistant/queue",
-    "@knowledge-assistant/storage",
+    "@anchordesk/auth",
+    "@anchordesk/db",
+    "@anchordesk/queue",
+    "@anchordesk/storage",
   ],
 };
 

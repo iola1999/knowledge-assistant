@@ -8,9 +8,9 @@ import {
   readStreamingAssistantRunState,
   type MessageStatus,
   type ConversationStreamEvent,
-} from "@knowledge-assistant/contracts";
-import { getDb, messageCitations, messages } from "@knowledge-assistant/db";
-import { serializeErrorForLog } from "@knowledge-assistant/logging";
+} from "@anchordesk/contracts";
+import { getDb, messageCitations, messages } from "@anchordesk/db";
+import { serializeErrorForLog } from "@anchordesk/logging";
 
 import { auth } from "@/auth";
 import {

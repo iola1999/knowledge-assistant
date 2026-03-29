@@ -1,5 +1,5 @@
 {
-  "name": "@knowledge-assistant/worker",
+  "name": "@anchordesk/worker",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -9,12 +9,12 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@knowledge-assistant/contracts": "workspace:*",
-    "@knowledge-assistant/db": "workspace:*",
-    "@knowledge-assistant/logging": "workspace:*",
-    "@knowledge-assistant/queue": "workspace:*",
-    "@knowledge-assistant/retrieval": "workspace:*",
-    "@knowledge-assistant/storage": "workspace:*",
+    "@anchordesk/contracts": "workspace:*",
+    "@anchordesk/db": "workspace:*",
+    "@anchordesk/logging": "workspace:*",
+    "@anchordesk/queue": "workspace:*",
+    "@anchordesk/retrieval": "workspace:*",
+    "@anchordesk/storage": "workspace:*",
     "bullmq": "^5.71.1",
     "drizzle-orm": "^0.45.2"
   }

@@ -20,7 +20,7 @@ describe("buildSystemSettingSections", () => {
       },
       {
         settingKey: "s3_bucket",
-        valueText: "knowledge-assistant",
+        valueText: "anchordesk",
         isSecret: false,
         summary: "对象存储桶",
         description: "Primary object storage bucket.",
@@ -212,7 +212,7 @@ describe("filterSystemSettingSections", () => {
       },
       {
         settingKey: "s3_bucket",
-        valueText: "knowledge-assistant",
+        valueText: "anchordesk",
         isSecret: false,
         summary: "对象存储桶",
         description: "Primary object storage bucket.",

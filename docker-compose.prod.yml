@@ -64,7 +64,7 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
-    command: ["sh", "-lc", "pnpm app:upgrade && pnpm --filter @knowledge-assistant/storage exec node scripts/ensure-dev-bucket.mjs"]
+    command: ["sh", "-lc", "pnpm app:upgrade && pnpm --filter @anchordesk/storage exec node scripts/ensure-dev-bucket.mjs"]
     restart: "no"
 
   # App services only need bootstrap env; all other runtime config is
@@ -111,7 +111,7 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
-    command: ["sh", "-lc", "pnpm app:upgrade:check && pnpm --filter @knowledge-assistant/worker start"]
+    command: ["sh", "-lc", "pnpm app:upgrade:check && pnpm --filter @anchordesk/worker start"]
     ports:
       - "4002:4002"
     healthcheck:
@@ -136,7 +136,7 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
-    command: ["sh", "-lc", "pnpm app:upgrade:check && pnpm --filter @knowledge-assistant/agent-runtime start"]
+    command: ["sh", "-lc", "pnpm app:upgrade:check && pnpm --filter @anchordesk/agent-runtime start"]
     ports:
       - "4001:4001"
     healthcheck:

@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 
-import { getDb, systemSettings } from "@knowledge-assistant/db";
+import { getDb, systemSettings } from "@anchordesk/db";
 
 import {
   AUTH_ALLOW_REGISTRATION_SETTING_KEY,

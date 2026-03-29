@@ -3,7 +3,7 @@ import {
   TIMELINE_EVENT,
   isStreamingAssistantRunExpired,
   type MessageStatus,
-} from "@knowledge-assistant/contracts";
+} from "@anchordesk/contracts";
 
 export const STALE_STREAMING_ASSISTANT_ERROR =
   "Agent Runtime 已停止响应，当前回答未完成。请修复服务后重新生成。";

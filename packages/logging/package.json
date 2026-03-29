@@ -1,5 +1,5 @@
 {
-  "name": "@knowledge-assistant/logging",
+  "name": "@anchordesk/logging",
   "version": "0.1.0",
   "private": true,
   "type": "module",

@@ -3,7 +3,7 @@ import {
   MESSAGE_STATUS,
   type MessageRole,
   type MessageStatus,
-} from "@knowledge-assistant/contracts";
+} from "@anchordesk/contracts";
 
 export type ConversationProcessThreadMessage = {
   id: string;

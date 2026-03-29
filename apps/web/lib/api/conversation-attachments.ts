@@ -1,4 +1,4 @@
-import { PARSE_STATUS, RUN_STATUS } from "@knowledge-assistant/contracts";
+import { PARSE_STATUS, RUN_STATUS } from "@anchordesk/contracts";
 
 export const TEMPORARY_ATTACHMENT_ROOT_DIRECTORY = "资料库/临时目录";
 export const DRAFT_ATTACHMENT_EXPIRY_HOURS = 24;

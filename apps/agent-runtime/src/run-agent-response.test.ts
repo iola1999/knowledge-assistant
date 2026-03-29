@@ -6,8 +6,8 @@ import { afterEach, describe, expect, test } from "vitest";
 
 import {
   ASSISTANT_ALLOWED_TOOL_NAMES,
-} from "@knowledge-assistant/contracts";
-import { getConfiguredAnthropicApiKey } from "@knowledge-assistant/db";
+} from "@anchordesk/contracts";
+import { getConfiguredAnthropicApiKey } from "@anchordesk/db";
 
 import { getAllowedTools, runAgentResponse } from "./run-agent-response";
 
@@ -41,7 +41,7 @@ describe("runAgentResponse", () => {
       delete process.env.ANTHROPIC_API_KEY;
 
       const agentWorkdir = await fs.mkdtemp(
-        path.join(os.tmpdir(), "knowledge-assistant-agent-runtime-"),
+        path.join(os.tmpdir(), "anchordesk-agent-runtime-"),
       );
       temporaryDirs.push(agentWorkdir);
 

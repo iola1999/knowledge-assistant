@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { and, eq, isNull } from "drizzle-orm";
 import { notFound } from "next/navigation";
-import { formatCitationLocator, PARSE_STATUS } from "@knowledge-assistant/contracts";
+import { formatCitationLocator, PARSE_STATUS } from "@anchordesk/contracts";
 
 import {
   citationAnchors,
@@ -12,7 +12,7 @@ import {
   getDb,
   workspaceDirectories,
   workspaces,
-} from "@knowledge-assistant/db";
+} from "@anchordesk/db";
 
 import { auth } from "@/auth";
 import { DeleteDocumentButton } from "@/components/documents/delete-document-button";

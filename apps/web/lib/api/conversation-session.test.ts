@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { CONVERSATION_STREAM_EVENT, MESSAGE_ROLE, MESSAGE_STATUS } from "@knowledge-assistant/contracts";
+import { CONVERSATION_STREAM_EVENT, MESSAGE_ROLE, MESSAGE_STATUS } from "@anchordesk/contracts";
 
 import { applyAssistantTerminalEvent } from "./conversation-session";
 

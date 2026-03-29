@@ -1,6 +1,6 @@
 "use client";
 
-import { CONVERSATION_STATUS, type ConversationStatus } from "@knowledge-assistant/contracts";
+import { CONVERSATION_STATUS, type ConversationStatus } from "@anchordesk/contracts";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 

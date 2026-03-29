@@ -5,7 +5,7 @@ import {
   EMBEDDING_PROVIDER_ALIAS,
   RERANK_PROVIDER,
   RERANK_PROVIDER_ALIAS,
-} from "@knowledge-assistant/contracts";
+} from "@anchordesk/contracts";
 
 type EnvMap = Record<string, string | undefined>;
 

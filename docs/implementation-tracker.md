@@ -6,8 +6,8 @@
 > 本文件是项目的执行跟踪文档。
 >
 > - 当前阶段进度、活跃待办和下一步顺序，以本文件为准。
-> - 产品目标以 [knowledge-assistant-prd.md](./knowledge-assistant-prd.md) 为准。
-> - 架构与实现约束以 [knowledge-assistant-technical-design-nodejs.md](./knowledge-assistant-technical-design-nodejs.md) 为准。
+> - 产品目标以 [anchordesk-prd.md](./anchordesk-prd.md) 为准。
+> - 架构与实现约束以 [anchordesk-technical-design-nodejs.md](./anchordesk-technical-design-nodejs.md) 为准。
 
 ## 1. 当前阶段
 

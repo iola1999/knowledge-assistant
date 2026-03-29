@@ -3,8 +3,8 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Read first
-- Use these repo-local docs as the source of truth, in this order: `@docs/knowledge-assistant-technical-design-nodejs.md`, `@docs/implementation-tracker.md`, `@docs/development-setup.md`.
-- If design docs conflict, follow `@docs/knowledge-assistant-technical-design-nodejs.md`.
+- Use these repo-local docs as the source of truth, in this order: `@docs/anchordesk-technical-design-nodejs.md`, `@docs/implementation-tracker.md`, `@docs/development-setup.md`.
+- If design docs conflict, follow `@docs/anchordesk-technical-design-nodejs.md`.
 - If task priority or current phase conflicts, follow `@docs/implementation-tracker.md`.
 - `AGENTS.md` is still relevant, but its absolute doc paths are stale; use the repo-local `docs/` files above instead.
 

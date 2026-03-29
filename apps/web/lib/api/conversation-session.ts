@@ -1,4 +1,4 @@
-import { CONVERSATION_STREAM_EVENT, type ConversationStreamEvent, type MessageRole, type MessageStatus } from "@knowledge-assistant/contracts";
+import { CONVERSATION_STREAM_EVENT, type ConversationStreamEvent, type MessageRole, type MessageStatus } from "@anchordesk/contracts";
 
 export type ConversationChatMessage = {
   id: string;

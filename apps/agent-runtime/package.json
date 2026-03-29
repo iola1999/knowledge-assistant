@@ -1,5 +1,5 @@
 {
-  "name": "@knowledge-assistant/agent-runtime",
+  "name": "@anchordesk/agent-runtime",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -11,11 +11,11 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.80.0",
     "@anthropic-ai/claude-agent-sdk": "^0.2.85",
-    "@knowledge-assistant/agent-tools": "workspace:*",
-    "@knowledge-assistant/contracts": "workspace:*",
-    "@knowledge-assistant/db": "workspace:*",
-    "@knowledge-assistant/logging": "workspace:*",
-    "@knowledge-assistant/queue": "workspace:*",
+    "@anchordesk/agent-tools": "workspace:*",
+    "@anchordesk/contracts": "workspace:*",
+    "@anchordesk/db": "workspace:*",
+    "@anchordesk/logging": "workspace:*",
+    "@anchordesk/queue": "workspace:*",
     "bullmq": "^5.63.1",
     "drizzle-orm": "^0.45.2",
     "express": "^5.1.0"

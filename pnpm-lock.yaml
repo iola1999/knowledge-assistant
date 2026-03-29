@@ -35,19 +35,19 @@ importers:
       '@anthropic-ai/sdk':
         specifier: ^0.80.0
         version: 0.80.0(zod@4.3.6)
-      '@knowledge-assistant/agent-tools':
+      '@anchordesk/agent-tools':
         specifier: workspace:*
         version: link:../../packages/agent-tools
-      '@knowledge-assistant/contracts':
+      '@anchordesk/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
-      '@knowledge-assistant/db':
+      '@anchordesk/db':
         specifier: workspace:*
         version: link:../../packages/db
-      '@knowledge-assistant/logging':
+      '@anchordesk/logging':
         specifier: workspace:*
         version: link:../../packages/logging
-      '@knowledge-assistant/queue':
+      '@anchordesk/queue':
         specifier: workspace:*
         version: link:../../packages/queue
       bullmq:
@@ -75,28 +75,28 @@ importers:
       '@dnd-kit/sortable':
         specifier: ^10.0.0
         version: 10.0.0(@dnd-kit/core@6.3.1(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4)
-      '@knowledge-assistant/agent-tools':
+      '@anchordesk/agent-tools':
         specifier: workspace:*
         version: link:../../packages/agent-tools
-      '@knowledge-assistant/auth':
+      '@anchordesk/auth':
         specifier: workspace:*
         version: link:../../packages/auth
-      '@knowledge-assistant/contracts':
+      '@anchordesk/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
-      '@knowledge-assistant/db':
+      '@anchordesk/db':
         specifier: workspace:*
         version: link:../../packages/db
-      '@knowledge-assistant/logging':
+      '@anchordesk/logging':
         specifier: workspace:*
         version: link:../../packages/logging
-      '@knowledge-assistant/queue':
+      '@anchordesk/queue':
         specifier: workspace:*
         version: link:../../packages/queue
-      '@knowledge-assistant/retrieval':
+      '@anchordesk/retrieval':
         specifier: workspace:*
         version: link:../../packages/retrieval
-      '@knowledge-assistant/storage':
+      '@anchordesk/storage':
         specifier: workspace:*
         version: link:../../packages/storage
       '@tanstack/react-table':
@@ -160,22 +160,22 @@ importers:
 
   apps/worker:
     dependencies:
-      '@knowledge-assistant/contracts':
+      '@anchordesk/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
-      '@knowledge-assistant/db':
+      '@anchordesk/db':
         specifier: workspace:*
         version: link:../../packages/db
-      '@knowledge-assistant/logging':
+      '@anchordesk/logging':
         specifier: workspace:*
         version: link:../../packages/logging
-      '@knowledge-assistant/queue':
+      '@anchordesk/queue':
         specifier: workspace:*
         version: link:../../packages/queue
-      '@knowledge-assistant/retrieval':
+      '@anchordesk/retrieval':
         specifier: workspace:*
         version: link:../../packages/retrieval
-      '@knowledge-assistant/storage':
+      '@anchordesk/storage':
         specifier: workspace:*
         version: link:../../packages/storage
       bullmq:
@@ -193,13 +193,13 @@ importers:
       '@anthropic-ai/sdk':
         specifier: ^0.80.0
         version: 0.80.0(zod@4.3.6)
-      '@knowledge-assistant/contracts':
+      '@anchordesk/contracts':
         specifier: workspace:*
         version: link:../contracts
-      '@knowledge-assistant/db':
+      '@anchordesk/db':
         specifier: workspace:*
         version: link:../db
-      '@knowledge-assistant/retrieval':
+      '@anchordesk/retrieval':
         specifier: workspace:*
         version: link:../retrieval
       drizzle-orm:
@@ -223,7 +223,7 @@ importers:
 
   packages/db:
     dependencies:
-      '@knowledge-assistant/contracts':
+      '@anchordesk/contracts':
         specifier: workspace:*
         version: link:../contracts
       drizzle-orm:
@@ -248,7 +248,7 @@ importers:
 
   packages/queue:
     dependencies:
-      '@knowledge-assistant/contracts':
+      '@anchordesk/contracts':
         specifier: workspace:*
         version: link:../contracts
       bullmq:
@@ -257,7 +257,7 @@ importers:
 
   packages/retrieval:
     dependencies:
-      '@knowledge-assistant/contracts':
+      '@anchordesk/contracts':
         specifier: workspace:*
         version: link:../contracts
       '@qdrant/js-client-rest':

@@ -1,6 +1,6 @@
 import { and, asc, eq, ne } from "drizzle-orm";
 
-import { documents, documentVersions, getDb } from "@knowledge-assistant/db";
+import { documents, documentVersions, getDb } from "@anchordesk/db";
 
 import { auth } from "@/auth";
 import {

@@ -4,7 +4,7 @@ import {
   DEFAULT_QUEUE_JOB_RETENTION_LIMIT,
   DOCUMENT_INDEXING_MODE,
   type DocumentIndexingMode,
-} from "@knowledge-assistant/contracts";
+} from "@anchordesk/contracts";
 
 export const QUEUE_NAMES = {
   respond: "conversation.respond",

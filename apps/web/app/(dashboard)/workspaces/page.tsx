@@ -6,7 +6,7 @@ import {
   documents,
   getDb,
   workspaces,
-} from "@knowledge-assistant/db";
+} from "@anchordesk/db";
 
 import { auth } from "@/auth";
 import { isSuperAdminUsername } from "@/lib/auth/super-admin";

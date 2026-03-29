@@ -5,11 +5,11 @@ import {
   groundedAnswerSchema,
   type GroundedAnswer,
   type GroundedEvidence,
-} from "@knowledge-assistant/contracts";
+} from "@anchordesk/contracts";
 import {
   buildAnthropicClientConfig,
   getConfiguredAnthropicApiKey,
-} from "@knowledge-assistant/db";
+} from "@anchordesk/db";
 
 import {
   buildGroundedAnswerPrompt,

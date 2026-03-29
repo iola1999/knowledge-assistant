@@ -2,8 +2,8 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { eq } from "drizzle-orm";
 
-import { verifyPassword } from "@knowledge-assistant/auth";
-import { getDb, users } from "@knowledge-assistant/db";
+import { verifyPassword } from "@anchordesk/auth";
+import { getDb, users } from "@anchordesk/db";
 
 import { syncAuthSessionToken } from "@/lib/auth/jwt-session";
 import { revokeAuthSession } from "@/lib/auth/session-registry";

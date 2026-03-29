@@ -2,7 +2,7 @@ import { and, desc, eq, isNull } from "drizzle-orm";
 import { notFound } from "next/navigation";
 
 import { auth } from "@/auth";
-import { conversations, getDb, workspaces } from "@knowledge-assistant/db";
+import { conversations, getDb, workspaces } from "@anchordesk/db";
 
 export async function loadWorkspaceShellData(workspaceId: string) {
   const session = await auth();

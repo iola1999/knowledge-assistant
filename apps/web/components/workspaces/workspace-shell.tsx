@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { type ConversationStatus } from "@knowledge-assistant/contracts";
+import { type ConversationStatus } from "@anchordesk/contracts";
 
 import { isSuperAdminUsername } from "@/lib/auth/super-admin";
 import {

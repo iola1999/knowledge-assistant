@@ -3,7 +3,7 @@ import path from "node:path";
 
 import { query } from "@anthropic-ai/claude-agent-sdk";
 
-import { createAssistantMcpServer } from "@knowledge-assistant/agent-tools";
+import { createAssistantMcpServer } from "@anchordesk/agent-tools";
 import {
   ASSISTANT_MCP_SERVER_NAME,
   ASSISTANT_ALLOWED_TOOL_NAMES,
@@ -11,11 +11,11 @@ import {
   DEFAULT_AGENT_MAX_TURNS,
   normalizeAssistantToolName,
   type GroundedEvidence,
-} from "@knowledge-assistant/contracts";
+} from "@anchordesk/contracts";
 import {
   buildClaudeAgentEnv,
   getConfiguredAnthropicApiKey,
-} from "@knowledge-assistant/db";
+} from "@anchordesk/db";
 import { extractAssistantTextDelta } from "./assistant-stream";
 import { renderGroundedAnswer } from "./final-answerer";
 import {

@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 
-import { hashPassword } from "@knowledge-assistant/auth";
-import { getDb, users } from "@knowledge-assistant/db";
+import { hashPassword } from "@anchordesk/auth";
+import { getDb, users } from "@anchordesk/db";
 
 import { readRegistrationEnabled } from "@/lib/auth/registration";
 

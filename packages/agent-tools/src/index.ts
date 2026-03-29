@@ -17,7 +17,7 @@ import {
   searchWebGeneralInputSchema,
   searchWorkspaceKnowledgeInputSchema,
   writeReportSectionInputSchema,
-} from "@knowledge-assistant/contracts";
+} from "@anchordesk/contracts";
 import {
   buildAnthropicClientConfig,
   citationAnchors,
@@ -31,13 +31,13 @@ import {
   retrievalRuns,
   reports,
   reportSections,
-} from "@knowledge-assistant/db";
+} from "@anchordesk/db";
 import {
   describeRetrievalProvider,
   searchLocalChunks,
   scoreToBasisPoints,
   searchWorkspaceKnowledge,
-} from "@knowledge-assistant/retrieval";
+} from "@anchordesk/retrieval";
 
 import {
   buildBraveWebSearchUrl,

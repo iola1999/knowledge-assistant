@@ -4,16 +4,16 @@ import {
   MESSAGE_ROLE,
   MESSAGE_STATUS,
   normalizeConversationFailureMessage,
-} from "@knowledge-assistant/contracts";
+} from "@anchordesk/contracts";
 
 import {
   conversationAttachments,
   conversations,
   getDb,
   messages,
-} from "@knowledge-assistant/db";
-import { serializeErrorForLog } from "@knowledge-assistant/logging";
-import { enqueueConversationResponse } from "@knowledge-assistant/queue";
+} from "@anchordesk/db";
+import { serializeErrorForLog } from "@anchordesk/logging";
+import { enqueueConversationResponse } from "@anchordesk/queue";
 
 import { auth } from "@/auth";
 import { buildRequestLogContext, logger, resolveRequestId } from "@/lib/server/logger";

@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { CONVERSATION_STATUS, type ConversationStatus } from "@knowledge-assistant/contracts";
+import { CONVERSATION_STATUS, type ConversationStatus } from "@anchordesk/contracts";
 
 import { TextPromptDialog } from "@/components/shared/action-dialog";
 import { canSubmitDialogText, normalizeDialogText } from "@/lib/dialog";

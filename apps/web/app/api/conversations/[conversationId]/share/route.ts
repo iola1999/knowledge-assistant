@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 
-import { conversationShares, getDb } from "@knowledge-assistant/db";
+import { conversationShares, getDb } from "@anchordesk/db";
 
 import { auth } from "@/auth";
 import {

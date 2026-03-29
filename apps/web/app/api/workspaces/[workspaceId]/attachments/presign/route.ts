@@ -2,7 +2,7 @@ import {
   buildContentAddressedStorageKey,
   createPresignedUploadUrl,
   normalizeSha256Hex,
-} from "@knowledge-assistant/storage";
+} from "@anchordesk/storage";
 
 import { auth } from "@/auth";
 import { hasVerifiedContentAddressedBlob } from "@/lib/api/content-addressed-storage";

@@ -1,4 +1,4 @@
-export { serializeErrorForLog } from "@knowledge-assistant/logging";
+export { serializeErrorForLog } from "@anchordesk/logging";
 
 type RuntimeEnv = Record<string, string | undefined>;
 

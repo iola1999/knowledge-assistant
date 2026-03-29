@@ -1,5 +1,5 @@
 {
-  "name": "@knowledge-assistant/queue",
+  "name": "@anchordesk/queue",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -10,7 +10,7 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@knowledge-assistant/contracts": "workspace:*",
+    "@anchordesk/contracts": "workspace:*",
     "bullmq": "^5.71.1"
   }
 }

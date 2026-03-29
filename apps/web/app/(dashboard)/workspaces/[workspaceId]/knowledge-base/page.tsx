@@ -1,5 +1,5 @@
 import { desc, eq, inArray } from "drizzle-orm";
-import { RUN_STATUS } from "@knowledge-assistant/contracts";
+import { RUN_STATUS } from "@anchordesk/contracts";
 
 import {
   documentJobs,
@@ -7,7 +7,7 @@ import {
   documents,
   getDb,
   workspaceDirectories,
-} from "@knowledge-assistant/db";
+} from "@anchordesk/db";
 
 import { KnowledgeBaseExplorer } from "@/components/workspaces/knowledge-base-explorer";
 import { WorkspaceShell } from "@/components/workspaces/workspace-shell";

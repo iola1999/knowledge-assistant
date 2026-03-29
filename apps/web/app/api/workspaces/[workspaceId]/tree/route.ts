@@ -1,6 +1,6 @@
 import { and, eq } from "drizzle-orm";
 
-import { documents, getDb } from "@knowledge-assistant/db";
+import { documents, getDb } from "@anchordesk/db";
 
 import { auth } from "@/auth";
 import { buildDocumentTree } from "@/lib/api/tree";

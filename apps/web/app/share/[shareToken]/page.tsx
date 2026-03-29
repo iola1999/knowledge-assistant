@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { and, asc, eq, inArray, isNull } from "drizzle-orm";
 import { notFound } from "next/navigation";
-import { MESSAGE_ROLE } from "@knowledge-assistant/contracts";
+import { MESSAGE_ROLE } from "@anchordesk/contracts";
 
 import {
   citationAnchors,
@@ -11,7 +11,7 @@ import {
   messageCitations,
   messages,
   workspaces,
-} from "@knowledge-assistant/db";
+} from "@anchordesk/db";
 
 import { ConversationSession } from "@/components/chat/conversation-session";
 import { groupAssistantProcessMessages } from "@/lib/api/conversation-process";

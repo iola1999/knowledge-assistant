@@ -6,7 +6,7 @@ describe("workspaceBranding", () => {
   it("uses the generic knowledge assistant brand", () => {
     expect(workspaceBranding).toEqual({
       badgeLabel: "KA",
-      productName: "Knowledge Assistant",
+      productName: "AnchorDesk",
       productTagline: "Workspace Knowledge Base",
     });
   });

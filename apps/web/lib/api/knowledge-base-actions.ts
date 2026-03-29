@@ -1,6 +1,6 @@
 import { and, eq, inArray, isNull } from "drizzle-orm";
 
-import { documents, getDb, workspaceDirectories } from "@knowledge-assistant/db";
+import { documents, getDb, workspaceDirectories } from "@anchordesk/db";
 
 import {
   deleteDocumentSearchIndexAndAssets,

@@ -10,7 +10,7 @@ import {
   MESSAGE_STATUS,
   type ConversationStreamEvent,
   type MessageStatus,
-} from "@knowledge-assistant/contracts";
+} from "@anchordesk/contracts";
 
 import {
   AnswerIcon,

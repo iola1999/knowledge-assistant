@@ -9,7 +9,7 @@ import {
   getDb,
   reports,
   workspaces,
-} from "@knowledge-assistant/db";
+} from "@anchordesk/db";
 
 export async function requireOwnedConversation(
   conversationId: string,

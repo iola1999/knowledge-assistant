@@ -43,9 +43,9 @@ describe("resolveDevLogRoot", () => {
     expect(
       resolveDevLogRoot({
         tmpRoot: "/tmp",
-        projectName: "knowledge-assistant",
+        projectName: "anchordesk",
       }),
-    ).toBe("/tmp/knowledge-assistant-dev");
+    ).toBe("/tmp/anchordesk-dev");
   });
 });
 
@@ -54,16 +54,16 @@ describe("resolvePidRoot", () => {
     expect(
       resolvePidRoot({
         tmpRoot: "/tmp",
-        projectName: "knowledge-assistant",
+        projectName: "anchordesk",
       }),
-    ).toBe("/tmp/knowledge-assistant-dev/pids");
+    ).toBe("/tmp/anchordesk-dev/pids");
   });
 });
 
 describe("resetDevLogDirectory", () => {
   it("recreates the log directory without stale log files", async () => {
     const tempRoot = await mkdtemp(
-      path.join(os.tmpdir(), "knowledge-assistant-dev-common-"),
+      path.join(os.tmpdir(), "anchordesk-dev-common-"),
     );
     tempDirs.push(tempRoot);
 

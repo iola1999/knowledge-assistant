@@ -1,4 +1,4 @@
-import { RUN_STATUS } from "@knowledge-assistant/contracts";
+import { RUN_STATUS } from "@anchordesk/contracts";
 
 import { canRetryDocumentJob, describeDocumentJobFailure } from "@/lib/api/document-jobs";
 import { RetryDocumentJobButton } from "@/components/workspaces/retry-document-job-button";

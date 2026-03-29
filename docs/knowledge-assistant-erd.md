@@ -1,4 +1,4 @@
-# 通用知识库 Agent 助手 ERD
+# AnchorDesk ERD
 
 版本：v0.3  
 日期：2026-03-29
@@ -7,7 +7,7 @@
 >
 > - 本文件给出当前数据模型的业务视图。
 > - 若与当前 Drizzle schema 冲突，以 [packages/db/src/schema.ts](../packages/db/src/schema.ts) 为准。
-> - 架构约束以 [knowledge-assistant-technical-design-nodejs.md](./knowledge-assistant-technical-design-nodejs.md) 为准。
+> - 架构约束以 [anchordesk-technical-design-nodejs.md](./anchordesk-technical-design-nodejs.md) 为准。
 
 ## 1. 业务主链路
 

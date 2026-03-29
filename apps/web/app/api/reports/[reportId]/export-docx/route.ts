@@ -1,7 +1,7 @@
 import { asc, eq } from "drizzle-orm";
 import { Document, HeadingLevel, Packer, Paragraph, TextRun } from "docx";
 
-import { getDb, reportSections } from "@knowledge-assistant/db";
+import { getDb, reportSections } from "@anchordesk/db";
 
 import { auth } from "@/auth";
 import { requireOwnedReport } from "@/lib/guards/resources";

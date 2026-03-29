@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { RUN_STATUS } from "@knowledge-assistant/contracts";
+import { RUN_STATUS } from "@anchordesk/contracts";
 
 import {
   canRetryDocumentJob,

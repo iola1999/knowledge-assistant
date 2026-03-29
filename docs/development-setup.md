@@ -84,7 +84,7 @@ pnpm dev
 2. 执行 SQL migrations + safe blocking app upgrades
 3. 校验 PostgreSQL / Redis / Qdrant / MinIO 连通性
 4. 自动确保 S3 bucket 存在
-5. 在启动受管进程前重建 `/tmp/knowledge-assistant-dev/logs`
+5. 在启动受管进程前重建 `/tmp/anchordesk-dev/logs`
 6. 拉起 `web` / `worker` / `agent-runtime` / `parser`
 
 补充说明：
@@ -92,9 +92,9 @@ pnpm dev
 - parser 现在走受管稳定启动模式，优先保证 `pnpm dev` / `pnpm dev:status` 可可靠接管。
 - 如果你改了 `services/parser/**` 里的代码，当前建议手动重启一次 `pnpm dev`。
 - 如果检测到已有受管进程仍在运行，`pnpm dev` 会保留现有日志目录，避免删除正在写入的日志句柄。
-- 受管进程状态统一写到 `/tmp/knowledge-assistant-dev`：
-  - 日志在 `/tmp/knowledge-assistant-dev/logs`
-  - PID 文件在 `/tmp/knowledge-assistant-dev/pids`
+- 受管进程状态统一写到 `/tmp/anchordesk-dev`：
+  - 日志在 `/tmp/anchordesk-dev/logs`
+  - PID 文件在 `/tmp/anchordesk-dev/pids`
 - 应用层日志当前统一走结构化 stdout/stderr；开发期由 `pnpm dev` 捕获到上述日志目录，生产环境默认输出 JSON 到容器 stdout。
 - 可选通过 `LOG_LEVEL` 调整日志级别；默认行为是开发期 `debug`、生产期 `info`、测试期 `silent`。
 - 这样可以避免在仓库内留下 `.dev` 状态目录，减少对前端 dev watch 的干扰。

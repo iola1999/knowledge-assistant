@@ -73,7 +73,7 @@ const SYSTEM_SETTING_DEFINITIONS = [
   {
     settingKey: "s3_bucket",
     envName: "S3_BUCKET",
-    defaultValue: "knowledge-assistant",
+    defaultValue: "anchordesk",
     summary: "上传文件与产物写入的桶名。",
     description: "Primary object storage bucket.",
   },

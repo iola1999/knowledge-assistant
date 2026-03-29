@@ -9,16 +9,16 @@ import {
   refreshStreamingAssistantRunState,
   normalizeConversationFailureMessage,
   type ToolTimelineState,
-} from "@knowledge-assistant/contracts";
+} from "@anchordesk/contracts";
 import {
   citationAnchors,
   conversations,
   getDb,
   messageCitations,
   messages,
-} from "@knowledge-assistant/db";
-import { serializeErrorForLog } from "@knowledge-assistant/logging";
-import type { ConversationResponseJobPayload } from "@knowledge-assistant/queue";
+} from "@anchordesk/db";
+import { serializeErrorForLog } from "@anchordesk/logging";
+import type { ConversationResponseJobPayload } from "@anchordesk/queue";
 
 import { logger } from "./logger";
 import { runAgentResponse } from "./run-agent-response";

@@ -1,6 +1,6 @@
 import Redis from "ioredis";
 
-import { getRedisConnection } from "@knowledge-assistant/queue";
+import { getRedisConnection } from "@anchordesk/queue";
 
 export const AUTH_SESSION_REDIS_KEY_PREFIX = "auth:session";
 export const AUTH_USER_SESSIONS_REDIS_KEY_PREFIX = "auth:user-sessions";

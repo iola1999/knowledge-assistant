@@ -5,7 +5,7 @@ import {
   normalizeConversationFailureMessage,
   type ConversationStreamEvent,
   type MessageStatus,
-} from "@knowledge-assistant/contracts";
+} from "@anchordesk/contracts";
 
 type ToolMessageRow = {
   id: string;

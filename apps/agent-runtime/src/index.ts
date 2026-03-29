@@ -3,9 +3,9 @@ import { randomUUID } from "node:crypto";
 import express from "express";
 import { Worker } from "bullmq";
 
-import { buildClaudeAgentEnv, initRuntimeSettings } from "@knowledge-assistant/db";
-import { serializeErrorForLog } from "@knowledge-assistant/logging";
-import { QUEUE_NAMES, getRedisConnection } from "@knowledge-assistant/queue";
+import { buildClaudeAgentEnv, initRuntimeSettings } from "@anchordesk/db";
+import { serializeErrorForLog } from "@anchordesk/logging";
+import { QUEUE_NAMES, getRedisConnection } from "@anchordesk/queue";
 
 import { logger } from "./logger";
 import { processConversationResponseJob } from "./process-conversation-job";

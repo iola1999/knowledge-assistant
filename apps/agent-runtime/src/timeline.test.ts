@@ -6,7 +6,7 @@ import {
   MESSAGE_STATUS,
   TIMELINE_EVENT,
   TOOL_TIMELINE_STATE,
-} from "@knowledge-assistant/contracts";
+} from "@anchordesk/contracts";
 
 import { buildToolTimelineMessage } from "./timeline";
 

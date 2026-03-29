@@ -4,10 +4,10 @@ import {
   MESSAGE_ROLE,
   MESSAGE_STATUS,
   normalizeConversationFailureMessage,
-} from "@knowledge-assistant/contracts";
-import { conversations, getDb, messageCitations, messages } from "@knowledge-assistant/db";
-import { serializeErrorForLog } from "@knowledge-assistant/logging";
-import { enqueueConversationResponse } from "@knowledge-assistant/queue";
+} from "@anchordesk/contracts";
+import { conversations, getDb, messageCitations, messages } from "@anchordesk/db";
+import { serializeErrorForLog } from "@anchordesk/logging";
+import { enqueueConversationResponse } from "@anchordesk/queue";
 
 import { auth } from "@/auth";
 import { findRegeneratableConversationTurn } from "@/lib/api/conversation-retry";

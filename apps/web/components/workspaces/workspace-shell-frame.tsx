@@ -6,7 +6,7 @@ import { type ReactNode, useEffect, useId, useState } from "react";
 import {
   CONVERSATION_STATUS,
   type ConversationStatus,
-} from "@knowledge-assistant/contracts";
+} from "@anchordesk/contracts";
 
 import { CloseIcon, MenuIcon, PlusIcon, SlidersIcon, SourceIcon } from "@/components/icons";
 import { workspaceBranding } from "@/lib/branding";

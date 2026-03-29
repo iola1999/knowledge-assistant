@@ -1,6 +1,6 @@
 import { and, asc, desc, eq, inArray, isNull } from "drizzle-orm";
 import { notFound } from "next/navigation";
-import { MESSAGE_ROLE } from "@knowledge-assistant/contracts";
+import { MESSAGE_ROLE } from "@anchordesk/contracts";
 
 import {
   conversationAttachments,
@@ -12,7 +12,7 @@ import {
   messageCitations,
   messages,
   workspaces,
-} from "@knowledge-assistant/db";
+} from "@anchordesk/db";
 
 import { auth } from "@/auth";
 import { Composer } from "@/components/chat/composer";

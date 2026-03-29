@@ -1,7 +1,7 @@
 import { asc, eq, inArray } from "drizzle-orm";
-import { CONVERSATION_STATUS } from "@knowledge-assistant/contracts";
+import { CONVERSATION_STATUS } from "@anchordesk/contracts";
 
-import { conversations, getDb, messageCitations, messages } from "@knowledge-assistant/db";
+import { conversations, getDb, messageCitations, messages } from "@anchordesk/db";
 
 import { auth } from "@/auth";
 import {

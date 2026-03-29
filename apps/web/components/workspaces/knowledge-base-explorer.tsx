@@ -8,7 +8,7 @@ import { flexRender, getCoreRowModel, getSortedRowModel, type SortingState, useR
 import { useDropzone } from "react-dropzone";
 import useSWR from "swr";
 
-import { RUN_STATUS } from "@knowledge-assistant/contracts";
+import { RUN_STATUS } from "@anchordesk/contracts";
 
 import { RetryDocumentJobButton } from "@/components/workspaces/retry-document-job-button";
 import { ModalShell } from "@/components/shared/modal-shell";

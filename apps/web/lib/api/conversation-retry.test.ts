@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { MESSAGE_ROLE, MESSAGE_STATUS } from "@knowledge-assistant/contracts";
+import { MESSAGE_ROLE, MESSAGE_STATUS } from "@anchordesk/contracts";
 
 import {
   findRegeneratableConversationTurn,

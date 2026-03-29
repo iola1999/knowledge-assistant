@@ -1,6 +1,6 @@
 import { eq, and } from "drizzle-orm";
 
-import { getDb, workspaceDirectories } from "@knowledge-assistant/db";
+import { getDb, workspaceDirectories } from "@anchordesk/db";
 
 import {
   getDirectoryName,

@@ -1,4 +1,4 @@
-# 通用知识库 Agent 助手 MCP Tool 契约
+# AnchorDesk MCP Tool 契约
 
 版本：v0.2  
 日期：2026-03-28

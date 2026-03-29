@@ -6,21 +6,21 @@ import {
   DOCUMENT_STATUS,
   RUN_STATUS,
   DOCUMENT_INDEXING_MODE,
-} from "@knowledge-assistant/contracts";
+} from "@anchordesk/contracts";
 import {
   conversationAttachments,
   documentJobs,
   documents,
   documentVersions,
   getDb,
-} from "@knowledge-assistant/db";
-import { enqueueIngestFlow } from "@knowledge-assistant/queue";
+} from "@anchordesk/db";
+import { enqueueIngestFlow } from "@anchordesk/queue";
 import {
   buildContentAddressedStorageKey,
   matchesContentAddressedStorageKey,
   normalizeSha256Hex,
   objectExists,
-} from "@knowledge-assistant/storage";
+} from "@anchordesk/storage";
 
 import { auth } from "@/auth";
 import {

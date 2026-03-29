@@ -1,5 +1,5 @@
 {
-  "name": "@knowledge-assistant/db",
+  "name": "@anchordesk/db",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -16,7 +16,7 @@
     "migrate": "drizzle-kit migrate"
   },
   "dependencies": {
-    "@knowledge-assistant/contracts": "workspace:*",
+    "@anchordesk/contracts": "workspace:*",
     "drizzle-orm": "^0.45.2",
     "pg": "^8.16.3"
   },

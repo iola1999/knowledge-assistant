@@ -1,7 +1,7 @@
 import { desc, eq } from "drizzle-orm";
-import { REPORT_STATUS } from "@knowledge-assistant/contracts";
+import { REPORT_STATUS } from "@anchordesk/contracts";
 
-import { getDb, reports } from "@knowledge-assistant/db";
+import { getDb, reports } from "@anchordesk/db";
 
 import { auth } from "@/auth";
 import { requireOwnedWorkspace } from "@/lib/guards/workspace";

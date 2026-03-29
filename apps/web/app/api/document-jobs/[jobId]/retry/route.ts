@@ -5,10 +5,10 @@ import {
   DOCUMENT_STATUS,
   RUN_STATUS,
   type DocumentIndexingMode,
-} from "@knowledge-assistant/contracts";
+} from "@anchordesk/contracts";
 
-import { documentJobs, documentVersions, documents, getDb } from "@knowledge-assistant/db";
-import { enqueueIngestFlow } from "@knowledge-assistant/queue";
+import { documentJobs, documentVersions, documents, getDb } from "@anchordesk/db";
+import { enqueueIngestFlow } from "@anchordesk/queue";
 
 import { auth } from "@/auth";
 import { requireOwnedDocumentJob } from "@/lib/guards/resources";

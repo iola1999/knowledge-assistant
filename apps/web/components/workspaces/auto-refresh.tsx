@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useTransition } from "react";
-import { DEFAULT_AUTO_REFRESH_INTERVAL_MS } from "@knowledge-assistant/contracts";
+import { DEFAULT_AUTO_REFRESH_INTERVAL_MS } from "@anchordesk/contracts";
 
 export function WorkspaceAutoRefresh({
   enabled,

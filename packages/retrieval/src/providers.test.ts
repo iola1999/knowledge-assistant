@@ -3,7 +3,7 @@ import {
   DEFAULT_DASHSCOPE_EMBEDDING_BATCH_SIZE,
   EMBEDDING_PROVIDER,
   RERANK_PROVIDER,
-} from "@knowledge-assistant/contracts";
+} from "@anchordesk/contracts";
 
 import {
   describeRetrievalProvider,

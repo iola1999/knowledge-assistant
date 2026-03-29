@@ -7,8 +7,8 @@ import {
   documentVersions,
   getDb,
   workspaceDirectories,
-} from "@knowledge-assistant/db";
-import { getObjectBytes } from "@knowledge-assistant/storage";
+} from "@anchordesk/db";
+import { getObjectBytes } from "@anchordesk/storage";
 
 import { auth } from "@/auth";
 import { compactKnowledgeBaseSelection } from "@/lib/api/knowledge-base-operations";

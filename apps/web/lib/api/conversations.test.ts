@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { CONVERSATION_STATUS } from "@knowledge-assistant/contracts";
+import { CONVERSATION_STATUS } from "@anchordesk/contracts";
 
 import {
   chooseWorkspaceConversation,

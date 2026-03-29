@@ -2,7 +2,7 @@ import {
   groundedAnswerSchema,
   type GroundedAnswer,
   type GroundedEvidence,
-} from "@knowledge-assistant/contracts";
+} from "@anchordesk/contracts";
 
 const DEFAULT_UNSUPPORTED_ANSWER =
   "当前没有足够依据支持直接回答，请补充资料或调整检索范围。";

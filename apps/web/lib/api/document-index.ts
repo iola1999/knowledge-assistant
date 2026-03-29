@@ -8,13 +8,13 @@ import {
   documentVersions,
   getDb,
   messageCitations,
-} from "@knowledge-assistant/db";
-import { DOCUMENT_INDEXING_MODE } from "@knowledge-assistant/contracts";
+} from "@anchordesk/db";
+import { DOCUMENT_INDEXING_MODE } from "@anchordesk/contracts";
 import {
   deleteDocumentVersionPoints,
   upsertDocumentChunks,
-} from "@knowledge-assistant/retrieval";
-import { deleteObject, getJson } from "@knowledge-assistant/storage";
+} from "@anchordesk/retrieval";
+import { deleteObject, getJson } from "@anchordesk/storage";
 
 import {
   buildAnchorLabel,

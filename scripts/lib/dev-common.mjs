@@ -103,7 +103,7 @@ export function getManagedServices(env) {
       name: "Agent runtime",
       cwd: repoRoot,
       command: pnpm,
-      args: ["--filter", "@knowledge-assistant/agent-runtime", "dev"],
+      args: ["--filter", "@anchordesk/agent-runtime", "dev"],
       envOverrides: {
         PORT: String(endpoints.agent.port),
       },
@@ -116,7 +116,7 @@ export function getManagedServices(env) {
       name: "Worker",
       cwd: repoRoot,
       command: pnpm,
-      args: ["--filter", "@knowledge-assistant/worker", "dev"],
+      args: ["--filter", "@anchordesk/worker", "dev"],
     },
     {
       id: "web",
@@ -376,7 +376,7 @@ export async function loadResolvedSystemEnvironment(
       command: pnpmBinary,
       args: [
         "--filter",
-        "@knowledge-assistant/db",
+        "@anchordesk/db",
         "exec",
         "node",
         "scripts/print-system-env.mjs",
@@ -406,7 +406,7 @@ export async function ensureDevBucket(env) {
     command: resolvePnpmBinary(),
     args: [
       "--filter",
-      "@knowledge-assistant/storage",
+      "@anchordesk/storage",
       "exec",
       "node",
       "scripts/ensure-dev-bucket.mjs",

@@ -1,4 +1,4 @@
-import { MESSAGE_ROLE, MESSAGE_STATUS, type MessageRole, type MessageStatus } from "@knowledge-assistant/contracts";
+import { MESSAGE_ROLE, MESSAGE_STATUS, type MessageRole, type MessageStatus } from "@anchordesk/contracts";
 
 export type RetryableConversationMessage = {
   id: string;

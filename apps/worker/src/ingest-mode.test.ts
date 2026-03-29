@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { DOCUMENT_INDEXING_MODE } from "@knowledge-assistant/contracts";
+import { DOCUMENT_INDEXING_MODE } from "@anchordesk/contracts";
 
 import {
   parseDocumentIndexingMode,

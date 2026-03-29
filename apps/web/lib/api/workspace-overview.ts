@@ -7,7 +7,7 @@ import {
   type ParseStatus,
   RUN_STATUS,
   type RunStatus,
-} from "@knowledge-assistant/contracts";
+} from "@anchordesk/contracts";
 
 type WorkspaceOverviewDocument = {
   status: DocumentStatus;

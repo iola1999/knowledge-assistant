@@ -1,4 +1,4 @@
-# 通用知识库 Agent 助手 Next.js App Router 结构
+# AnchorDesk Next.js App Router 结构
 
 版本：v0.5
 日期：2026-03-29

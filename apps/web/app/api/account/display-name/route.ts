@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 
-import { getDb, users } from "@knowledge-assistant/db";
+import { getDb, users } from "@anchordesk/db";
 
 import { auth } from "@/auth";
 import { validateDisplayNameInput } from "@/lib/auth/display-name";

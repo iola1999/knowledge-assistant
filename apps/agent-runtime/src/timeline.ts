@@ -4,7 +4,7 @@ import {
   TIMELINE_EVENT,
   type ToolTimelineState,
   TOOL_TIMELINE_STATE,
-} from "@knowledge-assistant/contracts";
+} from "@anchordesk/contracts";
 
 export function buildToolTimelineMessage(input: {
   toolName: string;

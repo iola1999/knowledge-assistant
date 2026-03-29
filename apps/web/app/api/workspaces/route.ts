@@ -1,7 +1,7 @@
 import { and, desc, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 
-import { getDb, workspaces } from "@knowledge-assistant/db";
+import { getDb, workspaces } from "@anchordesk/db";
 
 import { auth } from "@/auth";
 import { createWorkspace } from "@/lib/api/workspace-creation";

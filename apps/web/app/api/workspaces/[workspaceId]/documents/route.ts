@@ -3,21 +3,21 @@ import {
   DEFAULT_PARSE_STATUS,
   DOCUMENT_STATUS,
   RUN_STATUS,
-} from "@knowledge-assistant/contracts";
+} from "@anchordesk/contracts";
 import {
   buildContentAddressedStorageKey,
   matchesContentAddressedStorageKey,
   normalizeSha256Hex,
   objectExists,
-} from "@knowledge-assistant/storage";
+} from "@anchordesk/storage";
 
 import {
   documents,
   documentJobs,
   documentVersions,
   getDb,
-} from "@knowledge-assistant/db";
-import { enqueueIngestFlow } from "@knowledge-assistant/queue";
+} from "@anchordesk/db";
+import { enqueueIngestFlow } from "@anchordesk/queue";
 
 import { auth } from "@/auth";
 import { ensureWorkspaceDirectoryPath } from "@/lib/api/workspace-directories";

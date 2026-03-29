@@ -1,6 +1,6 @@
 import { desc, eq } from "drizzle-orm";
 
-import { conversations, getDb } from "@knowledge-assistant/db";
+import { conversations, getDb } from "@anchordesk/db";
 
 import { auth } from "@/auth";
 import { requireOwnedWorkspace } from "@/lib/guards/workspace";

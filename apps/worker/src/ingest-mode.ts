@@ -3,7 +3,7 @@ import {
   DOCUMENT_INDEXING_MODE,
   DOCUMENT_INDEXING_MODE_VALUES,
   type DocumentIndexingMode,
-} from "@knowledge-assistant/contracts";
+} from "@anchordesk/contracts";
 
 export function parseDocumentIndexingMode(value: unknown): DocumentIndexingMode | null {
   return typeof value === "string" &&
