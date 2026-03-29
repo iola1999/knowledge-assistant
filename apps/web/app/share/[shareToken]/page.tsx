@@ -13,9 +13,10 @@ import {
   workspaces,
 } from "@anchordesk/db";
 
+import { AnchorDeskLogo } from "@/components/icons";
 import { ConversationSession } from "@/components/chat/conversation-session";
 import { groupAssistantProcessMessages } from "@/lib/api/conversation-process";
-import { cn, ui } from "@/lib/ui";
+import { workspaceBranding } from "@/lib/branding";
 
 export const metadata: Metadata = {
   title: "共享会话",
@@ -86,53 +87,76 @@ export default async function SharedConversationPage({
       : [];
 
   return (
-    <main className={cn(ui.pageNarrow, "min-h-screen max-w-[1280px] gap-5 py-10")}>
-      <div className="grid gap-3">
-        <div className="grid gap-2">
-          <p className={ui.eyebrow}>Shared Conversation</p>
-          <h1 className="max-w-[720px]">{sharedConversation.title}</h1>
+    <div className="flex min-h-screen flex-col">
+      {/* Branded header */}
+      <header className="sticky top-0 z-10 border-b border-app-border/60 bg-app-bg-elevated/80 backdrop-blur-md">
+        <div className="mx-auto flex max-w-[1080px] items-center gap-3 px-6 py-3">
+          <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-app-primary">
+            <AnchorDeskLogo className="size-[14px] text-app-primary-contrast" />
+          </span>
+          <span className="text-[13px] font-medium text-app-muted-strong">
+            {workspaceBranding.productName}
+          </span>
+          <span className="mx-1 text-[11px] text-app-muted">·</span>
+          <span className="text-[12px] text-app-muted">共享会话</span>
         </div>
-      </div>
+      </header>
 
-      <section className="mx-auto w-full max-w-[1080px]">
-        <ConversationSession
-          conversationId={sharedConversation.conversationId}
-          assistantMessageId={activeAssistantMessage?.id ?? null}
-          assistantStatus={
-            activeAssistantMessage?.role === MESSAGE_ROLE.ASSISTANT
-              ? activeAssistantMessage.status
-              : null
-          }
-          initialTimelineMessagesByAssistant={groupAssistantProcessMessages(
-            thread.map((message) => ({
+      {/* Content */}
+      <main className="mx-auto flex w-full max-w-[1080px] flex-1 flex-col gap-6 px-6 py-8 md:px-8">
+        <div className="px-0.5">
+          <h1 className="max-w-[720px] text-[1.5rem] font-semibold leading-[1.3] tracking-[-0.02em] text-app-text">
+            {sharedConversation.title}
+          </h1>
+        </div>
+
+        <section className="w-full">
+          <ConversationSession
+            conversationId={sharedConversation.conversationId}
+            assistantMessageId={activeAssistantMessage?.id ?? null}
+            assistantStatus={
+              activeAssistantMessage?.role === MESSAGE_ROLE.ASSISTANT
+                ? activeAssistantMessage.status
+                : null
+            }
+            initialTimelineMessagesByAssistant={groupAssistantProcessMessages(
+              thread.map((message) => ({
+                id: message.id,
+                role: message.role,
+                status: message.status,
+                contentMarkdown: message.contentMarkdown,
+                createdAt: message.createdAt,
+                structuredJson:
+                  (message.structuredJson as Record<string, unknown> | null | undefined) ?? null,
+              })),
+            )}
+            initialMessages={chatThread.map((message) => ({
               id: message.id,
               role: message.role,
               status: message.status,
               contentMarkdown: message.contentMarkdown,
-              createdAt: message.createdAt,
               structuredJson:
                 (message.structuredJson as Record<string, unknown> | null | undefined) ?? null,
-            })),
-          )}
-          initialMessages={chatThread.map((message) => ({
-            id: message.id,
-            role: message.role,
-            status: message.status,
-            contentMarkdown: message.contentMarkdown,
-            structuredJson:
-              (message.structuredJson as Record<string, unknown> | null | undefined) ?? null,
-          }))}
-          initialCitations={citations.map((citation) => ({
-            id: citation.id,
-            messageId: citation.messageId,
-            label: citation.label,
-          }))}
-          streamEnabled={false}
-          sourceLinksEnabled={false}
-          readOnly
-          emptyStateMessage="当前会话还没有可分享的消息"
-        />
-      </section>
-    </main>
+            }))}
+            initialCitations={citations.map((citation) => ({
+              id: citation.id,
+              messageId: citation.messageId,
+              label: citation.label,
+            }))}
+            streamEnabled={false}
+            sourceLinksEnabled={false}
+            readOnly
+            emptyStateMessage="当前会话还没有可分享的消息"
+          />
+        </section>
+      </main>
+
+      {/* Footer */}
+      <footer className="border-t border-app-border/50 py-5">
+        <p className="mx-auto max-w-[1080px] px-6 text-[12px] text-app-muted md:px-8">
+          本页面由 {workspaceBranding.productName} 生成，仅供查看，资料引用不提供跳转
+        </p>
+      </footer>
+    </div>
   );
 }

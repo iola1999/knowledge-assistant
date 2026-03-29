@@ -22,6 +22,8 @@
    当任务涉及页面、Route Handler、SSE、组件边界时必读。
 8. [docs/anchordesk-architecture.md](./docs/anchordesk-architecture.md)
    这是通用背景文档；需要宏观权衡时参考，不要优先于 Node.js 技术设计文档。
+9. [.impeccable.md](./.impeccable.md)
+   **任何涉及前端 UI、视觉风格、组件样式的任务必读。** 它定义了色彩系统、圆角/阴影/间距的具体数值、弹出面板/按钮/菜单项等组件的精确规格，以及文案规则。改 UI 前必须先读这个文件，确保新代码与已有视觉体系一致。
 
 原则：
 

@@ -293,73 +293,75 @@ export function ConversationSharePopover({
           id={panelId}
           role="dialog"
           aria-label="会话分享"
-          className={cn(ui.popover, "absolute right-0 top-[calc(100%+10px)] z-20 w-[min(360px,calc(100vw-24px))]")}
+          className="absolute right-0 top-[calc(100%+10px)] z-20 w-[min(320px,calc(100vw-24px))] overflow-hidden rounded-2xl border border-app-border bg-white/98 p-1.5 shadow-card backdrop-blur-md"
         >
-          <div className="grid gap-3 rounded-[22px] border border-app-border bg-app-surface-soft/75 p-3">
-            <div className="flex items-start justify-between gap-3">
-              <div className="grid gap-1">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-app-muted">
-                  公开分享
-                </p>
-                <strong className="text-sm text-app-text">{shareStateLabel}</strong>
-              </div>
-              <span
-                className={cn(
-                  "inline-flex items-center rounded-full border px-2.5 py-1 text-[12px] font-medium",
-                  share?.isActive
-                    ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-                    : isLoading
-                      ? "border-app-border bg-app-surface-soft text-app-muted-strong"
-                      : "border-app-border bg-white text-app-muted-strong",
-                )}
-              >
-                {shareStateBadge}
-              </span>
+          {/* Header */}
+          <div className="flex items-center justify-between gap-3 px-3 pb-1 pt-2.5">
+            <div className="grid gap-0.5">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-app-accent">
+                公开分享
+              </p>
+              <strong className="text-[13px] text-app-text">{shareStateLabel}</strong>
             </div>
-            <p className="text-[13px] leading-5 text-app-muted">
-              持有链接的人可直接查看会话，资料引用不提供跳转
-            </p>
-            {shareCreatedLabel || shareUpdatedLabel ? (
-              <dl className="grid gap-2 rounded-[18px] border border-app-border/70 bg-white/82 p-3 text-[12px] text-app-muted-strong">
+            <span
+              className={cn(
+                "inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium",
+                share?.isActive
+                  ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                  : isLoading
+                    ? "border-app-border bg-app-surface-soft text-app-muted-strong"
+                    : "border-app-border bg-white/86 text-app-muted-strong",
+              )}
+            >
+              {shareStateBadge}
+            </span>
+          </div>
+
+          <div className="mx-2 my-1.5 h-px bg-app-border/70" />
+
+          {/* Meta / timestamps */}
+          {shareCreatedLabel || shareUpdatedLabel ? (
+            <>
+              <dl className="grid gap-0.5 px-3 py-1">
                 {shareCreatedLabel ? (
-                  <div className="flex items-center justify-between gap-3">
-                    <dt>创建分享</dt>
-                    <dd className="text-right text-app-text">{shareCreatedLabel}</dd>
+                  <div className="flex items-center justify-between gap-4 py-0.5 text-[13px]">
+                    <dt className="text-app-muted-strong">创建分享</dt>
+                    <dd className="text-right font-medium text-app-text">{shareCreatedLabel}</dd>
                   </div>
                 ) : null}
                 {shareUpdatedLabel ? (
-                  <div className="flex items-center justify-between gap-3">
-                    <dt>最近变更</dt>
-                    <dd className="text-right text-app-text">{shareUpdatedLabel}</dd>
+                  <div className="flex items-center justify-between gap-4 py-0.5 text-[13px]">
+                    <dt className="text-app-muted-strong">最近变更</dt>
+                    <dd className="text-right font-medium text-app-text">{shareUpdatedLabel}</dd>
                   </div>
                 ) : null}
               </dl>
-            ) : null}
-          </div>
+              <div className="mx-2 my-1.5 h-px bg-app-border/70" />
+            </>
+          ) : null}
 
+          {/* Actions */}
           {isLoading ? (
-            <div className="px-1 py-3 text-[13px] text-app-muted">加载中</div>
+            <div className="px-3 py-2.5 text-[13px] text-app-muted">加载中</div>
           ) : !share ? (
-            <div className="grid gap-3 px-1 py-2">
+            <div className="grid gap-2.5 px-3 py-2.5">
               <p className={cn(ui.error, "text-[13px] leading-5")}>
                 {error ?? "加载分享状态失败"}
               </p>
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  className={buttonStyles({ variant: "secondary", size: "sm" })}
-                  disabled={isSubmitting}
-                  onClick={() => {
-                    void loadShare({ reset: true });
-                  }}
-                  type="button"
-                >
-                  重试
-                </button>
-              </div>
+              <button
+                className={buttonStyles({ variant: "secondary", size: "xs" })}
+                disabled={isSubmitting}
+                onClick={() => {
+                  void loadShare({ reset: true });
+                }}
+                type="button"
+              >
+                重试
+              </button>
             </div>
           ) : share?.isActive ? (
-            <div className="grid gap-3 px-1 pt-3">
-              <label className="grid gap-2 text-[12px] font-medium text-app-muted-strong">
+            <div className="grid gap-2.5 px-3 py-2.5">
+              <label className="grid gap-1.5 text-[12px] font-medium text-app-muted-strong">
                 分享链接
                 <input
                   className={cn(inputStyles({ size: "compact" }), "bg-app-surface-soft/80 text-[13px]")}
@@ -369,7 +371,7 @@ export function ConversationSharePopover({
               </label>
               <div className="flex flex-wrap items-center gap-2">
                 <button
-                  className={buttonStyles({ size: "sm" })}
+                  className={buttonStyles({ size: "xs" })}
                   disabled={isSubmitting}
                   onClick={() => {
                     void handleCopyLink();
@@ -383,13 +385,13 @@ export function ConversationSharePopover({
                     href={share.shareUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className={buttonStyles({ variant: "secondary", size: "sm" })}
+                    className={buttonStyles({ variant: "secondary", size: "xs" })}
                   >
                     打开
                   </a>
                 ) : null}
                 <button
-                  className={buttonStyles({ variant: "dangerGhost", size: "sm" })}
+                  className={buttonStyles({ variant: "dangerGhost", size: "xs" })}
                   disabled={isSubmitting}
                   onClick={() => {
                     void handleDisableShare();
@@ -403,7 +405,7 @@ export function ConversationSharePopover({
                 <p
                   aria-live="polite"
                   className={cn(
-                    "inline-flex w-fit items-center rounded-full border px-2.5 py-1 text-[12px] leading-5",
+                    "inline-flex w-fit items-center rounded-full border px-2.5 py-0.5 text-[11px] leading-5",
                     noticeClassName,
                   )}
                 >
@@ -415,9 +417,9 @@ export function ConversationSharePopover({
               ) : null}
             </div>
           ) : (
-            <div className="grid gap-3 px-1 pt-3">
+            <div className="px-3 py-2.5">
               <button
-                className={buttonStyles({ size: "sm" })}
+                className={cn(buttonStyles({ size: "xs", block: true }))}
                 disabled={isSubmitting}
                 onClick={() => {
                   void handleEnableShare();
@@ -430,7 +432,7 @@ export function ConversationSharePopover({
                 <p
                   aria-live="polite"
                   className={cn(
-                    "inline-flex w-fit items-center rounded-full border px-2.5 py-1 text-[12px] leading-5",
+                    "mt-2 inline-flex w-fit items-center rounded-full border px-2.5 py-0.5 text-[11px] leading-5",
                     noticeClassName,
                   )}
                 >
@@ -438,7 +440,7 @@ export function ConversationSharePopover({
                 </p>
               ) : null}
               {error ? (
-                <p className={cn(ui.error, "text-[13px] leading-5")}>{error}</p>
+                <p className={cn(ui.error, "mt-2 text-[13px] leading-5")}>{error}</p>
               ) : null}
             </div>
           )}

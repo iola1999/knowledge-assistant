@@ -93,6 +93,7 @@ Client Components：
 
 ## 5. Web UI 复用约定
 
+- **视觉规格以 [.impeccable.md](../.impeccable.md) 为准**。色彩系统、圆角/阴影/间距数值、弹出面板/按钮/菜单项等组件规格、文案规则都在该文件定义。改 UI 前必须先读。
 - 基础 UI 原语优先集中在 `apps/web/lib/ui.ts` 与 `apps/web/components/shared/**`。
 - 新页面或新组件落地前，先检查是否已有可复用的按钮、表单控件、popover/menu、dialog、列表行、状态 chip；优先复用已有实现或扩展已有 `variant` / `size` / `tone`。
 - 不允许因为页面局部视觉差异就复制一套近似控件；若确实存在新模式，应先抽成共享原语，再在页面里接入。
