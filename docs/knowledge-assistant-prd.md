@@ -6,8 +6,8 @@
 > 文档角色说明：
 >
 > - 本文件定义产品定位、核心场景、P0/P1 范围和验收口径。
-> - 具体实现约束以 [knowledge-assistant-technical-design-nodejs.md](/Users/fan/project/tmp/law-doc/docs/knowledge-assistant-technical-design-nodejs.md) 为准。
-> - 当前阶段进度和下一步顺序以 [implementation-tracker.md](/Users/fan/project/tmp/law-doc/docs/implementation-tracker.md) 为准。
+> - 具体实现约束以 [knowledge-assistant-technical-design-nodejs.md](./knowledge-assistant-technical-design-nodejs.md) 为准。
+> - 当前阶段进度和下一步顺序以 [implementation-tracker.md](./implementation-tracker.md) 为准。
 
 ## 1. 产品定位
 

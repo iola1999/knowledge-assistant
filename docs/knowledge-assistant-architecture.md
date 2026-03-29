@@ -4,7 +4,7 @@
 日期：2026-03-28
 
 > 本文件保留为宏观背景与备选方案说明，不作为当前实施口径。
-> 当前实施请优先参考 [knowledge-assistant-technical-design-nodejs.md](/Users/fan/project/tmp/law-doc/docs/knowledge-assistant-technical-design-nodejs.md) 和 [implementation-tracker.md](/Users/fan/project/tmp/law-doc/docs/implementation-tracker.md)。
+> 当前实施请优先参考 [knowledge-assistant-technical-design-nodejs.md](./knowledge-assistant-technical-design-nodejs.md) 和 [implementation-tracker.md](./implementation-tracker.md)。
 
 ## 1. 总体方向
 

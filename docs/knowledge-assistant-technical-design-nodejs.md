@@ -6,8 +6,8 @@
 > 文档角色说明：
 >
 > - 本文件是当前实现的架构/技术约束主文档。
-> - 当前阶段进度、活跃待办和下一步顺序请看 [implementation-tracker.md](/Users/fan/project/tmp/law-doc/docs/implementation-tracker.md)。
-> - 本地开发启动、Docker 依赖和日常操作请看 [development-setup.md](/Users/fan/project/tmp/law-doc/docs/development-setup.md)。
+> - 当前阶段进度、活跃待办和下一步顺序请看 [implementation-tracker.md](./implementation-tracker.md)。
+> - 本地开发启动、Docker 依赖和日常操作请看 [development-setup.md](./development-setup.md)。
 > - 若与其他支持性文档冲突，以本文件为准。
 
 ## 1. 已确认约束
@@ -280,7 +280,7 @@ bootstrap env-only（不进入 `system_settings`）：
 
 ## 8. 当前阶段关注点
 
-优先级统一以 [implementation-tracker.md](/Users/fan/project/tmp/law-doc/docs/implementation-tracker.md) 为准。当前重点调整为：
+优先级统一以 [implementation-tracker.md](./implementation-tracker.md) 为准。当前重点调整为：
 
 1. 基于已打通的主会话链路，先稳住回答完成态、失败态和前端收尾体验
 2. 固化 tool timeline、mock tool contract、assistant streaming 和 completed/failed 事件

@@ -6,8 +6,8 @@
 > 文档角色说明：
 >
 > - 本文件给出当前数据模型的业务视图。
-> - 若与当前 Drizzle schema 冲突，以 [packages/db/src/schema.ts](/Users/fan/project/tmp/law-doc/packages/db/src/schema.ts) 为准。
-> - 架构约束以 [knowledge-assistant-technical-design-nodejs.md](/Users/fan/project/tmp/law-doc/docs/knowledge-assistant-technical-design-nodejs.md) 为准。
+> - 若与当前 Drizzle schema 冲突，以 [packages/db/src/schema.ts](packages/db/src/schema.ts) 为准。
+> - 架构约束以 [knowledge-assistant-technical-design-nodejs.md](./knowledge-assistant-technical-design-nodejs.md) 为准。
 
 ## 1. 业务主链路
 

@@ -6,7 +6,7 @@
 > 文档角色说明：
 >
 > - 本文件描述 Web/BFF 层的页面与 Route Handler 组织方式。
-> - 当前页面实现进度请看 [implementation-tracker.md](/Users/fan/project/tmp/law-doc/docs/implementation-tracker.md)。
+> - 当前页面实现进度请看 [implementation-tracker.md](./implementation-tracker.md)。
 
 ## 1. 目标
 
