@@ -149,8 +149,8 @@ describe("conversation helpers", () => {
   test("formats recent sidebar activity in relative minutes", () => {
     expect(
       formatConversationSidebarUpdatedAt(
-        new Date("2026-03-29T11:55:00Z"),
-        new Date("2026-03-29T12:00:00Z"),
+        new Date(2026, 2, 29, 11, 55),
+        new Date(2026, 2, 29, 12, 0),
       ),
     ).toBe("5分钟前");
   });
@@ -158,8 +158,8 @@ describe("conversation helpers", () => {
   test("formats recent sidebar activity in relative days", () => {
     expect(
       formatConversationSidebarUpdatedAt(
-        new Date("2026-03-26T12:00:00Z"),
-        new Date("2026-03-29T12:00:00Z"),
+        new Date(2026, 2, 26, 12, 0),
+        new Date(2026, 2, 29, 12, 0),
       ),
     ).toBe("3天前");
   });
@@ -167,8 +167,8 @@ describe("conversation helpers", () => {
   test("formats older sidebar activity as month and day", () => {
     expect(
       formatConversationSidebarUpdatedAt(
-        new Date("2026-03-12T12:00:00Z"),
-        new Date("2026-03-29T12:00:00Z"),
+        new Date(2026, 2, 12, 12, 0),
+        new Date(2026, 2, 29, 12, 0),
       ),
     ).toBe("3月12日");
   });
@@ -176,8 +176,8 @@ describe("conversation helpers", () => {
   test("formats cross-year sidebar activity with the year", () => {
     expect(
       formatConversationSidebarUpdatedAt(
-        new Date("2025-12-31T12:00:00Z"),
-        new Date("2026-03-29T12:00:00Z"),
+        new Date(2025, 11, 31, 12, 0),
+        new Date(2026, 2, 29, 12, 0),
       ),
     ).toBe("2025年12月31日");
   });
@@ -185,8 +185,8 @@ describe("conversation helpers", () => {
   test("formats same-day conversation metadata with today and time", () => {
     expect(
       formatConversationMetaTimestamp(
-        new Date("2026-03-29T14:05:00+08:00"),
-        new Date("2026-03-29T20:00:00+08:00"),
+        new Date(2026, 2, 29, 14, 5),
+        new Date(2026, 2, 29, 20, 0),
       ),
     ).toBe("今天 14:05");
   });
@@ -194,8 +194,8 @@ describe("conversation helpers", () => {
   test("formats previous-day conversation metadata with yesterday and time", () => {
     expect(
       formatConversationMetaTimestamp(
-        new Date("2026-03-28T23:15:00+08:00"),
-        new Date("2026-03-29T09:00:00+08:00"),
+        new Date(2026, 2, 28, 23, 15),
+        new Date(2026, 2, 29, 9, 0),
       ),
     ).toBe("昨天 23:15");
   });
@@ -203,8 +203,8 @@ describe("conversation helpers", () => {
   test("formats cross-year conversation metadata with full date and time", () => {
     expect(
       formatConversationMetaTimestamp(
-        new Date("2025-12-31T08:30:00+08:00"),
-        new Date("2026-03-29T09:00:00+08:00"),
+        new Date(2025, 11, 31, 8, 30),
+        new Date(2026, 2, 29, 9, 0),
       ),
     ).toBe("2025年12月31日 08:30");
   });
