@@ -2,6 +2,7 @@ import {
   CONVERSATION_STREAM_EVENT,
   MESSAGE_ROLE,
   MESSAGE_STATUS,
+  normalizeConversationFailureMessage,
   type ConversationStreamEvent,
   type MessageStatus,
 } from "@knowledge-assistant/contracts";
@@ -78,7 +79,7 @@ export function readAssistantRunError(message: Pick<
   const error =
     typeof structured?.agent_error === "string" ? structured.agent_error.trim() : "";
 
-  return error || message.contentMarkdown;
+  return normalizeConversationFailureMessage(error || message.contentMarkdown);
 }
 
 export function buildAssistantTerminalStreamEvent(input: {

@@ -65,6 +65,15 @@ describe("readAssistantRunError", () => {
       }),
     ).toBe("Agent 处理失败：fallback");
   });
+
+  test("normalizes queue job id failures into a clearer user-facing message", () => {
+    expect(
+      readAssistantRunError({
+        contentMarkdown: "Agent 处理失败：Custom Id cannot contain :",
+        structuredJson: null,
+      }),
+    ).toBe("消息入队失败：队列任务 ID 不能包含冒号，回答还没有真正开始生成。");
+  });
 });
 
 describe("buildAssistantDeltaStreamEvent", () => {

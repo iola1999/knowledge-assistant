@@ -13,7 +13,9 @@ import {
   type MessageStatus,
 } from "@knowledge-assistant/contracts";
 
+import { ConversationRetryButton } from "@/components/chat/conversation-retry-button";
 import { ConversationTimeline } from "@/components/chat/conversation-timeline";
+import { findRetryableConversationTurn } from "@/lib/api/conversation-retry";
 import {
   describeGroundedAnswerConfidence,
   readGroundedAnswerStatus,
@@ -217,6 +219,14 @@ export function ConversationSession({
     group.push(citation);
     citationsByMessage.set(citation.messageId, group);
   }
+  const retryableTurn = findRetryableConversationTurn(
+    chatMessages.map((message) => ({
+      id: message.id,
+      role: message.role,
+      status: message.status,
+      contentMarkdown: message.contentMarkdown,
+    })),
+  );
 
   return (
     <div className="grid gap-6">
@@ -241,6 +251,10 @@ export function ConversationSession({
               message.role === MESSAGE_ROLE.ASSISTANT &&
               message.status === MESSAGE_STATUS.STREAMING;
             const isUser = message.role === MESSAGE_ROLE.USER;
+            const showRetryButton =
+              retryableTurn?.assistantMessageId === message.id &&
+              message.role === MESSAGE_ROLE.ASSISTANT &&
+              message.status === MESSAGE_STATUS.FAILED;
 
             return (
               <article
@@ -332,6 +346,10 @@ export function ConversationSession({
                         </Link>
                       ))}
                     </div>
+                  ) : null}
+
+                  {showRetryButton ? (
+                    <ConversationRetryButton conversationId={conversationId} />
                   ) : null}
                 </div>
               </article>

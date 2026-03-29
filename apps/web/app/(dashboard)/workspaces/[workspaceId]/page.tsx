@@ -21,7 +21,6 @@ import { ConversationSession } from "@/components/chat/conversation-session";
 import { WorkspaceShell } from "@/components/workspaces/workspace-shell";
 import { resolveComposerAttachmentStatus } from "@/lib/api/conversation-attachments";
 import { chooseWorkspaceConversationWithMeta } from "@/lib/api/conversations";
-import { findRetryableConversationTurn } from "@/lib/api/conversation-retry";
 import { cn, ui } from "@/lib/ui";
 
 export default async function WorkspacePage({
@@ -94,15 +93,6 @@ export default async function WorkspacePage({
     [...chatThread]
       .reverse()
       .find((message) => message.role === MESSAGE_ROLE.ASSISTANT) ?? null;
-  const retryableTurn = findRetryableConversationTurn(
-    chatThread.map((message) => ({
-      id: message.id,
-      role: message.role,
-      status: message.status,
-      contentMarkdown: message.contentMarkdown,
-    })),
-  );
-
   const citations =
     chatThread.length > 0
       ? await db
@@ -152,6 +142,7 @@ export default async function WorkspacePage({
         name: user.name,
         username: user.username,
       }}
+      contentScroll="contained"
       breadcrumbs={[
         { label: "空间", href: "/workspaces" },
         { label: workspace.title },
@@ -161,13 +152,12 @@ export default async function WorkspacePage({
           <ConversationPageActions
             conversationId={activeConversation.id}
             workspaceId={workspaceId}
-            canRetry={retryableTurn !== null}
           />
         ) : undefined
       }
     >
       {activeConversation ? (
-        <div className="mx-auto flex h-full min-h-0 w-full max-w-[980px] flex-col">
+        <div className="mx-auto flex h-full min-h-0 w-full max-w-[980px] flex-col overflow-hidden">
           <header className="grid shrink-0 gap-2 border-b border-app-border/70 pb-5">
             <p className={ui.eyebrow}>Conversation</p>
             <h1 className="text-[28px] font-semibold tracking-[-0.02em] text-app-text md:text-[34px]">
@@ -178,7 +168,7 @@ export default async function WorkspacePage({
             </p>
           </header>
 
-          <div className="min-h-0 flex-1 overflow-y-auto py-6 pr-1 md:py-8">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain py-6 pr-1 md:py-8">
             <ConversationSession
               conversationId={activeConversation.id}
               workspaceId={workspaceId}

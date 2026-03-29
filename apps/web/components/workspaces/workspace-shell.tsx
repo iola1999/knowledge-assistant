@@ -26,6 +26,7 @@ type WorkspaceShellProps = {
   conversations: ConversationListItem[];
   activeConversationId?: string;
   activeView?: "chat" | "settings" | "knowledge-base";
+  contentScroll?: "shell" | "contained";
   currentUser: {
     name?: string | null;
     username: string;
@@ -48,6 +49,7 @@ export function WorkspaceShell({
   conversations,
   activeConversationId,
   activeView = "chat",
+  contentScroll = "shell",
   currentUser,
   breadcrumbs,
   topActions,
@@ -69,8 +71,8 @@ export function WorkspaceShell({
     );
 
   return (
-    <div className="grid min-h-screen grid-cols-1 xl:grid-cols-[258px_minmax(0,1fr)]">
-      <aside className="flex min-h-screen flex-col gap-4 border-b border-app-border bg-app-sidebar px-4 py-4 xl:border-r xl:border-b-0">
+    <div className="grid min-h-screen grid-cols-1 xl:h-[100dvh] xl:grid-cols-[258px_minmax(0,1fr)] xl:overflow-hidden">
+      <aside className="flex min-h-screen flex-col gap-4 border-b border-app-border bg-app-sidebar px-4 py-4 xl:min-h-0 xl:h-[100dvh] xl:border-r xl:border-b-0 xl:overflow-hidden">
         <div className="grid gap-3">
           <Link href="/workspaces" className="flex items-center gap-3 px-1 py-1">
             <span className="grid size-9 place-items-center rounded-xl bg-app-accent/12 font-serif text-sm font-semibold text-app-accent">
@@ -163,7 +165,7 @@ export function WorkspaceShell({
         />
       </aside>
 
-      <section className="grid min-w-0 grid-rows-[auto_minmax(0,1fr)] gap-3 px-6 py-5 md:px-8">
+      <section className="grid min-w-0 grid-rows-[auto_minmax(0,1fr)] gap-3 px-6 py-5 xl:min-h-0 xl:overflow-hidden md:px-8">
         <header className="flex flex-wrap items-center justify-between gap-4 border-b border-app-border px-0.5 pb-3">
           <div className="flex flex-wrap items-center gap-1.5 text-[13px] text-app-muted" aria-label="Breadcrumb">
             {breadcrumbs.map((item, index) => {
@@ -191,7 +193,16 @@ export function WorkspaceShell({
           {topActions ? <div className="flex flex-wrap items-center gap-2">{topActions}</div> : null}
         </header>
 
-        <div className="min-h-0 min-w-0">{children}</div>
+        <div
+          className={cn(
+            "min-h-0 min-w-0",
+            contentScroll === "shell"
+              ? "overflow-y-auto overscroll-contain pr-1"
+              : "overflow-hidden",
+          )}
+        >
+          {children}
+        </div>
       </section>
     </div>
   );

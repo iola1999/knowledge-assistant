@@ -6,6 +6,7 @@ import {
   MESSAGE_STATUS,
   TIMELINE_EVENT,
   TOOL_TIMELINE_STATE,
+  normalizeConversationFailureMessage,
   type ToolTimelineState,
 } from "@knowledge-assistant/contracts";
 import {
@@ -227,7 +228,7 @@ export async function processConversationResponseJob(
             conversationId: payload.conversationId,
             toolName,
             state: TOOL_TIMELINE_STATE.FAILED,
-            error,
+            error: normalizeConversationFailureMessage(error),
           });
         },
         onAssistantDelta: async ({ fullText }) => {
@@ -270,7 +271,7 @@ export async function processConversationResponseJob(
       citations: Array.isArray(agentResponse.citations) ? agentResponse.citations : [],
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Agent runtime failed";
+    const message = normalizeConversationFailureMessage(error);
 
     await db.insert(messages).values({
       conversationId: payload.conversationId,

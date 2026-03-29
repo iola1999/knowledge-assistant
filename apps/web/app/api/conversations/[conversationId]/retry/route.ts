@@ -1,5 +1,9 @@
 import { and, desc, eq, ne } from "drizzle-orm";
-import { MESSAGE_ROLE, MESSAGE_STATUS } from "@knowledge-assistant/contracts";
+import {
+  MESSAGE_ROLE,
+  MESSAGE_STATUS,
+  normalizeConversationFailureMessage,
+} from "@knowledge-assistant/contracts";
 import { conversations, getDb, messageCitations, messages } from "@knowledge-assistant/db";
 import { enqueueConversationResponse } from "@knowledge-assistant/queue";
 
@@ -86,7 +90,7 @@ export async function POST(
       { status: 202 },
     );
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Agent runtime failed";
+    const message = normalizeConversationFailureMessage(error);
 
     await db
       .update(messages)
