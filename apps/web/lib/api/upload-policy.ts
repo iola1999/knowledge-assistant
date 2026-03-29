@@ -58,6 +58,17 @@ export type UploadSupportResult =
       message: string;
     };
 
+export type UploadCandidate = {
+  filename: string;
+  contentType?: string | null;
+};
+
+export type UnsupportedUploadCandidate<T extends UploadCandidate = UploadCandidate> = {
+  input: T;
+  code: "image_requires_ocr" | "unsupported_type";
+  message: string;
+};
+
 function getFilenameExtension(filename: string) {
   const normalized = String(filename ?? "").trim().toLowerCase();
   const extensionIndex = normalized.lastIndexOf(".");
@@ -74,10 +85,7 @@ function normalizeContentType(contentType: string | null | undefined) {
   return normalized.split(";")[0]?.trim() || null;
 }
 
-export function validateUploadSupport(input: {
-  filename: string;
-  contentType?: string | null;
-}): UploadSupportResult {
+export function validateUploadSupport(input: UploadCandidate): UploadSupportResult {
   const extension = getFilenameExtension(input.filename);
   const normalizedContentType = normalizeContentType(input.contentType);
 
@@ -108,4 +116,22 @@ export function validateUploadSupport(input: {
     code: "unsupported_type",
     message: UNSUPPORTED_UPLOAD_MESSAGE,
   };
+}
+
+export function collectUnsupportedUploads<T extends UploadCandidate>(
+  inputs: readonly T[],
+): UnsupportedUploadCandidate<T>[] {
+  return inputs.flatMap((input) => {
+    const support = validateUploadSupport(input);
+
+    return support.ok
+      ? []
+      : [
+          {
+            input,
+            code: support.code,
+            message: support.message,
+          },
+        ];
+  });
 }

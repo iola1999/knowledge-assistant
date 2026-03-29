@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 
 import {
+  collectUnsupportedUploads,
   IMAGE_UPLOAD_DISABLED_MESSAGE,
   SUPPORTED_UPLOAD_ACCEPT,
   UNSUPPORTED_UPLOAD_MESSAGE,
@@ -65,5 +66,43 @@ describe("SUPPORTED_UPLOAD_ACCEPT", () => {
     expect(SUPPORTED_UPLOAD_ACCEPT).toContain(".docx");
     expect(SUPPORTED_UPLOAD_ACCEPT).toContain(".txt");
     expect(SUPPORTED_UPLOAD_ACCEPT).toContain(".md");
+  });
+});
+
+describe("collectUnsupportedUploads", () => {
+  test("returns only unsupported files from a mixed selection", () => {
+    expect(
+      collectUnsupportedUploads([
+        {
+          filename: "notes.md",
+          contentType: "text/markdown",
+        },
+        {
+          filename: "scan.png",
+          contentType: "image/png",
+        },
+        {
+          filename: "archive.zip",
+          contentType: "application/zip",
+        },
+      ]),
+    ).toEqual([
+      {
+        input: {
+          filename: "scan.png",
+          contentType: "image/png",
+        },
+        code: "image_requires_ocr",
+        message: IMAGE_UPLOAD_DISABLED_MESSAGE,
+      },
+      {
+        input: {
+          filename: "archive.zip",
+          contentType: "application/zip",
+        },
+        code: "unsupported_type",
+        message: UNSUPPORTED_UPLOAD_MESSAGE,
+      },
+    ]);
   });
 });
