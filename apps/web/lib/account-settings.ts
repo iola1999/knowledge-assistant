@@ -1,9 +1,9 @@
-export type AccountSettingsSectionId = "profile" | "security" | "session";
+export type AccountSettingsSectionId = "profile" | "security";
 
 export type AccountSettingsNavItem = {
   id: AccountSettingsSectionId;
   label: string;
-  icon: "user" | "shield" | "logout";
+  icon: "user" | "shield";
 };
 
 export type AccountSettingsNavGroup = {
@@ -30,16 +30,6 @@ export function buildAccountSettingsNavGroups(): AccountSettingsNavGroup[] {
           id: "security",
           label: "安全与登录",
           icon: "shield",
-        },
-      ],
-    },
-    {
-      label: "会话",
-      items: [
-        {
-          id: "session",
-          label: "当前会话",
-          icon: "logout",
         },
       ],
     },

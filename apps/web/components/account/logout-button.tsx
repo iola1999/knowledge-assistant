@@ -23,10 +23,13 @@ export function LogoutButton({
     <div className={cn("grid gap-2", layout === "compact" && "justify-items-start")}>
       <button
         type="button"
-        className={buttonStyles({
-          variant: layout === "compact" ? "ghost" : "secondary",
-          size: layout === "compact" ? "sm" : "md",
-        })}
+        className={cn(
+          buttonStyles({
+            variant: layout === "compact" ? "ghost" : "secondary",
+            size: layout === "compact" ? "sm" : "md",
+          }),
+          layout === "compact" && "min-h-8 px-3 text-[13px]",
+        )}
         disabled={isPending}
         onClick={onClick}
       >

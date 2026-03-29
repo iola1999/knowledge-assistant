@@ -62,10 +62,13 @@ export function AccountDisplayNameForm({
     }
   }
 
+  const compactInputClass =
+    "h-10 rounded-[18px] px-3.5 text-[14px] focus:ring-[3px]";
+
   return (
     <form
       onSubmit={onSubmit}
-      className={cn(layout === "standalone" ? cn(ui.panelLarge, "grid gap-5") : "grid gap-3")}
+      className={cn(layout === "standalone" ? cn(ui.panelLarge, "grid gap-5") : "grid gap-2.5")}
     >
       {layout === "standalone" ? (
         <div className="grid gap-2">
@@ -75,27 +78,42 @@ export function AccountDisplayNameForm({
         </div>
       ) : null}
 
-      <label className={cn(ui.label, layout === "compact" && "gap-1.5")}>
+      <label
+        className={cn(
+          ui.label,
+          layout === "compact" && "gap-1 text-[13px] font-medium text-app-muted",
+        )}
+      >
         显示名称
         <input
           required
           maxLength={120}
-          className={ui.input}
+          className={cn(ui.input, layout === "compact" && compactInputClass)}
           value={displayName}
           onChange={(event) => setDisplayName(event.target.value)}
         />
       </label>
 
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-2.5">
         <button
-          className={buttonStyles({ size: layout === "compact" ? "sm" : "md" })}
+          className={cn(
+            buttonStyles({ size: layout === "compact" ? "sm" : "md" }),
+            layout === "compact" && "min-h-8 px-3 text-[13px]",
+          )}
           disabled={isPending}
           type="submit"
         >
           {isPending ? "提交中..." : "更新显示名称"}
         </button>
         {status ? (
-          <span className={status.tone === "error" ? ui.error : ui.muted}>{status.message}</span>
+          <span
+            className={cn(
+              status.tone === "error" ? ui.error : ui.muted,
+              layout === "compact" && "text-[12px] leading-5",
+            )}
+          >
+            {status.message}
+          </span>
         ) : null}
       </div>
     </form>

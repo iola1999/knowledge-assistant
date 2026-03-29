@@ -9,11 +9,10 @@ describe("buildAccountSettingsNavGroups", () => {
   test("returns the ordinary-user account settings groups in display order", () => {
     const groups = buildAccountSettingsNavGroups();
 
-    expect(groups.map((group) => group.label)).toEqual(["账户", "安全", "会话"]);
+    expect(groups.map((group) => group.label)).toEqual(["账户", "安全"]);
     expect(groups.flatMap((group) => group.items.map((item) => item.id))).toEqual([
       "profile",
       "security",
-      "session",
     ]);
   });
 });
