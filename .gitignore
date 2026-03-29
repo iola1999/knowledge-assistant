@@ -7,6 +7,7 @@ coverage
 .turbo
 .env
 .env.local
+.env.production
 .env.*.local
 .venv
 .dev
