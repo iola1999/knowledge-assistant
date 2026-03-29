@@ -90,6 +90,7 @@
 - `working tree` Reconfirm OCR stays disabled pending commercial API decision and verify current batch with `pnpm verify`
 - `working tree` Add BM25 scoring over dense retrieval candidates with regression tests
 - `working tree` Remove grounded answer confidence / unsupported metadata from conversation answers
+- `working tree` Expire stale streaming assistant runs when agent-runtime stops heartbeating
 - `working tree` Replace empty-state helper copy with temporary attachment upload entry and parse-only conversation attachment flow
 - `working tree` Persist tool timeline into conversation messages and stream it over SSE
 - `working tree` Stream assistant draft content over SSE with local mock tool fallback for the main conversation chain

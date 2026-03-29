@@ -105,6 +105,7 @@ flowchart LR
 - Agent 工具调用事件现在会以 `messages.role = "tool"` 持久化到数据库，并由 `/api/conversations/[conversationId]/stream` 作为 SSE 工具时间线持续推送到前端；同一路 SSE 也会推送 assistant `answer_delta` / `answer_done` / `run_failed`。
 - `answer_done` / `run_failed` 终态事件现在会附带最终 assistant 内容、structured state 和当前 message citations，前端会先切到本地最终态，再做后台刷新以保持页面其余部分一致。
 - 当最新 assistant 消息失败时，会话页现在支持直接复用上一条 user prompt 重新入队当前回答。
+- streaming assistant placeholder 现在会写入运行 lease，`agent-runtime` 处理期间持续 heartbeat；如果 worker 崩溃或长时间失联，SSE 轮询会把过期回答收敛成 `run_failed`，避免前端无限等待。
 - 当前阶段对非核心工具的要求是“先保持稳定契约和可观测事件流”；真实 provider 是否接齐不是阻塞主会话链路的前置条件。
 - `Python Parser Service` 已支持 PDF / DOCX / text 基础解析、结构块构建、无文本 PDF 的 OCR 降级入口。
 - 首条消息前可先上传“会话级临时资料”；这条链路会走 `parse/chunk/citation anchor`，但明确跳过 embedding 和 Qdrant indexing。
