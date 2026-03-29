@@ -143,7 +143,25 @@ flowchart LR
 - 运行时服务启动前只做 `pnpm app:upgrade:check`，若仍有 blocking pending upgrades 则 fail-fast。
 - schema 变更应遵守 `expand -> migrate -> contract`，避免多进程部署期间直接破坏兼容性。
 
-### 4.2 单机 Docker 生产部署
+### 4.2 运行时配置加载
+
+应用进程在启动时通过 `initRuntimeSettings()`（`packages/db/src/runtime-settings.ts`）从 `system_settings` 表读取运行时配置并注入 `process.env`。
+
+优先级：显式环境变量 > 数据库值 > 模块默认值。
+
+bootstrap env-only（不进入 `system_settings`）：
+
+- `DATABASE_URL`
+- `AUTH_SECRET`
+- `SUPER_ADMIN_USERNAMES`
+
+其余所有 provider / 基础设施参数（Redis、S3、Qdrant、Anthropic、DashScope 等）均存储在 `system_settings`，可通过 `/settings` 管理。变更后需重启相关进程。
+
+`upgrade` 服务在首次运行时将 `.env.production` 中的值写入 `system_settings`（`INSERT ... ON CONFLICT DO NOTHING`），后续运行不会覆盖已有值。
+
+`parser`（Python）当前仍直接读取环境变量，不经过 `system_settings`。
+
+### 4.3 单机 Docker 生产部署
 
 生产部署目标为单机 Docker 多容器。
 
@@ -152,7 +170,7 @@ flowchart LR
 - Web 采用 Next.js `output: "standalone"`
 - `upgrade` 容器负责执行 SQL migrations + blocking app upgrades + bucket ensure
 
-### 4.3 健康检查
+### 4.4 健康检查
 
 生产编排中的健康检查约定：
 
@@ -170,7 +188,7 @@ flowchart LR
 - 组织问答、研究和写作流程
 - 在工具结果与最终答案之间插入 grounded final answer 校验层
 
-### 4.4 Python Parser Service
+### 4.5 Python Parser Service
 
 负责：
 

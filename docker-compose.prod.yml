@@ -67,12 +67,16 @@ services:
     command: ["sh", "-lc", "pnpm app:upgrade && pnpm --filter @knowledge-assistant/storage exec node scripts/ensure-dev-bucket.mjs"]
     restart: "no"
 
+  # App services only need bootstrap env; all other runtime config is
+  # loaded from system_settings at startup via initRuntimeSettings().
   web:
     build:
       context: .
       dockerfile: Dockerfile
-    env_file:
-      - .env.production
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      AUTH_SECRET: ${AUTH_SECRET}
+      SUPER_ADMIN_USERNAMES: ${SUPER_ADMIN_USERNAMES:-}
     depends_on:
       postgres:
         condition: service_healthy
@@ -95,8 +99,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    env_file:
-      - .env.production
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      PORT: 4002
     depends_on:
       postgres:
         condition: service_healthy
@@ -109,8 +114,6 @@ services:
     command: ["sh", "-lc", "pnpm app:upgrade:check && pnpm --filter @knowledge-assistant/worker start"]
     ports:
       - "4002:4002"
-    environment:
-      PORT: 4002
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:4002/health"]
       interval: 10s
@@ -121,8 +124,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    env_file:
-      - .env.production
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      PORT: 4001
     depends_on:
       postgres:
         condition: service_healthy
@@ -135,8 +139,6 @@ services:
     command: ["sh", "-lc", "pnpm app:upgrade:check && pnpm --filter @knowledge-assistant/agent-runtime start"]
     ports:
       - "4001:4001"
-    environment:
-      PORT: 4001
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:4001/health"]
       interval: 10s

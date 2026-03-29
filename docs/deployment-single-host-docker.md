@@ -27,18 +27,23 @@
 cp .env.production.example .env.production
 ```
 
-至少确认这些值：
+必须提供的 bootstrap 变量（web / worker / agent-runtime 只需要这三项）：
 
 - `DATABASE_URL`
 - `AUTH_SECRET`
 - `SUPER_ADMIN_USERNAMES`
+
+以下变量由 `upgrade` 服务在首次启动时写入 `system_settings`，后续可通过 `/settings` 管理；
+`parser`（Python）仍直接读取 S3 相关环境变量：
+
 - `APP_URL`
 - `AGENT_RUNTIME_URL`
 - `PARSER_SERVICE_URL`
 - `REDIS_URL`
-- `QDRANT_URL`
+- `QDRANT_URL` / `QDRANT_COLLECTION`
 - `S3_*`
 - `ANTHROPIC_API_KEY`
+- 其他 provider 配置
 
 ## 3. 构建镜像
 

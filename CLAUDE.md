@@ -24,9 +24,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - After editing `services/parser/**`, restart `pnpm dev`.
 
 ## Configuration
-- Required env-only root config: `DATABASE_URL` and `AUTH_SECRET`.
-- `SUPER_ADMIN_USERNAMES` is also env-only and controls `/settings` access.
-- Most other provider and infrastructure settings live in the `system_settings` table and are loaded at process start; restart managed processes after changing them.
+- Bootstrap env-only (never stored in DB): `DATABASE_URL`, `AUTH_SECRET`, `SUPER_ADMIN_USERNAMES`.
+- All other runtime settings (Redis, S3, Qdrant, Anthropic, DashScope, etc.) live in `system_settings` and are loaded into `process.env` at startup via `initRuntimeSettings()` (`packages/db/src/runtime-settings.ts`). Restart managed processes after changing them.
+- Priority: explicit env var > DB value > module default. Env vars still override DB for debugging/migration.
+- Docker production: `web`, `worker`, `agent-runtime` only receive bootstrap env; `upgrade` and `parser` still use the full `.env.production`.
 
 ## Testing and implementation rules
 - Default to TDD.

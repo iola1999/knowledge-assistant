@@ -29,6 +29,17 @@ export type ConversationResponseJobPayload = {
   draftUploadId?: string | null;
 };
 
+export function sanitizeQueueJobIdPart(value: string) {
+  return value.trim().replace(/:/g, "_");
+}
+
+export function buildQueueJobId(...parts: string[]) {
+  return parts
+    .map((part) => sanitizeQueueJobIdPart(part))
+    .filter(Boolean)
+    .join("--");
+}
+
 export function getRedisConnection() {
   return {
     url: process.env.REDIS_URL ?? "redis://localhost:6379",
@@ -62,7 +73,7 @@ export async function enqueueIngestFlow(
       indexingMode,
     },
     opts: {
-      jobId: `${payload.documentVersionId}:index`,
+      jobId: buildQueueJobId(payload.documentVersionId, "index"),
       removeOnComplete: DEFAULT_QUEUE_JOB_RETENTION_LIMIT,
       removeOnFail: DEFAULT_QUEUE_JOB_RETENTION_LIMIT,
       ...options,
@@ -78,7 +89,7 @@ export async function enqueueIngestFlow(
                 indexingMode,
               },
               opts: {
-                jobId: `${payload.documentVersionId}:chunk`,
+                jobId: buildQueueJobId(payload.documentVersionId, "chunk"),
                 removeOnComplete: DEFAULT_QUEUE_JOB_RETENTION_LIMIT,
                 removeOnFail: DEFAULT_QUEUE_JOB_RETENTION_LIMIT,
               },
@@ -91,7 +102,7 @@ export async function enqueueIngestFlow(
                     indexingMode,
                   },
                   opts: {
-                    jobId: `${payload.documentVersionId}:parse`,
+                    jobId: buildQueueJobId(payload.documentVersionId, "parse"),
                     removeOnComplete: DEFAULT_QUEUE_JOB_RETENTION_LIMIT,
                     removeOnFail: DEFAULT_QUEUE_JOB_RETENTION_LIMIT,
                   },
@@ -108,7 +119,7 @@ export async function enqueueIngestFlow(
                 indexingMode,
               },
               opts: {
-                jobId: `${payload.documentVersionId}:embed`,
+                jobId: buildQueueJobId(payload.documentVersionId, "embed"),
                 removeOnComplete: DEFAULT_QUEUE_JOB_RETENTION_LIMIT,
                 removeOnFail: DEFAULT_QUEUE_JOB_RETENTION_LIMIT,
               },
@@ -121,7 +132,7 @@ export async function enqueueIngestFlow(
                     indexingMode,
                   },
                   opts: {
-                    jobId: `${payload.documentVersionId}:chunk`,
+                    jobId: buildQueueJobId(payload.documentVersionId, "chunk"),
                     removeOnComplete: DEFAULT_QUEUE_JOB_RETENTION_LIMIT,
                     removeOnFail: DEFAULT_QUEUE_JOB_RETENTION_LIMIT,
                   },
@@ -134,7 +145,7 @@ export async function enqueueIngestFlow(
                         indexingMode,
                       },
                       opts: {
-                        jobId: `${payload.documentVersionId}:parse`,
+                        jobId: buildQueueJobId(payload.documentVersionId, "parse"),
                         removeOnComplete: DEFAULT_QUEUE_JOB_RETENTION_LIMIT,
                         removeOnFail: DEFAULT_QUEUE_JOB_RETENTION_LIMIT,
                       },
@@ -154,7 +165,7 @@ export async function enqueueConversationResponse(
   const queue = createQueue(QUEUE_NAMES.respond);
 
   return queue.add(QUEUE_NAMES.respond, payload, {
-    jobId: `${payload.assistantMessageId}:respond`,
+    jobId: buildQueueJobId(payload.assistantMessageId, "respond"),
     removeOnComplete: DEFAULT_QUEUE_JOB_RETENTION_LIMIT,
     removeOnFail: DEFAULT_QUEUE_JOB_RETENTION_LIMIT,
     ...options,

@@ -51,7 +51,10 @@ import {
   normalizeOutlineSections,
 } from "./report-generation";
 
-const DEFAULT_REPORT_MODEL = process.env.ANTHROPIC_MODEL ?? "claude-sonnet-4-5";
+function getReportModel() {
+  return process.env.ANTHROPIC_MODEL ?? "claude-sonnet-4-5";
+}
+
 const DEFAULT_REPORT_OUTLINE_MAX_TOKENS = 900;
 const DEFAULT_REPORT_SECTION_MAX_TOKENS = 1_400;
 
@@ -621,7 +624,7 @@ export async function createReportOutlineHandler(input: unknown) {
       fallbackQuery: [args.title, args.task].filter(Boolean).join(" "),
     });
     const message = await getAnthropicClient().messages.parse({
-      model: DEFAULT_REPORT_MODEL,
+      model: getReportModel(),
       max_tokens: DEFAULT_REPORT_OUTLINE_MAX_TOKENS,
       system: REPORT_OUTLINE_SYSTEM_PROMPT,
       messages: [
@@ -708,7 +711,7 @@ export async function writeReportSectionHandler(input: unknown) {
       evidence.map((item) => [item.anchor_id, item] as const),
     );
     const message = await getAnthropicClient().messages.parse({
-      model: DEFAULT_REPORT_MODEL,
+      model: getReportModel(),
       max_tokens: DEFAULT_REPORT_SECTION_MAX_TOKENS,
       system: REPORT_SECTION_SYSTEM_PROMPT,
       messages: [

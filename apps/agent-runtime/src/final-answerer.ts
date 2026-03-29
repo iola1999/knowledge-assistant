@@ -12,13 +12,18 @@ import {
   normalizeGroundedAnswer,
 } from "./grounded-answer";
 
-const DEFAULT_MODEL =
-  process.env.ANTHROPIC_FINAL_ANSWER_MODEL ??
-  process.env.ANTHROPIC_MODEL ??
-  "claude-sonnet-4-5";
-const DEFAULT_MAX_TOKENS = Number(
-  process.env.ANTHROPIC_FINAL_ANSWER_MAX_TOKENS ?? "1400",
-);
+function getModel() {
+  return (
+    process.env.ANTHROPIC_FINAL_ANSWER_MODEL ??
+    process.env.ANTHROPIC_MODEL ??
+    "claude-sonnet-4-5"
+  );
+}
+
+function getMaxTokens() {
+  const n = Number(process.env.ANTHROPIC_FINAL_ANSWER_MAX_TOKENS ?? "1400");
+  return Number.isFinite(n) ? n : 1400;
+}
 
 const FINAL_ANSWER_SYSTEM_PROMPT = [
   "You render the final answer for a grounded workspace assistant.",
@@ -55,8 +60,8 @@ export async function renderGroundedAnswer(input: {
 
   try {
     const message = await getAnthropicClient().messages.parse({
-      model: DEFAULT_MODEL,
-      max_tokens: Number.isFinite(DEFAULT_MAX_TOKENS) ? DEFAULT_MAX_TOKENS : 1400,
+      model: getModel(),
+      max_tokens: getMaxTokens(),
       system: FINAL_ANSWER_SYSTEM_PROMPT,
       messages: [
         {

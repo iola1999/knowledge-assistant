@@ -21,9 +21,11 @@ import {
 } from "./assistant-stream";
 import { renderGroundedAnswer } from "./final-answerer";
 
-const agentWorkdirRoot = process.env.AGENT_WORKDIR_ROOT
-  ? path.resolve(process.env.AGENT_WORKDIR_ROOT)
-  : path.resolve(process.cwd(), ".agent-sessions");
+function getAgentWorkdirRoot() {
+  return process.env.AGENT_WORKDIR_ROOT
+    ? path.resolve(process.env.AGENT_WORKDIR_ROOT)
+    : path.resolve(process.cwd(), ".agent-sessions");
+}
 
 export function getAllowedTools() {
   return [...ASSISTANT_ALLOWED_TOOL_NAMES];
@@ -188,7 +190,7 @@ export async function runAgentResponse(
   const conversationId = input.conversationId.trim();
   const requestedWorkdir = input.agentWorkdir?.trim() || undefined;
   const workdir =
-    requestedWorkdir || path.join(agentWorkdirRoot, conversationId.replace(/[^a-zA-Z0-9-_]/g, "_"));
+    requestedWorkdir || path.join(getAgentWorkdirRoot(), conversationId.replace(/[^a-zA-Z0-9-_]/g, "_"));
 
   await fs.mkdir(workdir, { recursive: true });
 

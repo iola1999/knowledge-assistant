@@ -22,6 +22,7 @@ import {
   documentVersions,
   documents,
   getDb,
+  initRuntimeSettings,
   parseArtifacts,
 } from "@knowledge-assistant/db";
 import { QUEUE_NAMES, getRedisConnection } from "@knowledge-assistant/queue";
@@ -63,8 +64,11 @@ type EmbeddingArtifact = {
 };
 
 const db = getDb();
-const parserServiceUrl = process.env.PARSER_SERVICE_URL ?? "http://localhost:8001";
 const healthPort = Number(process.env.PORT ?? 4002);
+
+function getParserServiceUrl() {
+  return process.env.PARSER_SERVICE_URL ?? "http://localhost:8001";
+}
 
 function readNumericLocatorValue(
   locator: Record<string, unknown> | null | undefined,
@@ -209,7 +213,7 @@ async function parseDocument(documentVersionId: string) {
     return cached[0].artifactStorageKey;
   }
 
-  const response = await fetch(`${parserServiceUrl}/parse`, {
+  const response = await fetch(`${getParserServiceUrl()}/parse`, {
     method: "POST",
     headers: {
       "content-type": "application/json",
@@ -536,6 +540,8 @@ async function indexDocument(documentVersionId: string) {
 }
 
 async function main() {
+  await initRuntimeSettings();
+
   const connection = getRedisConnection();
 
   const parseWorker = new Worker(
