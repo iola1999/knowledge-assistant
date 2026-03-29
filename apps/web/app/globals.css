@@ -93,6 +93,14 @@
     font: inherit;
   }
 
+  button:not(:disabled) {
+    cursor: pointer;
+  }
+
+  button:disabled {
+    cursor: not-allowed;
+  }
+
   mark {
     border-radius: 0.375rem;
     background: color-mix(in srgb, var(--accent) 18%, white);

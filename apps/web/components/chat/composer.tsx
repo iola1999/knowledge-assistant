@@ -112,6 +112,8 @@ export function Composer({
       hasNoReadyAttachments);
   const stageTextareaSizing = resolveComposerStageTextareaSizing(rows);
   const isSubmitDisabled = isPending || hasPendingAttachments;
+  const stageActionButtonBase =
+    "inline-flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-full border transition disabled:cursor-not-allowed disabled:opacity-55";
 
   useEffect(() => {
     setAttachments((current) => mergeAttachments(current, initialAttachments));
@@ -547,7 +549,10 @@ export function Composer({
                 {workspaceId ? (
                   <button
                     type="button"
-                    className="inline-flex size-9 shrink-0 items-center justify-center rounded-2xl text-app-muted-strong transition hover:bg-app-surface-soft hover:text-app-text md:size-10"
+                    className={cn(
+                      stageActionButtonBase,
+                      "border-app-border/90 bg-app-surface-soft text-app-muted-strong hover:border-app-border-strong hover:bg-white hover:text-app-text",
+                    )}
                     onClick={() => fileInputRef.current?.click()}
                     aria-label="上传临时文件"
                   >
@@ -561,11 +566,14 @@ export function Composer({
                     </svg>
                   </button>
                 ) : (
-                  <div className="size-9 shrink-0 md:size-10" aria-hidden="true" />
+                  <div className="size-10 shrink-0" aria-hidden="true" />
                 )}
               </div>
               <button
-                className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-app-primary text-app-primary-contrast transition hover:bg-[#25211c] disabled:cursor-not-allowed disabled:opacity-55 md:size-11"
+                className={cn(
+                  stageActionButtonBase,
+                  "border-transparent bg-app-primary text-app-primary-contrast shadow-sm hover:bg-[#25211c]",
+                )}
                 disabled={isSubmitDisabled}
                 type="submit"
                 aria-label={submitLabel}

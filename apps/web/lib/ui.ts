@@ -127,7 +127,7 @@ export function menuItemStyles({
 
 export function chipButtonStyles({ active = false }: { active?: boolean } = {}) {
   return cn(
-    "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[13px] transition disabled:cursor-not-allowed disabled:opacity-50",
+    "inline-flex cursor-pointer items-center gap-2 rounded-full border px-3 py-1.5 text-[13px] transition disabled:cursor-not-allowed disabled:opacity-50",
     active
       ? "border-app-border-strong bg-app-surface-strong/65 text-app-text"
       : "border-transparent bg-transparent text-app-muted-strong hover:border-app-border/80 hover:bg-white/70 hover:text-app-text",
@@ -136,7 +136,7 @@ export function chipButtonStyles({ active = false }: { active?: boolean } = {}) 
 
 export function tabButtonStyles({ active }: { active: boolean }) {
   return cn(
-    "inline-flex items-center gap-2 border-b px-1 pb-2 text-[13px] transition disabled:cursor-not-allowed disabled:opacity-45",
+    "inline-flex cursor-pointer items-center gap-2 border-b px-1 pb-2 text-[13px] transition disabled:cursor-not-allowed disabled:opacity-45",
     active
       ? "border-app-text text-app-text"
       : "border-transparent text-app-muted-strong hover:text-app-text",

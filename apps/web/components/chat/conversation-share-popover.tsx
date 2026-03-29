@@ -2,6 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import {
+  buildCopyShareNotice,
+  buildEnableShareNotice,
+  SHARE_NOTICE_AUTO_DISMISS_MS,
+  type ShareNotice,
+} from "@/lib/api/conversation-share-feedback";
 import { buttonStyles, cn, inputStyles, ui } from "@/lib/ui";
 
 type ShareState = {
@@ -20,20 +26,47 @@ export function ConversationSharePopover({
   const panelId = `conversation-share-${conversationId}`;
   const [open, setOpen] = useState(false);
   const [share, setShare] = useState<ShareState | null>(null);
-  const [status, setStatus] = useState<string | null>(null);
+  const [notice, setNotice] = useState<ShareNotice | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const loadControllerRef = useRef<AbortController | null>(null);
+  const noticeTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     void loadShare();
 
     return () => {
       loadControllerRef.current?.abort();
+      if (noticeTimerRef.current) {
+        window.clearTimeout(noticeTimerRef.current);
+      }
     };
   }, [conversationId]);
+
+  useEffect(() => {
+    if (noticeTimerRef.current) {
+      window.clearTimeout(noticeTimerRef.current);
+      noticeTimerRef.current = null;
+    }
+
+    if (!notice?.autoDismiss) {
+      return;
+    }
+
+    noticeTimerRef.current = window.setTimeout(() => {
+      setNotice((current) => (current === notice ? null : current));
+      noticeTimerRef.current = null;
+    }, SHARE_NOTICE_AUTO_DISMISS_MS);
+
+    return () => {
+      if (noticeTimerRef.current) {
+        window.clearTimeout(noticeTimerRef.current);
+        noticeTimerRef.current = null;
+      }
+    };
+  }, [notice]);
 
   useEffect(() => {
     if (!open) {
@@ -115,17 +148,30 @@ export function ConversationSharePopover({
   function handleToggleOpen() {
     const nextOpen = !open;
     setOpen(nextOpen);
-    setStatus(null);
+    setNotice(null);
 
     if (nextOpen && !share && !isLoading) {
       void loadShare({ reset: Boolean(error) });
     }
   }
 
+  async function copyShareUrl(value: string) {
+    if (!navigator.clipboard?.writeText) {
+      return false;
+    }
+
+    try {
+      await navigator.clipboard.writeText(value);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   async function handleEnableShare() {
     setIsSubmitting(true);
     setError(null);
-    setStatus(null);
+    setNotice(null);
 
     try {
       const response = await fetch(`/api/conversations/${conversationId}/share`, {
@@ -141,7 +187,17 @@ export function ConversationSharePopover({
       }
 
       setShare(body.share);
-      setStatus("公开分享已开启");
+      const copySucceeded = body.share.shareUrl
+        ? await copyShareUrl(body.share.shareUrl)
+        : false;
+      setNotice(
+        buildEnableShareNotice({
+          shareUrl: body.share.shareUrl,
+          copySucceeded,
+        }),
+      );
+    } catch {
+      setError("开启分享失败");
     } finally {
       setIsSubmitting(false);
     }
@@ -150,7 +206,7 @@ export function ConversationSharePopover({
   async function handleDisableShare() {
     setIsSubmitting(true);
     setError(null);
-    setStatus(null);
+    setNotice(null);
 
     try {
       const response = await fetch(`/api/conversations/${conversationId}/share`, {
@@ -166,7 +222,13 @@ export function ConversationSharePopover({
       }
 
       setShare(body.share);
-      setStatus("分享已关闭");
+      setNotice({
+        tone: "success",
+        message: "分享已关闭",
+        autoDismiss: true,
+      });
+    } catch {
+      setError("关闭分享失败");
     } finally {
       setIsSubmitting(false);
     }
@@ -177,13 +239,8 @@ export function ConversationSharePopover({
       return;
     }
 
-    try {
-      await navigator.clipboard.writeText(share.shareUrl);
-      setStatus("分享链接已复制");
-      setError(null);
-    } catch {
-      setError("复制链接失败");
-    }
+    setError(null);
+    setNotice(buildCopyShareNotice(await copyShareUrl(share.shareUrl)));
   }
 
   const shareStateLabel = isLoading
@@ -194,6 +251,9 @@ export function ConversationSharePopover({
         ? "已开启"
         : "未开启";
   const shareStateBadge = isLoading ? "处理中" : share?.isActive ? "公开" : "私密";
+  const noticeClassName = notice?.tone === "error"
+    ? "border-red-200 bg-red-50/80 text-red-700"
+    : "border-emerald-200 bg-emerald-50/80 text-emerald-800";
 
   return (
     <div ref={containerRef} className="relative">
@@ -306,8 +366,16 @@ export function ConversationSharePopover({
                   关闭分享
                 </button>
               </div>
-              {status ? (
-                <p className={cn(ui.muted, "text-[13px] leading-5")}>{status}</p>
+              {notice ? (
+                <p
+                  aria-live="polite"
+                  className={cn(
+                    "inline-flex w-fit items-center rounded-full border px-2.5 py-1 text-[12px] leading-5",
+                    noticeClassName,
+                  )}
+                >
+                  {notice.message}
+                </p>
               ) : null}
               {error ? (
                 <p className={cn(ui.error, "text-[13px] leading-5")}>{error}</p>
@@ -325,8 +393,16 @@ export function ConversationSharePopover({
               >
                 创建分享链接
               </button>
-              {status ? (
-                <p className={cn(ui.muted, "text-[13px] leading-5")}>{status}</p>
+              {notice ? (
+                <p
+                  aria-live="polite"
+                  className={cn(
+                    "inline-flex w-fit items-center rounded-full border px-2.5 py-1 text-[12px] leading-5",
+                    noticeClassName,
+                  )}
+                >
+                  {notice.message}
+                </p>
               ) : null}
               {error ? (
                 <p className={cn(ui.error, "text-[13px] leading-5")}>{error}</p>

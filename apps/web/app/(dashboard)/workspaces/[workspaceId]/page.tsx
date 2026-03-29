@@ -197,7 +197,7 @@ export default async function WorkspacePage({
             />
           </div>
 
-          <div className="shrink-0 border-t border-app-border/60 pb-5 pt-4 md:pb-6">
+          <div className="shrink-0 border-app-border/60 pb-5 pt-4 md:pb-6">
             <Composer
               conversationId={activeConversation.id}
               workspaceId={workspaceId}

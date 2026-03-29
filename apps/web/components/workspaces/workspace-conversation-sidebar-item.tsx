@@ -159,14 +159,14 @@ export function WorkspaceConversationSidebarItem({
               : "text-app-muted-strong hover:bg-white/72 hover:text-app-text",
           )}
         >
-          <strong className="block min-w-0 truncate pr-24 text-[15px] font-medium">
+          <strong className="block min-w-0 truncate pr-[3.5rem] text-[12px] leading-5 font-medium">
             {conversation.title}
           </strong>
         </Link>
 
         <span
           className={cn(
-            "pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-right text-[12px] text-app-muted transition duration-150",
+            "pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-right text-[11px] text-app-muted transition duration-150",
             isMenuOpen
               ? "opacity-0"
               : "opacity-100 group-hover:opacity-0 group-focus-within:opacity-0",
