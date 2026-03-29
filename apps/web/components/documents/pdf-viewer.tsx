@@ -213,10 +213,10 @@ export function PdfViewer({
   );
 
   return (
-    <div className="flex flex-col lg:flex-row items-start gap-6">
+    <div className="flex flex-col lg:flex-row items-start gap-6 w-full">
       {/* 左侧独立搜索大纲区 */}
-      <div className="w-full shrink-0 lg:w-[280px] xl:w-[320px] pb-6">
-        <div className="sticky top-6 grid gap-4">
+      <div className="w-full shrink-0 min-w-0 lg:w-[280px] xl:w-[320px] pb-6">
+        <div className="sticky top-6 grid gap-4 min-w-0 w-full max-w-full">
           <label className="flex flex-col gap-1.5">
             <span className="text-[13px] font-medium text-app-muted-strong px-1">页内搜索</span>
             <input
@@ -232,12 +232,14 @@ export function PdfViewer({
               {searchResults.map((result) => (
                 <button
                   key={`${result.pageNo}-${result.snippet}`}
-                  className="w-full rounded-2xl border border-app-border/60 bg-white/40 px-4 py-3 text-left text-sm hover:border-app-border-strong hover:bg-white transition"
+                  className="w-full min-w-0 rounded-2xl border border-app-border/60 bg-white/40 px-4 py-3 text-left text-sm hover:border-app-border-strong hover:bg-white transition whitespace-normal break-words break-all"
                   onClick={() => jumpToPage(result.pageNo)}
                   type="button"
                 >
                   <strong className="text-app-text block mb-1">第 {result.pageNo} 页</strong>
-                  <span className="text-app-muted text-[13px] leading-relaxed block">{result.snippet}</span>
+                  <span className="text-app-muted text-[13px] leading-relaxed block line-clamp-4 break-words">
+                    {result.snippet}
+                  </span>
                 </button>
               ))}
             </div>
