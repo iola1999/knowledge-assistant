@@ -279,7 +279,7 @@ export function ConversationSharePopover({
         }}
         type="button"
       >
-        <ShareIcon aria-hidden="true" />
+        <ShareIcon aria-hidden="true" className="size-[18px]" strokeWidth={1.85} />
         分享
       </button>
 

@@ -113,14 +113,14 @@ export function ConversationPageActions({
           aria-controls={menuId}
           aria-expanded={isMenuOpen}
           aria-haspopup="dialog"
-          className="inline-flex size-11 items-center justify-center rounded-[18px] border border-app-border/80 bg-white/88 text-app-text shadow-soft transition hover:border-app-border-strong hover:bg-white focus:outline-none focus:ring-4 focus:ring-app-accent/10 disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex size-9 items-center justify-center rounded-[16px] bg-transparent text-app-muted-strong transition hover:bg-app-surface-soft hover:text-app-text focus:outline-none focus:ring-4 focus:ring-app-accent/10 disabled:cursor-not-allowed disabled:opacity-60"
           disabled={isBusy}
           onClick={() => {
             setIsMenuOpen((current) => !current);
           }}
           type="button"
         >
-          <MoreHorizontalIcon className="size-5" aria-hidden="true" />
+          <MoreHorizontalIcon className="size-[18px]" aria-hidden="true" />
         </button>
         <ConversationSharePopover conversationId={conversationId} />
 
