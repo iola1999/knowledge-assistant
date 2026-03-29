@@ -8,6 +8,7 @@ import {
   ASSISTANT_MCP_SERVER_NAME,
   ASSISTANT_ALLOWED_TOOL_NAMES,
   ASSISTANT_TOOL,
+  DEFAULT_SEARCH_WORKSPACE_KNOWLEDGE_TOP_K,
   DEFAULT_AGENT_MAX_TURNS,
   DEFAULT_GROUNDED_ANSWER_CONFIDENCE,
   normalizeAssistantToolName,
@@ -192,10 +193,11 @@ export async function runAgentResponse(
   await fs.mkdir(workdir, { recursive: true });
 
   if (!process.env.ANTHROPIC_API_KEY) {
-    const mockToolName = "mock_workspace_probe";
+    const mockToolName = ASSISTANT_TOOL.SEARCH_WORKSPACE_KNOWLEDGE;
     const mockToolInput = {
       query: prompt,
       workspace_id: workspaceId,
+      top_k: DEFAULT_SEARCH_WORKSPACE_KNOWLEDGE_TOP_K,
     };
     const mockToolUseId = `mock-${conversationId}`;
     const mockAnswer = [
@@ -215,12 +217,8 @@ export async function runAgentResponse(
       toolInput: mockToolInput,
       toolResponse: {
         ok: true,
-        results: [
-          {
-            title: "mock_workspace_probe",
-            note: "Local mock tool response for the main conversation chain.",
-          },
-        ],
+        results: [],
+        mock: true,
       },
       toolUseId: mockToolUseId,
     });

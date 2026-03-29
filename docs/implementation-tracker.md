@@ -25,7 +25,7 @@
 - 资料管理 CRUD、会话管理、文档阅读器和上传任务反馈都已有基础版，可支撑当前阶段联调。
 - 第一版口径仍然是“助手优先、问答优先”；报告保留 Agent 生成与导出，不做平台内编辑器。
 - 主会话链路的 assistant draft streaming 已打通，Claude Agent SDK 仍留在独立 `agent-runtime` 进程中负责决策与工具调用。
-- 当前阶段接受“工具先 mock，链路先跑通”的策略，但 mock 输出必须显式标识，不能伪造引用或外部证据。
+- 当前阶段接受“工具先 mock，链路先跑通”的策略；本地 fallback 已切到正式工具名和稳定返回结构，但 mock 输出仍必须显式标识，不能伪造引用或外部证据。
 - 本地开发一键启动脚本已补齐。
 - 数据库与应用升级开始从 ad-hoc bootstrap 收敛到 versioned SQL migrations + tracked app upgrades。
 - 已新增生产单机 Docker 多容器部署资产与基础健康检查。
@@ -36,13 +36,14 @@
 
 - `web -> BullMQ conversation.respond -> agent-runtime -> grounded final answer -> citations` 主问答链路已通；发送消息后会先落 user message + assistant placeholder，再异步生成最终回答。
 - 问答策略已固定为“本地资料优先 + 联网查询补充”；不再保留 `kb_only / kb_plus_web` 模式切换与相关设置入口。
-- 账号认证仍采用 `Auth.js` JWT session，但服务端现在会把有效 session `jti` 记录到 Redis，并在每次读取 session 时做 allowlist 校验与 TTL 续期；登出、改密和后续管理员强制下线都可走这层撤销机制。
+- 账号认证仍采用 `Auth.js` JWT session，但服务端现在会把有效 session 的稳定 `sessionId` claim 记录到 Redis，并在每次读取 session 时做 allowlist 校验与 TTL 续期；登出、改密和后续管理员强制下线都可走这层撤销机制。
 - 首屏提问区已支持先上传“会话级临时资料”；首条消息创建会话后会自动认领这些附件，并把它们连同 locator 信息一起送给 agent。
 - 账号页已补齐修改密码与退出登录的基础入口；工作空间当前只保留软删除，不再提供归档。
 - `/api/conversations/[conversationId]/stream` 现在会持续推送数据库里的 `tool` 消息、assistant draft `answer_delta` 和完成/失败事件；前端会在当前会话里实时更新 assistant 气泡。
 - 当前回答流式是“数据库轮询 + assistant draft 持久化”链路；它已经满足 P0 的流式呈现，但仍不是 provider 直连 token transport。
 - `answer_done` / `run_failed` 事件现在会附带最终 assistant 内容、structured state 和当前 message citations，前端会先切到本地最终态，再做后台刷新以保持页面其余部分一致。
 - 本地缺少真实 provider 时，主会话链路已经允许回退到 mock tool / mock assistant chunk，用于验证队列、事件流、前端状态切换和错误处理。
+- 本地 mock fallback 现在会复用正式工具名和基础成功结构，不再依赖专用假工具名来驱动主链路联调。
 - `presign -> documents/document_versions/document_jobs -> BullMQ parse/chunk/embed/index` 上传消化链路已通，解析结果会落到 `document_pages / document_blocks / document_chunks / citation_anchors`，并同步进入 Qdrant。
 - 会话级临时资料走独立的 `attachments/presign -> conversation_attachments -> parse/chunk/index(parse-only finalize)` 链路；它会生成 `document_pages / document_blocks / document_chunks / citation_anchors`，但不会写入 Qdrant。
 - 上传链路已明确收口：OCR 明确保持 disabled，图片/扫描件暂不纳入当前可用范围，前后端会直接限制并提示。
@@ -59,6 +60,7 @@
 ## 2. 最近完成
 
 - `working tree` Add Redis-backed JWT session allowlist and revoke all sessions on password change
+- `working tree` Align local mock agent fallback with real tool names and stable output structure
 - `working tree` Hydrate conversation terminal SSE events with final assistant payload and citations before refresh
 - `working tree` Reprioritize roadmap around conversation-chain-first delivery and explicit mock-tool allowance
 - `working tree` Remove workspace archive controls and switch workspace delete to soft delete
@@ -98,6 +100,7 @@
   - grounded final answer、citations 和引用跳转已能在终态事件到达后先本地切换，后续仍需继续减少刷新带来的其余断层
 - 工具契约与 mock 策略
   - 当前阶段允许 `search_web_general` / `search_statutes` / 报告生成等工具先返回明确标识的 mock 或基础结果
+  - 本地 fallback 已改为使用正式工具名和稳定输出结构；后续仍需继续把更多 mock / 基础实现收敛到统一契约
   - tool response 必须保持稳定契约，能持续驱动 tool timeline、assistant draft、completed/failed 和前端展示
   - mock 结果不得伪造 citation、置信度覆盖度或外部来源
 - grounded answer 证据 dossier 与更清晰的证据展示

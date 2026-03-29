@@ -4,7 +4,10 @@ import path from "node:path";
 
 import { afterEach, describe, expect, test } from "vitest";
 
-import { ASSISTANT_ALLOWED_TOOL_NAMES } from "@knowledge-assistant/contracts";
+import {
+  ASSISTANT_ALLOWED_TOOL_NAMES,
+  ASSISTANT_TOOL,
+} from "@knowledge-assistant/contracts";
 
 import { getAllowedTools, runAgentResponse } from "./run-agent-response";
 
@@ -43,6 +46,7 @@ describe("runAgentResponse", () => {
       temporaryDirs.push(agentWorkdir);
 
       const toolEvents: string[] = [];
+      const toolResponses: Array<{ toolName: string; toolResponse: unknown }> = [];
       const textDeltas: string[] = [];
       const fullTexts: string[] = [];
 
@@ -57,8 +61,9 @@ describe("runAgentResponse", () => {
           onToolStarted: ({ toolName }) => {
             toolEvents.push(`started:${toolName}`);
           },
-          onToolFinished: ({ toolName }) => {
+          onToolFinished: ({ toolName, toolResponse }) => {
             toolEvents.push(`finished:${toolName}`);
+            toolResponses.push({ toolName, toolResponse });
           },
           onAssistantDelta: ({ textDelta, fullText }) => {
             textDeltas.push(textDelta);
@@ -68,8 +73,18 @@ describe("runAgentResponse", () => {
       );
 
       expect(toolEvents).toEqual([
-        "started:mock_workspace_probe",
-        "finished:mock_workspace_probe",
+        `started:${ASSISTANT_TOOL.SEARCH_WORKSPACE_KNOWLEDGE}`,
+        `finished:${ASSISTANT_TOOL.SEARCH_WORKSPACE_KNOWLEDGE}`,
+      ]);
+      expect(toolResponses).toEqual([
+        {
+          toolName: ASSISTANT_TOOL.SEARCH_WORKSPACE_KNOWLEDGE,
+          toolResponse: {
+            ok: true,
+            results: [],
+            mock: true,
+          },
+        },
       ]);
       expect(textDeltas.length).toBeGreaterThan(0);
       expect(textDeltas.join("")).toBe(response.text);
