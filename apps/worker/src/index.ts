@@ -1,12 +1,15 @@
+import { createServer } from "node:http";
 import crypto from "node:crypto";
 
 import { QueueEvents, Worker } from "bullmq";
 import { eq } from "drizzle-orm";
 
 import {
+  buildCitationReferenceLabel,
   DOCUMENT_STATUS,
   PARSE_STATUS,
   RUN_STATUS,
+  type CitationLocator,
   type ParseStatus,
   type RunStatus,
 } from "@knowledge-assistant/contracts";
@@ -29,6 +32,10 @@ import {
 } from "@knowledge-assistant/retrieval";
 import { getJson, getObjectBytes, putJson } from "@knowledge-assistant/storage";
 import { buildChunkSeeds } from "./chunking";
+import {
+  resolveDocumentIndexingMode,
+  shouldSkipEmbeddingIndexing,
+} from "./ingest-mode";
 
 type ParseArtifact = {
   page_count: number;
@@ -41,6 +48,7 @@ type ParseArtifact = {
     heading_path?: string[];
     text: string;
     bbox_json?: { x1: number; y1: number; x2: number; y2: number } | null;
+    metadata_json?: Record<string, unknown> | null;
   }>;
   parse_score_bp: number;
 };
@@ -56,6 +64,41 @@ type EmbeddingArtifact = {
 
 const db = getDb();
 const parserServiceUrl = process.env.PARSER_SERVICE_URL ?? "http://localhost:8001";
+const healthPort = Number(process.env.PORT ?? 4002);
+
+function readNumericLocatorValue(
+  locator: Record<string, unknown> | null | undefined,
+  keys: string[],
+) {
+  for (const key of keys) {
+    const value = locator?.[key];
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return Math.max(1, Math.trunc(value));
+    }
+  }
+
+  return null;
+}
+
+function readBlockLocator(metadataJson: Record<string, unknown> | null | undefined) {
+  const locator =
+    metadataJson?.locator && typeof metadataJson.locator === "object"
+      ? (metadataJson.locator as Record<string, unknown>)
+      : null;
+
+  const result: CitationLocator = {
+    lineStart: readNumericLocatorValue(locator, ["line_start", "lineStart"]),
+    lineEnd: readNumericLocatorValue(locator, ["line_end", "lineEnd"]),
+    pageLineStart: readNumericLocatorValue(locator, [
+      "page_line_start",
+      "pageLineStart",
+    ]),
+    pageLineEnd: readNumericLocatorValue(locator, ["page_line_end", "pageLineEnd"]),
+    blockIndex: readNumericLocatorValue(locator, ["block_index", "blockIndex"]),
+  };
+
+  return Object.values(result).some((value) => value !== null) ? result : null;
+}
 
 async function updateJob(
   documentVersionId: string,
@@ -99,6 +142,7 @@ async function fetchVersion(documentVersionId: string) {
       sha256: documentVersions.sha256,
       fileSizeBytes: documentVersions.fileSizeBytes,
       parseArtifactId: documentVersions.parseArtifactId,
+      metadataJson: documentVersions.metadataJson,
       documentTitle: documents.title,
       workspaceId: documents.workspaceId,
       documentPath: documents.logicalPath,
@@ -273,6 +317,7 @@ async function chunkDocument(documentVersionId: string) {
               headingPath: block.heading_path ?? [],
               text: block.text,
               bboxJson: block.bbox_json ?? null,
+              metadataJson: block.metadata_json ?? null,
             })),
           )
           .returning()
@@ -314,20 +359,31 @@ async function chunkDocument(documentVersionId: string) {
     const blockById = new Map(insertedBlocks.map((block) => [block.id, block] as const));
 
     await db.insert(citationAnchors).values(
-      insertedChunks.map((chunk) => ({
-        workspaceId: version.workspaceId,
-        documentId: version.documentId,
-        documentVersionId,
-        chunkId: chunk.id,
-        blockId: chunk.sourceBlockId,
-        pageNo: chunk.pageStart,
-        documentPath: version.documentPath,
-        anchorLabel: `${version.documentTitle} · 第${chunk.pageStart}页`,
-        anchorText: chunk.chunkText,
-        bboxJson: chunk.sourceBlockId
-          ? blockById.get(chunk.sourceBlockId)?.bboxJson ?? null
-          : null,
-      })),
+      insertedChunks.map((chunk) => {
+        const sourceBlock = chunk.sourceBlockId
+          ? blockById.get(chunk.sourceBlockId) ?? null
+          : null;
+
+        return {
+          workspaceId: version.workspaceId,
+          documentId: version.documentId,
+          documentVersionId,
+          chunkId: chunk.id,
+          blockId: chunk.sourceBlockId,
+          pageNo: chunk.pageStart,
+          documentPath: version.documentPath,
+          anchorLabel: buildCitationReferenceLabel({
+            subject: version.documentTitle,
+            pageNo: chunk.pageStart,
+            sectionLabel: chunk.sectionLabel,
+            locator: readBlockLocator(
+              (sourceBlock?.metadataJson as Record<string, unknown> | null | undefined) ?? null,
+            ),
+          }),
+          anchorText: chunk.chunkText,
+          bboxJson: sourceBlock?.bboxJson ?? null,
+        };
+      }),
     );
   }
 }
@@ -381,6 +437,17 @@ function getEmbeddingArtifactKey(documentVersionId: string) {
 }
 
 async function embedDocument(documentVersionId: string) {
+  const version = await fetchVersion(documentVersionId);
+  if (!version) {
+    throw new Error(`Document version ${documentVersionId} not found`);
+  }
+  const indexingMode = resolveDocumentIndexingMode({
+    metadataJson: (version.metadataJson as Record<string, unknown> | null | undefined) ?? null,
+  });
+  if (shouldSkipEmbeddingIndexing(indexingMode)) {
+    return;
+  }
+
   await updateJob(documentVersionId, PARSE_STATUS.EMBEDDING, 75);
   const chunks = await fetchChunksForIndex(documentVersionId);
   const vectors = await embedTexts(chunks.map((chunk) => chunk.text));
@@ -396,11 +463,39 @@ async function embedDocument(documentVersionId: string) {
 }
 
 async function indexDocument(documentVersionId: string) {
-  await updateJob(documentVersionId, PARSE_STATUS.INDEXING, 90);
   const version = await fetchVersion(documentVersionId);
   if (!version) {
     throw new Error(`Document version ${documentVersionId} not found`);
   }
+  const indexingMode = resolveDocumentIndexingMode({
+    metadataJson: (version.metadataJson as Record<string, unknown> | null | undefined) ?? null,
+  });
+
+  if (shouldSkipEmbeddingIndexing(indexingMode)) {
+    await deleteDocumentVersionPoints({
+      workspaceId: version.workspaceId,
+      documentVersionId,
+    });
+    await db
+      .update(documentVersions)
+      .set({
+        parseStatus: PARSE_STATUS.READY,
+      })
+      .where(eq(documentVersions.id, documentVersionId));
+
+    await db
+      .update(documents)
+      .set({
+        status: DOCUMENT_STATUS.READY,
+        updatedAt: new Date(),
+      })
+      .where(eq(documents.id, version.documentId));
+
+    await completeJob(documentVersionId);
+    return;
+  }
+
+  await updateJob(documentVersionId, PARSE_STATUS.INDEXING, 90);
 
   const chunks = await fetchChunksForIndex(documentVersionId);
   const embeddingArtifact =
@@ -478,6 +573,21 @@ async function main() {
   const queueEvents = new QueueEvents(QUEUE_NAMES.index, { connection });
   queueEvents.on("completed", ({ jobId }) => {
     console.log(`[worker] completed ${jobId}`);
+  });
+
+  const healthServer = createServer((req, res) => {
+    if (req.url !== "/health") {
+      res.writeHead(404, { "content-type": "application/json" });
+      res.end(JSON.stringify({ ok: false }));
+      return;
+    }
+
+    res.writeHead(200, { "content-type": "application/json" });
+    res.end(JSON.stringify({ ok: true }));
+  });
+
+  healthServer.listen(healthPort, () => {
+    console.log(`[worker] health listening on ${healthPort}`);
   });
 
   for (const worker of [parseWorker, chunkWorker, embedWorker, indexWorker]) {

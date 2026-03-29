@@ -27,6 +27,14 @@ class ParserMainTestCase(unittest.TestCase):
         self.assertEqual(result["page_count"], 1)
         self.assertEqual(result["blocks"][0]["block_type"], "heading")
         self.assertEqual(result["blocks"][0]["text"], "项目范围")
+        self.assertEqual(result["blocks"][0]["metadata_json"]["locator"]["line_start"], 1)
+
+    def test_parse_text_document_keeps_document_line_ranges(self):
+        result = parse_text_document("第一段第一行\n第一段第二行\n\n第二段".encode("utf-8"))
+
+        self.assertEqual(result["blocks"][0]["metadata_json"]["locator"]["line_start"], 1)
+        self.assertEqual(result["blocks"][0]["metadata_json"]["locator"]["line_end"], 2)
+        self.assertEqual(result["blocks"][1]["metadata_json"]["locator"]["line_start"], 4)
 
     def test_parse_docx_document_preserves_heading_styles(self):
         document = Document()
@@ -96,6 +104,7 @@ class ParserMainTestCase(unittest.TestCase):
         self.assertEqual(result["blocks"][0]["block_type"], "heading")
         self.assertEqual(result["blocks"][1]["heading_path"], ["发布总览", "第8节 上线检查"])
         self.assertEqual(result["blocks"][2]["heading_path"], ["发布总览", "第8节 上线检查"])
+        self.assertEqual(result["blocks"][1]["metadata_json"]["locator"]["page_line_start"], 3)
 
     def test_parse_document_reads_storage_and_dispatches_by_logical_path(self):
         request = ParseRequest(

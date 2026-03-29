@@ -100,6 +100,9 @@ flowchart LR
 - 当本地缺少 `ANTHROPIC_API_KEY` 时，`Agent Runtime` 会回退到 mock tool + mock assistant chunk，保证主会话链路、SSE 和 UI 可以本地演示与联调。
 - Agent 工具调用事件现在会以 `messages.role = "tool"` 持久化到数据库，并由 `/api/conversations/[conversationId]/stream` 作为 SSE 工具时间线持续推送到前端；同一路 SSE 也会推送 assistant `answer_delta` / `answer_done` / `run_failed`。
 - `Python Parser Service` 已支持 PDF / DOCX / text 基础解析、结构块构建、无文本 PDF 的 OCR 降级入口。
+- 首条消息前可先上传“会话级临时资料”；这条链路会走 `parse/chunk/citation anchor`，但明确跳过 embedding 和 Qdrant indexing。
+- 会话级临时资料会落到 `conversation_attachments`，回答阶段可通过独立 MCP tool 检索，并继续复用 `citation_anchors -> message_citations -> 阅读页跳转` 链路。
+- 文本类临时资料现在会额外保留 line / block locator，前端引用标签和阅读页可显示行号或段号。
 
 当前已知缺口：
 
@@ -108,38 +111,45 @@ flowchart LR
 - OCR 真实 provider 尚未接入；当前仅支持关闭或 mock，并继续保持 disabled 直到商业 API 方案确定。
 - retrieval 已补上 dense 候选窗口内的 BM25 混合打分，但仍未完成更完整的 sparse 候选扩展。
 - 前端与文案仍存在少量去法律化未收口残留。
+- 会话级临时资料当前只做 parse-only 本地检索，不进入工作空间全局检索，也还没有后台清理任务。
 
 ## 4. 运行时分层
 
-### 4.1 Next.js BFF
+### 4.1 运行时与升级约束
 
-负责：
+当前版本演进采用双轨升级模型：
 
-- 页面渲染
-- 登录态
-- 上传签名
-- 任务查询
-- 创建对话
-- 会话分享链接管理
-- 基础 SSE 响应包装
+- 数据库结构变更：Drizzle versioned SQL migrations
+- 非 SQL 一次性升级：app upgrades
 
-不负责：
+约束：
 
-- OCR
-- 向量化
-- Agent 长循环
-- 重报告生成
+- `packages/db/src/schema.ts` 是 schema source of truth。
+- `packages/db/drizzle/**` 必须提交到仓库，作为可审计 migration 历史。
+- app upgrades 通过 `app_upgrades` 表记录执行状态。
+- 开发启动前执行 safe blocking upgrades。
+- 生产发布时先执行 dedicated upgrade step，再启动运行时服务。
+- 运行时服务启动前只做 `pnpm app:upgrade:check`，若仍有 blocking pending upgrades 则 fail-fast。
+- schema 变更应遵守 `expand -> migrate -> contract`，避免多进程部署期间直接破坏兼容性。
 
-### 4.2 BullMQ Worker
+### 4.2 单机 Docker 生产部署
 
-负责：
+生产部署目标为单机 Docker 多容器。
 
-- 上传后的异步处理
-- 文档切块与入库
-- embedding / rerank 调用
-- 报告导出
+- Node 侧服务复用根目录 `Dockerfile`
+- Parser 使用独立 Python 镜像
+- Web 采用 Next.js `output: "standalone"`
+- `upgrade` 容器负责执行 SQL migrations + blocking app upgrades + bucket ensure
 
-### 4.3 Agent Runtime
+### 4.3 健康检查
+
+生产编排中的健康检查约定：
+
+- web: `/api/health`
+- worker: `/health`
+- agent-runtime: `/health`
+- parser: `/health`
+
 
 负责：
 
@@ -193,6 +203,7 @@ flowchart LR
 - `document_chunks`
 - `citation_anchors`
 - `conversations`
+- `conversation_attachments`
 - `messages`
 - `message_citations`
 - `conversation_shares`
@@ -224,6 +235,7 @@ flowchart LR
 当前工具集合：
 
 - `search_workspace_knowledge`
+- `search_conversation_attachments`
 - `read_citation_anchor`
 - `search_web_general`
 - `fetch_source`

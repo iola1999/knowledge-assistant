@@ -78,6 +78,18 @@ export const systemSettings = pgTable("system_settings", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const appUpgrades = pgTable("app_upgrades", {
+  upgradeKey: varchar("upgrade_key", { length: 160 }).primaryKey(),
+  description: text("description").notNull(),
+  status: varchar("status", { length: 32 }).notNull().default("completed"),
+  blocking: boolean("blocking").notNull().default(true),
+  safeInDevStartup: boolean("safe_in_dev_startup").notNull().default(false),
+  errorMessage: text("error_message"),
+  metadataJson: jsonb("metadata_json").$type<Record<string, unknown>>(),
+  appliedAt: timestamp("applied_at", { withTimezone: true }),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const workspaces = pgTable(
   "workspaces",
   {
@@ -327,6 +339,34 @@ export const conversations = pgTable(
     archivedAt: timestamp("archived_at", { withTimezone: true }),
   },
   (table) => [index("conversations_workspace_idx").on(table.workspaceId)],
+);
+
+export const conversationAttachments = pgTable(
+  "conversation_attachments",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    conversationId: uuid("conversation_id").references(() => conversations.id, {
+      onDelete: "cascade",
+    }),
+    draftUploadId: varchar("draft_upload_id", { length: 64 }),
+    documentId: uuid("document_id")
+      .notNull()
+      .references(() => documents.id, { onDelete: "cascade" }),
+    documentVersionId: uuid("document_version_id")
+      .notNull()
+      .references(() => documentVersions.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    claimedAt: timestamp("claimed_at", { withTimezone: true }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+  },
+  (table) => [
+    index("conversation_attachments_conversation_idx").on(table.conversationId, table.createdAt),
+    index("conversation_attachments_draft_idx").on(table.draftUploadId),
+    uniqueIndex("conversation_attachments_version_uid").on(table.documentVersionId),
+  ],
 );
 
 export const messages = pgTable(

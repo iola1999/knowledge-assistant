@@ -22,6 +22,7 @@ user
       │       ├─ document_chunks
       │       └─ citation_anchors
       ├─ conversations
+      │   ├─ conversation_attachments
       │   ├─ messages
       │   │   └─ message_citations
       │   └─ conversation_shares
@@ -37,9 +38,11 @@ user
 - `workspace` 可携带 `workspace_prompt`，用于附加到该空间内每轮对话的统一回答要求。
 - `documents` 保存逻辑文档信息，`document_versions` 保存版本化文件。
 - `document_blocks / document_chunks / citation_anchors` 支撑检索、阅读和引用。
+- `conversation_attachments` 绑定“会话级临时资料”和正式 `document_version`，用于首条消息前临时上传、首发后认领，以及 parse-only 附件检索。
 - `messages` 保存用户与助手消息，`message_citations` 保存回答中的引用映射。
 - `conversation_shares` 保存会话级公开分享记录；一个会话最多一个活跃分享链接，可撤销后重新生成。
 - `reports / report_sections` 承载大纲和分段生成结果。
+- `app_upgrades` 记录一次性应用升级的执行状态、错误和元数据。
 - `retrieval_runs / retrieval_results` 保留检索行为回放。
 
 ## 3. 通用文档类型

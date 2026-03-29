@@ -12,6 +12,7 @@ import {
   createReportOutlineInputSchema,
   fetchSourceInputSchema,
   readCitationAnchorInputSchema,
+  searchConversationAttachmentsInputSchema,
   searchStatutesInputSchema,
   searchWebGeneralInputSchema,
   searchWorkspaceKnowledgeInputSchema,
@@ -19,6 +20,8 @@ import {
 } from "@knowledge-assistant/contracts";
 import {
   citationAnchors,
+  conversationAttachments,
+  documentBlocks,
   documentChunks,
   documents,
   getDb,
@@ -29,6 +32,7 @@ import {
 } from "@knowledge-assistant/db";
 import {
   describeRetrievalProvider,
+  searchLocalChunks,
   scoreToBasisPoints,
   searchWorkspaceKnowledge,
 } from "@knowledge-assistant/retrieval";
@@ -132,6 +136,36 @@ function buildToolFailure(code: string, message: string, retryable: boolean) {
 
 function uniqueStrings(values: string[]) {
   return Array.from(new Set(values.map((value) => value.trim()).filter(Boolean)));
+}
+
+function readLocatorValue(locator: Record<string, unknown> | null | undefined, keys: string[]) {
+  for (const key of keys) {
+    const value = locator?.[key];
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return Math.max(1, Math.trunc(value));
+    }
+  }
+
+  return null;
+}
+
+function readCitationLocator(metadataJson: Record<string, unknown> | null | undefined) {
+  const locator =
+    metadataJson?.locator && typeof metadataJson.locator === "object"
+      ? (metadataJson.locator as Record<string, unknown>)
+      : null;
+
+  if (!locator) {
+    return null;
+  }
+
+  return {
+    lineStart: readLocatorValue(locator, ["line_start", "lineStart"]),
+    lineEnd: readLocatorValue(locator, ["line_end", "lineEnd"]),
+    pageLineStart: readLocatorValue(locator, ["page_line_start", "pageLineStart"]),
+    pageLineEnd: readLocatorValue(locator, ["page_line_end", "pageLineEnd"]),
+    blockIndex: readLocatorValue(locator, ["block_index", "blockIndex"]),
+  };
 }
 
 async function performWebSearch(input: { query: string; topK: number }) {
@@ -273,6 +307,7 @@ export async function searchWorkspaceKnowledgeHandler(input: unknown) {
         documentId: citationAnchors.documentId,
         documentPath: citationAnchors.documentPath,
         documentTitle: documents.title,
+        anchorLabel: citationAnchors.anchorLabel,
         pageNo: citationAnchors.pageNo,
         sectionLabel: documentChunks.sectionLabel,
         snippet: citationAnchors.anchorText,
@@ -305,6 +340,7 @@ export async function searchWorkspaceKnowledgeHandler(input: unknown) {
             document_id: row.documentId,
             document_title: row.documentTitle,
             document_path: row.documentPath,
+            anchor_label: row.anchorLabel,
             page_no: row.pageNo,
             section_label: row.sectionLabel,
             snippet: row.snippet,
@@ -327,6 +363,96 @@ export async function searchWorkspaceKnowledgeHandler(input: unknown) {
   }
 }
 
+export async function searchConversationAttachmentsHandler(input: unknown) {
+  const args = searchConversationAttachmentsInputSchema.parse(input);
+  const db = getDb();
+
+  try {
+    const hydrated = await db
+      .select({
+        anchorId: citationAnchors.id,
+        chunkId: documentChunks.id,
+        documentId: documents.id,
+        documentVersionId: documentChunks.documentVersionId,
+        documentPath: citationAnchors.documentPath,
+        documentTitle: documents.title,
+        anchorLabel: citationAnchors.anchorLabel,
+        pageNo: citationAnchors.pageNo,
+        sectionLabel: documentChunks.sectionLabel,
+        headingPath: documentChunks.headingPath,
+        docType: documents.docType,
+        keywords: documentChunks.keywords,
+        snippet: citationAnchors.anchorText,
+      })
+      .from(conversationAttachments)
+      .innerJoin(
+        documentChunks,
+        eq(documentChunks.documentVersionId, conversationAttachments.documentVersionId),
+      )
+      .innerJoin(citationAnchors, eq(citationAnchors.chunkId, documentChunks.id))
+      .innerJoin(documents, eq(documents.id, conversationAttachments.documentId))
+      .where(eq(conversationAttachments.conversationId, args.conversation_id));
+
+    const ranked = searchLocalChunks({
+      query: args.query,
+      topK: args.top_k,
+      chunks: hydrated.map((row) => ({
+        anchorId: row.anchorId,
+        chunkId: row.chunkId,
+        documentId: row.documentId,
+        documentVersionId: row.documentVersionId,
+        documentPath: row.documentPath,
+        pageStart: row.pageNo,
+        pageEnd: row.pageNo,
+        sectionLabel: row.sectionLabel ?? null,
+        headingPath: row.headingPath ?? [],
+        docType: row.docType,
+        keywords: row.keywords ?? [],
+        snippet: row.snippet,
+      })),
+    });
+
+    const hydratedByAnchorId = new Map(
+      hydrated.map((item) => [item.anchorId, item] as const),
+    );
+
+    return {
+      ok: true,
+      results: ranked
+        .map((item) => {
+          const row = hydratedByAnchorId.get(item.anchorId);
+          if (!row) {
+            return null;
+          }
+
+          return {
+            anchor_id: row.anchorId,
+            document_id: row.documentId,
+            document_title: row.documentTitle,
+            document_path: row.documentPath,
+            anchor_label: row.anchorLabel,
+            page_no: row.pageNo,
+            section_label: row.sectionLabel ?? null,
+            snippet: row.snippet,
+            score: item.score,
+          };
+        })
+        .filter((item): item is NonNullable<typeof item> => item !== null),
+    };
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Conversation attachment search failed";
+    return {
+      ok: false,
+      error: {
+        code: "CONVERSATION_ATTACHMENT_SEARCH_UNAVAILABLE",
+        message,
+        retryable: true,
+      },
+    };
+  }
+}
+
 export async function readCitationAnchorHandler(input: unknown) {
   const args = readCitationAnchorInputSchema.parse(input);
   const db = getDb();
@@ -340,10 +466,12 @@ export async function readCitationAnchorHandler(input: unknown) {
       anchorText: citationAnchors.anchorText,
       anchorLabel: citationAnchors.anchorLabel,
       bboxJson: citationAnchors.bboxJson,
+      blockMetadataJson: documentBlocks.metadataJson,
       documentTitle: documents.title,
     })
     .from(citationAnchors)
     .innerJoin(documents, eq(documents.id, citationAnchors.documentId))
+    .leftJoin(documentBlocks, eq(documentBlocks.id, citationAnchors.blockId))
     .where(eq(citationAnchors.id, args.anchor_id))
     .limit(1);
 
@@ -366,8 +494,12 @@ export async function readCitationAnchorHandler(input: unknown) {
       document_id: anchor.documentId,
       document_title: anchor.documentTitle,
       document_path: anchor.documentPath,
+      anchor_label: anchor.anchorLabel,
       page_no: anchor.pageNo,
       bbox: anchor.bboxJson ?? null,
+      locator: readCitationLocator(
+        (anchor.blockMetadataJson as Record<string, unknown> | null | undefined) ?? null,
+      ),
       text: anchor.anchorText,
       context_before: "",
       context_after: "",
@@ -636,6 +768,12 @@ export function createAssistantMcpServer() {
     name: ASSISTANT_MCP_SERVER_NAME,
     version: "0.1.0",
     tools: [
+      tool(
+        ASSISTANT_TOOL.SEARCH_CONVERSATION_ATTACHMENTS,
+        "Search temporary files attached to the current conversation",
+        searchConversationAttachmentsInputSchema.shape,
+        async (args) => asToolText(await searchConversationAttachmentsHandler(args)),
+      ),
       tool(
         ASSISTANT_TOOL.SEARCH_WORKSPACE_KNOWLEDGE,
         "Search documents inside a workspace knowledge base",

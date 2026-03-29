@@ -126,6 +126,7 @@ export async function requireOwnedDocumentJob(jobId: string, userId: string) {
       stage: documentJobs.stage,
       status: documentJobs.status,
       progress: documentJobs.progress,
+      metadataJson: documentVersions.metadataJson,
       errorCode: documentJobs.errorCode,
       errorMessage: documentJobs.errorMessage,
       createdAt: documentJobs.createdAt,

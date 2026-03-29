@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { and, eq, isNull } from "drizzle-orm";
 import { notFound } from "next/navigation";
-import { PARSE_STATUS } from "@knowledge-assistant/contracts";
+import { formatCitationLocator, PARSE_STATUS } from "@knowledge-assistant/contracts";
 
 import {
   citationAnchors,
@@ -18,6 +18,7 @@ import { DeleteDocumentButton } from "@/components/documents/delete-document-but
 import { DocumentJobPanel } from "@/components/documents/document-job-panel";
 import { DocumentMetadataForm } from "@/components/documents/document-metadata-form";
 import { PdfViewer } from "@/components/documents/pdf-viewer";
+import { readCitationLocator } from "@/lib/api/document-metadata";
 import { buildDocumentViewerPages } from "@/lib/api/document-view";
 import { documentTypeOptions } from "@/lib/api/document-metadata";
 import { cn, ui } from "@/lib/ui";
@@ -83,6 +84,7 @@ export default async function DocumentPage({
   let anchor: {
     documentPath: string;
     pageNo: number;
+    anchorLabel: string;
     anchorText: string;
   } | null = null;
   let blocks: Array<{
@@ -93,6 +95,7 @@ export default async function DocumentPage({
     text: string;
     headingPath: string[] | null;
     sectionLabel: string | null;
+    metadataJson?: Record<string, unknown> | null;
   }> = [];
   let pageAnchors: Array<{
     id: string;
@@ -109,6 +112,7 @@ export default async function DocumentPage({
             .select({
               documentPath: citationAnchors.documentPath,
               pageNo: citationAnchors.pageNo,
+              anchorLabel: citationAnchors.anchorLabel,
               anchorText: citationAnchors.anchorText,
             })
             .from(citationAnchors)
@@ -130,6 +134,7 @@ export default async function DocumentPage({
           text: documentBlocks.text,
           headingPath: documentBlocks.headingPath,
           sectionLabel: documentBlocks.sectionLabel,
+          metadataJson: documentBlocks.metadataJson,
         })
         .from(documentBlocks)
         .where(eq(documentBlocks.documentVersionId, latestVersion.id)),
@@ -201,7 +206,7 @@ export default async function DocumentPage({
         <div className={cn(ui.panel, "grid gap-2")}>
           <h3>当前引用定位</h3>
           <p className={ui.muted}>
-            {anchor.documentPath} · 第{anchor.pageNo}页
+            {anchor.anchorLabel}
           </p>
           <p>{anchor.anchorText}</p>
         </div>
@@ -261,6 +266,21 @@ export default async function DocumentPage({
                       <span className={ui.muted}>
                         {block.sectionLabel ?? block.headingPath.at(-1) ?? "正文"}
                         {block.anchorCount > 0 ? ` · ${block.anchorCount} 个引用` : ""}
+                        {formatCitationLocator(
+                          readCitationLocator(
+                            (block.metadataJson as Record<string, unknown> | null | undefined) ??
+                              null,
+                          ),
+                        )
+                          ? ` · ${formatCitationLocator(
+                              readCitationLocator(
+                                (block.metadataJson as
+                                  | Record<string, unknown>
+                                  | null
+                                  | undefined) ?? null,
+                              ),
+                            )}`
+                          : ""}
                       </span>
                     </div>
                     {block.headingPath.length > 0 ? (

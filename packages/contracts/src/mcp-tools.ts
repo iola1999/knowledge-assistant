@@ -17,6 +17,14 @@ const bboxSchema = z.object({
   y2: z.number(),
 });
 
+const citationLocatorSchema = z.object({
+  lineStart: z.number().int().min(1).nullable().optional(),
+  lineEnd: z.number().int().min(1).nullable().optional(),
+  pageLineStart: z.number().int().min(1).nullable().optional(),
+  pageLineEnd: z.number().int().min(1).nullable().optional(),
+  blockIndex: z.number().int().min(1).nullable().optional(),
+});
+
 const toolErrorSchema = z.object({
   code: z.string(),
   message: z.string(),
@@ -46,24 +54,47 @@ export const searchWorkspaceKnowledgeInputSchema = z.object({
     .default(DEFAULT_SEARCH_WORKSPACE_KNOWLEDGE_TOP_K),
 });
 
+const knowledgeSearchResultSchema = z.object({
+  anchor_id: z.string().uuid(),
+  document_id: z.string().uuid(),
+  document_title: z.string(),
+  document_path: z.string(),
+  anchor_label: z.string().optional(),
+  page_no: z.number().int().min(1),
+  section_label: z.string().nullable().optional(),
+  locator: citationLocatorSchema.nullable().optional(),
+  snippet: z.string(),
+  score: z.number(),
+});
+
 export const searchWorkspaceKnowledgeSuccessSchema = z.object({
   ok: z.literal(true),
-  results: z.array(
-    z.object({
-      anchor_id: z.string().uuid(),
-      document_id: z.string().uuid(),
-      document_title: z.string(),
-      document_path: z.string(),
-      page_no: z.number().int().min(1),
-      section_label: z.string().nullable().optional(),
-      snippet: z.string(),
-      score: z.number(),
-    }),
-  ),
+  results: z.array(knowledgeSearchResultSchema),
 });
 
 export const searchWorkspaceKnowledgeOutputSchema = z.union([
   searchWorkspaceKnowledgeSuccessSchema,
+  toolFailureSchema,
+]);
+
+export const searchConversationAttachmentsInputSchema = z.object({
+  conversation_id: z.string().uuid(),
+  query: z.string().min(1),
+  top_k: z
+    .number()
+    .int()
+    .min(1)
+    .max(MAX_SEARCH_WORKSPACE_KNOWLEDGE_TOP_K)
+    .default(DEFAULT_SEARCH_WORKSPACE_KNOWLEDGE_TOP_K),
+});
+
+export const searchConversationAttachmentsSuccessSchema = z.object({
+  ok: z.literal(true),
+  results: z.array(knowledgeSearchResultSchema),
+});
+
+export const searchConversationAttachmentsOutputSchema = z.union([
+  searchConversationAttachmentsSuccessSchema,
   toolFailureSchema,
 ]);
 
@@ -78,7 +109,9 @@ export const readCitationAnchorSuccessSchema = z.object({
     document_id: z.string().uuid(),
     document_title: z.string(),
     document_path: z.string(),
+    anchor_label: z.string().optional(),
     page_no: z.number().int().min(1),
+    locator: citationLocatorSchema.nullable().optional(),
     bbox: bboxSchema.nullable().optional(),
     text: z.string(),
     context_before: z.string().optional(),
@@ -216,6 +249,12 @@ export type SearchWorkspaceKnowledgeInput = z.infer<
 >;
 export type SearchWorkspaceKnowledgeOutput = z.infer<
   typeof searchWorkspaceKnowledgeOutputSchema
+>;
+export type SearchConversationAttachmentsInput = z.infer<
+  typeof searchConversationAttachmentsInputSchema
+>;
+export type SearchConversationAttachmentsOutput = z.infer<
+  typeof searchConversationAttachmentsOutputSchema
 >;
 
 export type ReadCitationAnchorInput = z.infer<typeof readCitationAnchorInputSchema>;

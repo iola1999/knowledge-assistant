@@ -1,7 +1,8 @@
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { MESSAGE_ROLE, MESSAGE_STATUS } from "@knowledge-assistant/contracts";
 
 import {
+  conversationAttachments,
   conversations,
   getDb,
   messages,
@@ -61,8 +62,12 @@ export async function POST(
     return Response.json({ error: "Conversation not found" }, { status: 404 });
   }
 
-  const body = (await request.json().catch(() => ({}))) as { content?: string };
+  const body = (await request.json().catch(() => ({}))) as {
+    content?: string;
+    draftUploadId?: string;
+  };
   const content = String(body.content ?? "").trim();
+  const draftUploadId = String(body.draftUploadId ?? "").trim() || null;
   if (!content) {
     return Response.json({ error: "content is required" }, { status: 400 });
   }
@@ -105,11 +110,29 @@ export async function POST(
     })
     .returning();
 
+  if (draftUploadId) {
+    await db
+      .update(conversationAttachments)
+      .set({
+        conversationId,
+        draftUploadId: null,
+        claimedAt: new Date(),
+        expiresAt: null,
+      })
+      .where(
+        and(
+          eq(conversationAttachments.workspaceId, conversation.workspaceId),
+          eq(conversationAttachments.draftUploadId, draftUploadId),
+        ),
+      );
+  }
+
   try {
     await enqueueConversationResponse({
       conversationId,
       userMessageId: userMessage.id,
       assistantMessageId: assistantMessage.id,
+      draftUploadId,
       prompt: buildConversationPrompt({
         content,
         workspacePrompt: conversation.workspacePrompt,

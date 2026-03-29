@@ -1,8 +1,10 @@
 import { eq } from "drizzle-orm";
 import {
   DEFAULT_PARSE_STATUS,
+  DEFAULT_DOCUMENT_INDEXING_MODE,
   DOCUMENT_STATUS,
   RUN_STATUS,
+  type DocumentIndexingMode,
 } from "@knowledge-assistant/contracts";
 
 import { documentJobs, documentVersions, documents, getDb } from "@knowledge-assistant/db";
@@ -62,10 +64,16 @@ export async function POST(
     })
     .where(eq(documents.id, job.documentId));
 
+  const indexingMode =
+    typeof job.metadataJson?.indexing_mode === "string"
+      ? (job.metadataJson.indexing_mode as DocumentIndexingMode)
+      : DEFAULT_DOCUMENT_INDEXING_MODE;
+
   await enqueueIngestFlow({
     workspaceId: job.workspaceId,
     documentId: job.documentId,
     documentVersionId: job.documentVersionId,
+    indexingMode,
   });
 
   return Response.json({ ok: true });

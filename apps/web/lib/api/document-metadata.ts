@@ -1,5 +1,11 @@
 import { z } from "zod";
-import { DOCUMENT_TYPE, DOCUMENT_TYPE_VALUES, type DocumentType } from "@knowledge-assistant/contracts";
+import {
+  buildCitationReferenceLabel,
+  type CitationLocator,
+  DOCUMENT_TYPE,
+  DOCUMENT_TYPE_VALUES,
+  type DocumentType,
+} from "@knowledge-assistant/contracts";
 
 export const documentTypeOptions = [
   { value: DOCUMENT_TYPE.REFERENCE, label: "参考资料" },
@@ -115,12 +121,68 @@ export function buildDocumentPath(directoryPath: string, sourceFilename: string)
   );
 }
 
-export function buildAnchorLabel(title: string, pageNo: number) {
-  return `${title} · 第${pageNo}页`;
+function readLocatorNumber(
+  source: Record<string, unknown> | null | undefined,
+  keys: string[],
+) {
+  for (const key of keys) {
+    const value = source?.[key];
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return Math.max(1, Math.trunc(value));
+    }
+  }
+
+  return null;
 }
 
-export function buildMessageCitationLabel(documentPath: string, pageNo: number) {
-  return `${documentPath} · 第${pageNo}页`;
+export function readCitationLocator(
+  source: Record<string, unknown> | null | undefined,
+): CitationLocator | null {
+  const locator =
+    source?.locator && typeof source.locator === "object"
+      ? (source.locator as Record<string, unknown>)
+      : source;
+  if (!locator || typeof locator !== "object") {
+    return null;
+  }
+
+  const result: CitationLocator = {
+    lineStart: readLocatorNumber(locator, ["line_start", "lineStart"]),
+    lineEnd: readLocatorNumber(locator, ["line_end", "lineEnd"]),
+    pageLineStart: readLocatorNumber(locator, ["page_line_start", "pageLineStart"]),
+    pageLineEnd: readLocatorNumber(locator, ["page_line_end", "pageLineEnd"]),
+    blockIndex: readLocatorNumber(locator, ["block_index", "blockIndex"]),
+  };
+
+  return Object.values(result).some((value) => value !== null) ? result : null;
+}
+
+export function buildAnchorLabel(
+  title: string,
+  pageNo: number,
+  locator?: CitationLocator | null,
+  sectionLabel?: string | null,
+) {
+  return buildCitationReferenceLabel({
+    subject: title,
+    pageNo,
+    locator,
+    sectionLabel,
+  });
+}
+
+export function buildMessageCitationLabel(
+  documentPath: string,
+  pageNo: number,
+  locator?: CitationLocator | null,
+  sectionLabel?: string | null,
+) {
+  return buildCitationReferenceLabel({
+    subject: documentPath,
+    pageNo,
+    locator,
+    sectionLabel,
+  });
 }
 
 export function buildDocumentMetadataUpdate(

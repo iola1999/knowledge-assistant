@@ -28,13 +28,16 @@ export function getAllowedTools() {
   return [...ASSISTANT_ALLOWED_TOOL_NAMES];
 }
 
-function buildAgentSystemPrompt(input: { workspaceId: string }) {
+function buildAgentSystemPrompt(input: { workspaceId: string; conversationId: string }) {
   return [
     "You are a grounded workspace assistant operating inside a single workspace.",
     `Current workspace_id: ${input.workspaceId}.`,
+    `Current conversation_id: ${input.conversationId}.`,
+    "When you use search_conversation_attachments, always pass the exact conversation_id shown above.",
     "When you use search_workspace_knowledge or create_report_outline, always pass the exact workspace_id shown above.",
     "Do not invent facts, sources, anchor IDs, or directory paths.",
     "If the workspace knowledge base does not support the answer, say so plainly.",
+    "If the user mentions files uploaded in this chat or temporary attachments, search conversation attachments before the workspace knowledge base.",
     "Prefer workspace knowledge first. Use web tools when local evidence is insufficient.",
     "Use search_statutes only when the user explicitly asks for laws, regulations, or statute-level references.",
     "When citing workspace evidence in the final answer, mention the document path and page number when available.",
@@ -66,7 +69,10 @@ function collectWorkspaceEvidence(
 ) {
   const normalizedToolName = normalizeAssistantToolName(toolName);
 
-  if (normalizedToolName === ASSISTANT_TOOL.SEARCH_WORKSPACE_KNOWLEDGE) {
+  if (
+    normalizedToolName === ASSISTANT_TOOL.SEARCH_WORKSPACE_KNOWLEDGE ||
+    normalizedToolName === ASSISTANT_TOOL.SEARCH_CONVERSATION_ATTACHMENTS
+  ) {
     const results = Array.isArray(payload.results) ? payload.results : [];
     for (const result of results) {
       if (!result || typeof result !== "object") {
@@ -87,6 +93,9 @@ function collectWorkspaceEvidence(
       const sectionLabel = String(
         (result as Record<string, unknown>).section_label ?? "",
       ).trim();
+      const anchorLabel = String(
+        (result as Record<string, unknown>).anchor_label ?? "",
+      ).trim();
       const snippet = String((result as Record<string, unknown>).snippet ?? "").trim();
 
       citationMap.set(anchorId, {
@@ -94,9 +103,11 @@ function collectWorkspaceEvidence(
         document_path: documentPath,
         page_no: pageNo,
         label:
+          anchorLabel ||
           [documentPath, pageNo ? `第${pageNo}页` : null, sectionLabel || null]
             .filter(Boolean)
-            .join(" · ") || anchorId,
+            .join(" · ") ||
+          anchorId,
         quote_text: snippet,
       });
     }
@@ -113,15 +124,17 @@ function collectWorkspaceEvidence(
       if (anchorId) {
         const documentPath = String(anchor.document_path ?? "").trim();
         const pageNo = typeof anchor.page_no === "number" ? anchor.page_no : null;
+        const anchorLabel = String(anchor.anchor_label ?? "").trim();
         const text = String(anchor.text ?? "").trim();
 
         citationMap.set(anchorId, {
           anchor_id: anchorId,
           document_path: documentPath,
           page_no: pageNo,
-          label: [documentPath, pageNo ? `第${pageNo}页` : null]
-            .filter(Boolean)
-            .join(" · ") || anchorId,
+          label:
+            anchorLabel ||
+            [documentPath, pageNo ? `第${pageNo}页` : null].filter(Boolean).join(" · ") ||
+            anchorId,
           quote_text: text,
         });
       }
@@ -257,7 +270,7 @@ export async function runAgentResponse(
       systemPrompt: {
         type: "preset",
         preset: "claude_code",
-        append: buildAgentSystemPrompt({ workspaceId }),
+        append: buildAgentSystemPrompt({ workspaceId, conversationId }),
       },
       hooks: {
         PreToolUse: [

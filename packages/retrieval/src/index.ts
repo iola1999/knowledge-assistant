@@ -648,3 +648,4 @@ export function scoreToBasisPoints(score: number) {
 }
 
 export { describeRetrievalProvider } from "./providers";
+export { searchLocalChunks, type LocalSearchChunkRecord } from "./local-search";

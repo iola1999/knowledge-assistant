@@ -42,6 +42,8 @@
 - `/api/workspaces`
 - `/api/workspaces/[workspaceId]`
 - `/api/workspaces/[workspaceId]/uploads/presign`
+- `/api/workspaces/[workspaceId]/attachments/presign`
+- `/api/workspaces/[workspaceId]/attachments`
 - `/api/workspaces/[workspaceId]/documents`
 - `/api/workspaces/[workspaceId]/tree`
 - `/api/workspaces/[workspaceId]/conversations`
@@ -77,5 +79,6 @@ Client Components：
 - ConversationTimeline
 - ConversationSharePopover
 - PDF Viewer
+- 临时附件上传与轮询状态
 - 上传表单
 - 会话操作与自动刷新

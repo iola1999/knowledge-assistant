@@ -9,6 +9,7 @@ from parser_utils import (
     infer_heading_level,
     infer_file_kind,
     is_heading_style,
+    split_paragraph_items,
     split_paragraphs,
 )
 
@@ -23,6 +24,17 @@ class ParserUtilsTestCase(unittest.TestCase):
     def test_split_paragraphs(self):
         paragraphs = split_paragraphs("第一段\n\n第二段\r\n\r\n第三段")
         self.assertEqual(paragraphs, ["第一段", "第二段", "第三段"])
+
+    def test_split_paragraph_items_preserve_line_ranges(self):
+        items = split_paragraph_items("第一行\n第二行\n\n第三段\n第四行")
+
+        self.assertEqual(
+            items,
+            [
+                {"text": "第一行\n第二行", "line_start": 1, "line_end": 2},
+                {"text": "第三段\n第四行", "line_start": 4, "line_end": 5},
+            ],
+        )
 
     def test_heading_detection(self):
         self.assertEqual(extract_section_label("第8节 上线检查"), "第8节")
@@ -66,6 +78,7 @@ class ParserUtilsTestCase(unittest.TestCase):
         self.assertEqual(blocks[0]["block_type"], "heading")
         self.assertEqual(blocks[0]["text"], "发布范围")
         self.assertEqual(blocks[1]["heading_path"], ["发布范围"])
+        self.assertEqual(blocks[1]["metadata_json"]["locator"]["block_index"], 2)
         self.assertEqual(headings, ["发布范围"])
 
     def test_build_blocks_preserves_nested_heading_path(self):

@@ -1,5 +1,10 @@
 import { FlowProducer, Queue, type JobsOptions } from "bullmq";
-import { DEFAULT_QUEUE_JOB_RETENTION_LIMIT } from "@knowledge-assistant/contracts";
+import {
+  DEFAULT_DOCUMENT_INDEXING_MODE,
+  DEFAULT_QUEUE_JOB_RETENTION_LIMIT,
+  DOCUMENT_INDEXING_MODE,
+  type DocumentIndexingMode,
+} from "@knowledge-assistant/contracts";
 
 export const QUEUE_NAMES = {
   respond: "conversation.respond",
@@ -13,6 +18,7 @@ export type IngestJobPayload = {
   workspaceId: string;
   documentId: string;
   documentVersionId: string;
+  indexingMode?: DocumentIndexingMode;
 };
 
 export type ConversationResponseJobPayload = {
@@ -20,6 +26,7 @@ export type ConversationResponseJobPayload = {
   userMessageId: string;
   assistantMessageId: string;
   prompt: string;
+  draftUploadId?: string | null;
 };
 
 export function getRedisConnection() {
@@ -45,53 +52,98 @@ export async function enqueueIngestFlow(
   options?: JobsOptions,
 ) {
   const producer = createFlowProducer();
+  const indexingMode = payload.indexingMode ?? DEFAULT_DOCUMENT_INDEXING_MODE;
 
   return producer.add({
     name: QUEUE_NAMES.index,
     queueName: QUEUE_NAMES.index,
-    data: payload,
+    data: {
+      ...payload,
+      indexingMode,
+    },
     opts: {
       jobId: `${payload.documentVersionId}:index`,
       removeOnComplete: DEFAULT_QUEUE_JOB_RETENTION_LIMIT,
       removeOnFail: DEFAULT_QUEUE_JOB_RETENTION_LIMIT,
       ...options,
     },
-    children: [
-      {
-        name: QUEUE_NAMES.embed,
-        queueName: QUEUE_NAMES.embed,
-        data: payload,
-        opts: {
-          jobId: `${payload.documentVersionId}:embed`,
-          removeOnComplete: DEFAULT_QUEUE_JOB_RETENTION_LIMIT,
-          removeOnFail: DEFAULT_QUEUE_JOB_RETENTION_LIMIT,
-        },
-        children: [
-          {
-            name: QUEUE_NAMES.chunk,
-            queueName: QUEUE_NAMES.chunk,
-            data: payload,
-            opts: {
-              jobId: `${payload.documentVersionId}:chunk`,
-              removeOnComplete: DEFAULT_QUEUE_JOB_RETENTION_LIMIT,
-              removeOnFail: DEFAULT_QUEUE_JOB_RETENTION_LIMIT,
-            },
-            children: [
-              {
-                name: QUEUE_NAMES.parse,
-                queueName: QUEUE_NAMES.parse,
-                data: payload,
-                opts: {
-                  jobId: `${payload.documentVersionId}:parse`,
-                  removeOnComplete: DEFAULT_QUEUE_JOB_RETENTION_LIMIT,
-                  removeOnFail: DEFAULT_QUEUE_JOB_RETENTION_LIMIT,
-                },
+    children:
+      indexingMode === DOCUMENT_INDEXING_MODE.PARSE_ONLY
+        ? [
+            {
+              name: QUEUE_NAMES.chunk,
+              queueName: QUEUE_NAMES.chunk,
+              data: {
+                ...payload,
+                indexingMode,
               },
-            ],
-          },
-        ],
-      },
-    ],
+              opts: {
+                jobId: `${payload.documentVersionId}:chunk`,
+                removeOnComplete: DEFAULT_QUEUE_JOB_RETENTION_LIMIT,
+                removeOnFail: DEFAULT_QUEUE_JOB_RETENTION_LIMIT,
+              },
+              children: [
+                {
+                  name: QUEUE_NAMES.parse,
+                  queueName: QUEUE_NAMES.parse,
+                  data: {
+                    ...payload,
+                    indexingMode,
+                  },
+                  opts: {
+                    jobId: `${payload.documentVersionId}:parse`,
+                    removeOnComplete: DEFAULT_QUEUE_JOB_RETENTION_LIMIT,
+                    removeOnFail: DEFAULT_QUEUE_JOB_RETENTION_LIMIT,
+                  },
+                },
+              ],
+            },
+          ]
+        : [
+            {
+              name: QUEUE_NAMES.embed,
+              queueName: QUEUE_NAMES.embed,
+              data: {
+                ...payload,
+                indexingMode,
+              },
+              opts: {
+                jobId: `${payload.documentVersionId}:embed`,
+                removeOnComplete: DEFAULT_QUEUE_JOB_RETENTION_LIMIT,
+                removeOnFail: DEFAULT_QUEUE_JOB_RETENTION_LIMIT,
+              },
+              children: [
+                {
+                  name: QUEUE_NAMES.chunk,
+                  queueName: QUEUE_NAMES.chunk,
+                  data: {
+                    ...payload,
+                    indexingMode,
+                  },
+                  opts: {
+                    jobId: `${payload.documentVersionId}:chunk`,
+                    removeOnComplete: DEFAULT_QUEUE_JOB_RETENTION_LIMIT,
+                    removeOnFail: DEFAULT_QUEUE_JOB_RETENTION_LIMIT,
+                  },
+                  children: [
+                    {
+                      name: QUEUE_NAMES.parse,
+                      queueName: QUEUE_NAMES.parse,
+                      data: {
+                        ...payload,
+                        indexingMode,
+                      },
+                      opts: {
+                        jobId: `${payload.documentVersionId}:parse`,
+                        removeOnComplete: DEFAULT_QUEUE_JOB_RETENTION_LIMIT,
+                        removeOnFail: DEFAULT_QUEUE_JOB_RETENTION_LIMIT,
+                      },
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
   });
 }
 

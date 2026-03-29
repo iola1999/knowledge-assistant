@@ -17,11 +17,10 @@ from pypdf import PdfReader
 from ocr import OCRProviderError, get_ocr_provider
 from parser_utils import (
     build_blocks_from_items,
-    build_blocks_from_paragraphs,
     compute_parse_score_bp,
     infer_file_kind,
     is_heading_style,
-    split_paragraphs,
+    split_paragraph_items,
 )
 
 
@@ -82,8 +81,8 @@ def decode_text_bytes(data: bytes) -> str:
 
 def parse_text_document(data: bytes):
     text = decode_text_bytes(data)
-    paragraphs = split_paragraphs(text)
-    blocks, _ = build_blocks_from_paragraphs(paragraphs, page_no=1)
+    paragraph_items = split_paragraph_items(text)
+    blocks, _ = build_blocks_from_items(paragraph_items, page_no=1)
 
     return {
         "page_count": 1,
@@ -193,8 +192,9 @@ def build_document_from_page_texts(
             }
         )
 
-        page_blocks, inherited_headings = build_blocks_from_paragraphs(
-            split_paragraphs(text),
+        page_items = split_paragraph_items(text, line_number_scope="page")
+        page_blocks, inherited_headings = build_blocks_from_items(
+            page_items,
             page_no=page["page_no"],
             starting_order_index=order_index,
             inherited_headings=inherited_headings,

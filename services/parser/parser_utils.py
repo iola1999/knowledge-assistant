@@ -40,6 +40,66 @@ def split_paragraphs(text: str) -> list[str]:
     return [fallback] if fallback else []
 
 
+def split_paragraph_items(
+    text: str,
+    *,
+    line_number_scope: str = "document",
+) -> list[dict]:
+    normalized = (text or "").replace("\r\n", "\n").replace("\r", "\n")
+    lines = normalized.split("\n")
+    items: list[dict] = []
+    paragraph_lines: list[str] = []
+    start_line: int | None = None
+
+    def flush(end_line: int):
+        nonlocal paragraph_lines, start_line
+
+        if start_line is None or not paragraph_lines:
+            paragraph_lines = []
+            start_line = None
+            return
+
+        item = {
+            "text": "\n".join(paragraph_lines).strip(),
+        }
+        if line_number_scope == "page":
+            item["page_line_start"] = start_line
+            item["page_line_end"] = end_line
+        else:
+            item["line_start"] = start_line
+            item["line_end"] = end_line
+        items.append(item)
+        paragraph_lines = []
+        start_line = None
+
+    for line_no, line in enumerate(lines, start=1):
+        if line.strip():
+            if start_line is None:
+                start_line = line_no
+            paragraph_lines.append(line.strip())
+            continue
+
+        flush(line_no - 1)
+
+    flush(len(lines))
+
+    if items:
+        return items
+
+    fallback = normalize_text(normalized)
+    if not fallback:
+        return []
+
+    item = {"text": fallback}
+    if line_number_scope == "page":
+        item["page_line_start"] = 1
+        item["page_line_end"] = max(1, len(lines))
+    else:
+        item["line_start"] = 1
+        item["line_end"] = max(1, len(lines))
+    return [item]
+
+
 def extract_section_label(text: str) -> str | None:
     normalized = strip_heading_markers(text)
     if not normalized:
@@ -152,6 +212,20 @@ def build_blocks_from_items(
         elif not section_label and current_headings:
             section_label = extract_section_label(current_headings[-1]) or current_headings[-1]
 
+        locator = {
+            "line_start": item.get("line_start"),
+            "line_end": item.get("line_end"),
+            "page_line_start": item.get("page_line_start"),
+            "page_line_end": item.get("page_line_end"),
+            "block_index": order_index,
+        }
+        metadata_json = {
+            **(item.get("metadata_json") or {}),
+            "locator": {
+                key: value for key, value in locator.items() if value is not None
+            },
+        }
+
         blocks.append(
             {
                 "page_no": page_no,
@@ -161,6 +235,7 @@ def build_blocks_from_items(
                 "heading_path": current_headings.copy(),
                 "text": normalized,
                 "bbox_json": None,
+                "metadata_json": metadata_json,
             }
         )
         order_index += 1

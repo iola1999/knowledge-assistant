@@ -40,6 +40,16 @@ export const DOCUMENT_TYPE_VALUES = [
 ] as const;
 export type DocumentType = ValueOf<typeof DOCUMENT_TYPE>;
 
+export const DOCUMENT_INDEXING_MODE = {
+  FULL: "full",
+  PARSE_ONLY: "parse_only",
+} as const;
+export const DOCUMENT_INDEXING_MODE_VALUES = [
+  DOCUMENT_INDEXING_MODE.FULL,
+  DOCUMENT_INDEXING_MODE.PARSE_ONLY,
+] as const;
+export type DocumentIndexingMode = ValueOf<typeof DOCUMENT_INDEXING_MODE>;
+
 export const PARSE_STATUS = {
   QUEUED: "queued",
   EXTRACTING_TEXT: "extracting_text",

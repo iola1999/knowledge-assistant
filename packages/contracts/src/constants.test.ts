@@ -20,6 +20,7 @@ describe("shared constants helpers", () => {
   test("includes both workspace and web tools in the default tool list", () => {
     expect(ASSISTANT_ALLOWED_TOOL_NAMES).toEqual(
       expect.arrayContaining([
+        ASSISTANT_MCP_TOOL.SEARCH_CONVERSATION_ATTACHMENTS,
         ASSISTANT_MCP_TOOL.SEARCH_WORKSPACE_KNOWLEDGE,
         ASSISTANT_MCP_TOOL.READ_CITATION_ANCHOR,
         ASSISTANT_MCP_TOOL.SEARCH_WEB_GENERAL,

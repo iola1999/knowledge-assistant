@@ -26,7 +26,8 @@
 - 会话管理、文档阅读器和上传任务反馈都已有基础版。
 - 主会话链路的 assistant draft streaming 已打通，Claude Agent SDK 仍留在独立 `agent-runtime` 进程中负责决策与工具调用。
 - 本地开发一键启动脚本已补齐。
-- 系统级 provider / infra 配置开始从 env 收敛到数据库 `system_settings`。
+- 数据库与应用升级开始从 ad-hoc bootstrap 收敛到 versioned SQL migrations + tracked app upgrades。
+- 已新增生产单机 Docker 多容器部署资产与基础健康检查。
 - 当前最缺的不是更多 agent 花样，而是先把 P0 承诺和实际实现对齐，再继续深化 retrieval / grounded answer / SSE。
 - 产品整体已切换为通用知识库助手定位，但保留 `search_statutes` 专项工具。
 
@@ -34,12 +35,15 @@
 
 - `web -> BullMQ conversation.respond -> agent-runtime -> grounded final answer -> citations` 主问答链路已通；发送消息后会先落 user message + assistant placeholder，再异步生成最终回答。
 - 问答策略已固定为“本地资料优先 + 联网查询补充”；不再保留 `kb_only / kb_plus_web` 模式切换与相关设置入口。
+- 首屏提问区已支持先上传“会话级临时资料”；首条消息创建会话后会自动认领这些附件，并把它们连同 locator 信息一起送给 agent。
 - 账号页已补齐修改密码与退出登录的基础入口；工作空间当前只保留软删除，不再提供归档。
 - `/api/conversations/[conversationId]/stream` 现在会持续推送数据库里的 `tool` 消息、assistant draft `answer_delta` 和完成/失败事件；前端会在当前会话里实时更新 assistant 气泡。
 - 当前回答流式是“数据库轮询 + assistant draft 持久化”链路；它已经满足 P0 的流式呈现，但仍不是 provider 直连 token transport，最终 grounded answer 与 citations 仍在完成态统一落库。
 - `presign -> documents/document_versions/document_jobs -> BullMQ parse/chunk/embed/index` 上传消化链路已通，解析结果会落到 `document_pages / document_blocks / document_chunks / citation_anchors`，并同步进入 Qdrant。
+- 会话级临时资料走独立的 `attachments/presign -> conversation_attachments -> parse/chunk/index(parse-only finalize)` 链路；它会生成 `document_pages / document_blocks / document_chunks / citation_anchors`，但不会写入 Qdrant。
 - 上传链路已明确收口：OCR 明确保持 disabled，图片/扫描件暂不纳入当前可用范围，前后端会直接限制并提示。
 - 文档阅读页已经支持 PDF 基础阅读、解析块查看和按引用锚点回跳，但仍没有 bbox 级高亮与更细粒度定位。
+- 新增 `search_conversation_attachments` tool，临时资料现在可在回答中被检索、引用，并跳转到对应文档块或行号附近。
 - 会话已支持生成公开只读分享链接；匿名访问共享会话时，内部资料引用不提供跳转，外部链接仍可打开。
 - 系统参数页和 `system_settings` 已经接管大部分 provider / infra 配置，并新增了注册开关；`DATABASE_URL` 与 `AUTH_SECRET` 继续保持 env-only。
 - 报告链路已具备“创建 -> 默认大纲 -> 章节生成 -> DOCX 导出”的基础版，但当前章节生成仍偏占位实现，不代表完整研究写作能力。
@@ -73,6 +77,7 @@
 - `working tree` Reconfirm OCR stays disabled pending commercial API decision and verify current batch with `pnpm verify`
 - `working tree` Add BM25 scoring over dense retrieval candidates with regression tests
 - `working tree` Surface grounded answer confidence / unsupported reason / missing information in workspace conversation UI
+- `working tree` Replace empty-state helper copy with temporary attachment upload entry and parse-only conversation attachment flow
 - `working tree` Persist tool timeline into conversation messages and stream it over SSE
 - `working tree` Stream assistant draft content over SSE with local mock tool fallback for the main conversation chain
 - `f0e431a` Prioritize DashScope retrieval providers
@@ -90,6 +95,9 @@
   - 当前已能展示 tool start / completed / failed、assistant `answer_delta`、`answer_done`、`run_failed`
   - grounded final answer、citations 和引用跳转仍在完成态刷新后统一呈现
   - 仍需继续补 evidence dossier、引用说明和完成态切换体验
+- 会话级临时资料
+  - 当前已支持上传、解析、会话绑定、本地检索和引用跳转
+  - 仍缺草稿附件清理和更显式的附件管理入口
 - 工具占位实现替换与研究/写作链路增强
   - `search_web_general` / `search_statutes` / 报告章节生成仍有占位能力，但当前不再优先于主会话链路打磨
 - grounded answer 证据 dossier 与更清晰的证据展示

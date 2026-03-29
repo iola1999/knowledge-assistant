@@ -75,6 +75,7 @@ async function persistMessageCitations(input: {
             documentId: citationAnchors.documentId,
             documentVersionId: citationAnchors.documentVersionId,
             documentPath: citationAnchors.documentPath,
+            anchorLabel: citationAnchors.anchorLabel,
             pageNo: citationAnchors.pageNo,
             blockId: citationAnchors.blockId,
             quoteText: citationAnchors.anchorText,
@@ -107,6 +108,7 @@ async function persistMessageCitations(input: {
         quoteText: runtimeCitation?.quote_text || anchor.quoteText,
         label:
           runtimeCitation?.label ||
+          anchor.anchorLabel ||
           [anchor.documentPath, `第${anchor.pageNo}页`].filter(Boolean).join(" · "),
         ordinal: index,
       };

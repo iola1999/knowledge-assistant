@@ -3,7 +3,11 @@ import { notFound } from "next/navigation";
 import { MESSAGE_ROLE } from "@knowledge-assistant/contracts";
 
 import {
+  conversationAttachments,
   conversations,
+  documentJobs,
+  documentVersions,
+  documents,
   getDb,
   messageCitations,
   messages,
@@ -15,6 +19,7 @@ import { Composer } from "@/components/chat/composer";
 import { ConversationPageActions } from "@/components/chat/conversation-page-actions";
 import { ConversationSession } from "@/components/chat/conversation-session";
 import { WorkspaceShell } from "@/components/workspaces/workspace-shell";
+import { resolveComposerAttachmentStatus } from "@/lib/api/conversation-attachments";
 import { chooseWorkspaceConversationWithMeta } from "@/lib/api/conversations";
 import { cn, ui } from "@/lib/ui";
 
@@ -96,6 +101,33 @@ export default async function WorkspacePage({
           .from(messageCitations)
           .where(inArray(messageCitations.messageId, chatThread.map((message) => message.id)))
           .orderBy(asc(messageCitations.ordinal))
+      : [];
+  const attachmentRows =
+    activeConversation
+      ? await db
+          .select({
+            id: conversationAttachments.id,
+            documentId: documents.id,
+            documentVersionId: documentVersions.id,
+            sourceFilename: documents.sourceFilename,
+            jobId: documentJobs.id,
+            jobStatus: documentJobs.status,
+            stage: documentJobs.stage,
+            progress: documentJobs.progress,
+            errorMessage: documentJobs.errorMessage,
+          })
+          .from(conversationAttachments)
+          .innerJoin(documents, eq(documents.id, conversationAttachments.documentId))
+          .innerJoin(
+            documentVersions,
+            eq(documentVersions.id, conversationAttachments.documentVersionId),
+          )
+          .leftJoin(
+            documentJobs,
+            eq(documentJobs.documentVersionId, conversationAttachments.documentVersionId),
+          )
+          .where(eq(conversationAttachments.conversationId, activeConversation.id))
+          .orderBy(asc(conversationAttachments.createdAt))
       : [];
 
   return (
@@ -185,6 +217,21 @@ export default async function WorkspacePage({
               helperText="会沿用当前会话上下文，并继续记录工具时间线。"
               className="border-transparent bg-transparent p-0 shadow-none backdrop-blur-0"
               textareaClassName="min-h-[132px] bg-white/92"
+              initialAttachments={attachmentRows.map((attachment) => ({
+                id: attachment.id,
+                attachmentId: attachment.id,
+                documentId: attachment.documentId,
+                documentVersionId: attachment.documentVersionId,
+                documentJobId: attachment.jobId ?? undefined,
+                sourceFilename: attachment.sourceFilename,
+                status: resolveComposerAttachmentStatus({
+                  jobStatus: attachment.jobStatus ?? null,
+                  parseStage: attachment.stage ?? null,
+                }),
+                progress: attachment.progress ?? 0,
+                stage: attachment.stage ?? null,
+                errorMessage: attachment.errorMessage ?? null,
+              }))}
             />
           </div>
         </div>
@@ -211,6 +258,7 @@ export default async function WorkspacePage({
               submitLabel="开始对话"
               className="text-left shadow-card"
               textareaClassName="min-h-[220px] bg-white/90"
+              initialAttachments={[]}
             />
           </div>
         </div>

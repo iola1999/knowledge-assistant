@@ -6,6 +6,7 @@ type ViewerBlockInput = {
   text: string;
   headingPath: string[] | null;
   sectionLabel: string | null;
+  metadataJson?: Record<string, unknown> | null;
 };
 
 type ViewerAnchorInput = {

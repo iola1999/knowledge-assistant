@@ -1,13 +1,15 @@
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 
 import {
   citationAnchors,
+  documentBlocks,
   documentChunks,
   documents,
   documentVersions,
   getDb,
   messageCitations,
 } from "@knowledge-assistant/db";
+import { DOCUMENT_INDEXING_MODE } from "@knowledge-assistant/contracts";
 import {
   deleteDocumentVersionPoints,
   upsertDocumentChunks,
@@ -17,6 +19,7 @@ import { deleteObject, getJson } from "@knowledge-assistant/storage";
 import {
   buildAnchorLabel,
   buildMessageCitationLabel,
+  readCitationLocator,
 } from "./document-metadata";
 
 type EmbeddingArtifact = {
@@ -37,6 +40,7 @@ async function listDocumentVersions(documentId: string) {
       id: documentVersions.id,
       workspaceId: documents.workspaceId,
       storageKey: documentVersions.storageKey,
+      metadataJson: documentVersions.metadataJson,
     })
     .from(documentVersions)
     .innerJoin(documents, eq(documents.id, documentVersions.documentId))
@@ -91,7 +95,13 @@ async function fetchChunksForIndex(documentVersionId: string) {
 async function syncDocumentVersionIndex(input: {
   workspaceId: string;
   documentVersionId: string;
+  metadataJson?: Record<string, unknown> | null;
 }) {
+  if (input.metadataJson?.indexing_mode === DOCUMENT_INDEXING_MODE.PARSE_ONLY) {
+    await deleteDocumentVersionPoints(input);
+    return;
+  }
+
   const chunks = await fetchChunksForIndex(input.documentVersionId);
   const embeddingArtifact = await getJson<EmbeddingArtifact>(
     getEmbeddingArtifactKey(input.documentVersionId),
@@ -118,6 +128,7 @@ export async function syncDocumentSearchIndex(documentId: string) {
     await syncDocumentVersionIndex({
       workspaceId: version.workspaceId,
       documentVersionId: version.id,
+      metadataJson: (version.metadataJson as Record<string, unknown> | null | undefined) ?? null,
     });
   }
 }
@@ -150,8 +161,12 @@ export async function syncDocumentCitationMetadata(input: {
     .select({
       id: citationAnchors.id,
       pageNo: citationAnchors.pageNo,
+      blockMetadataJson: documentBlocks.metadataJson,
+      sectionLabel: documentChunks.sectionLabel,
     })
     .from(citationAnchors)
+    .leftJoin(documentBlocks, eq(documentBlocks.id, citationAnchors.blockId))
+    .leftJoin(documentChunks, eq(documentChunks.id, citationAnchors.chunkId))
     .where(eq(citationAnchors.documentId, input.documentId));
 
   for (const anchor of anchors) {
@@ -159,7 +174,14 @@ export async function syncDocumentCitationMetadata(input: {
       .update(citationAnchors)
       .set({
         documentPath: input.logicalPath,
-        anchorLabel: buildAnchorLabel(input.title, anchor.pageNo),
+        anchorLabel: buildAnchorLabel(
+          input.title,
+          anchor.pageNo,
+          readCitationLocator(
+            (anchor.blockMetadataJson as Record<string, unknown> | null | undefined) ?? null,
+          ),
+          anchor.sectionLabel ?? null,
+        ),
       })
       .where(eq(citationAnchors.id, anchor.id));
   }
@@ -168,16 +190,46 @@ export async function syncDocumentCitationMetadata(input: {
     .select({
       id: messageCitations.id,
       pageNo: messageCitations.pageNo,
+      blockId: messageCitations.blockId,
     })
     .from(messageCitations)
     .where(eq(messageCitations.documentId, input.documentId));
+  const citationBlockIds = citations
+    .map((citation) => citation.blockId)
+    .filter((value): value is string => Boolean(value));
+
+  const blocksById =
+    citationBlockIds.length > 0
+      ? new Map(
+          (
+            await db
+              .select({
+                id: documentBlocks.id,
+                metadataJson: documentBlocks.metadataJson,
+              })
+              .from(documentBlocks)
+              .where(inArray(documentBlocks.id, citationBlockIds))
+          ).map((block) => [block.id, block] as const),
+        )
+      : new Map();
 
   for (const citation of citations) {
     await db
       .update(messageCitations)
       .set({
         documentPath: input.logicalPath,
-        label: buildMessageCitationLabel(input.logicalPath, citation.pageNo),
+        label: buildMessageCitationLabel(
+          input.logicalPath,
+          citation.pageNo,
+          readCitationLocator(
+            (
+              blocksById.get(citation.blockId ?? "")?.metadataJson as
+                | Record<string, unknown>
+                | null
+                | undefined
+            ) ?? null,
+          ),
+        ),
       })
       .where(eq(messageCitations.id, citation.id));
   }

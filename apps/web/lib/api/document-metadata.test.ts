@@ -1,10 +1,13 @@
 import { describe, expect, test } from "vitest";
 
 import {
+  buildAnchorLabel,
   buildDocumentMetadataUpdate,
   buildDocumentPath,
+  buildMessageCitationLabel,
   buildStoredFilename,
   normalizeDocumentTags,
+  readCitationLocator,
 } from "./document-metadata";
 
 describe("document metadata helpers", () => {
@@ -82,5 +85,29 @@ describe("document metadata helpers", () => {
     expect(next.metadataChanged).toBe(false);
     expect(next.pathChanged).toBe(false);
     expect(next.searchPayloadChanged).toBe(false);
+  });
+
+  test("reads locator metadata and formats anchor labels with line ranges", () => {
+    const locator = readCitationLocator({
+      locator: {
+        line_start: 12,
+        line_end: 16,
+        block_index: 4,
+      },
+    });
+
+    expect(locator).toEqual({
+      lineStart: 12,
+      lineEnd: 16,
+      pageLineStart: null,
+      pageLineEnd: null,
+      blockIndex: 4,
+    });
+    expect(buildAnchorLabel("发布手册", 2, locator, "第8节")).toBe(
+      "发布手册 · 第2页 · 第12-16行 · 第8节",
+    );
+    expect(buildMessageCitationLabel("资料库/发布手册.pdf", 2, locator)).toBe(
+      "资料库/发布手册.pdf · 第2页 · 第12-16行",
+    );
   });
 });
