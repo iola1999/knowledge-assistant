@@ -202,7 +202,7 @@ export function WorkspacesHeaderActions({
 function headerMenuTriggerStyles(open: boolean) {
   return cn(
     buttonStyles({ variant: "secondary", size: "sm", shape: "pill" }),
-    "gap-2 border-app-border/80 bg-white/78 px-2.5 shadow-soft backdrop-blur-sm hover:border-app-border-strong hover:bg-white",
+    "gap-2 border-app-border/80 bg-white/78 pl-1.5 pr-2.5 shadow-soft backdrop-blur-sm hover:border-app-border-strong hover:bg-white",
     open && "border-app-border-strong bg-white text-app-text",
   );
 }
