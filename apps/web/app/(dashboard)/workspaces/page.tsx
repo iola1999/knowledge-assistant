@@ -8,12 +8,13 @@ import {
   workspaces,
 } from "@anchordesk/db";
 
-import { AnchorDeskLogo, PlusIcon } from "@/components/icons";
+import { AnchorDeskLogo } from "@/components/icons";
+import { WorkspacesHeaderActions } from "@/components/workspaces/workspaces-header-actions";
 import { auth } from "@/auth";
 import { isSuperAdminUsername } from "@/lib/auth/super-admin";
 import { formatRelativeWorkspaceActivity } from "@/lib/api/workspace-overview";
 import { workspaceBranding } from "@/lib/branding";
-import { buttonStyles, cn, ui, workspaceTileStyles } from "@/lib/ui";
+import { cn, ui, workspaceTileStyles } from "@/lib/ui";
 
 function getWorkspaceBadgeLabel(title: string) {
   const normalized = title.trim();
@@ -117,37 +118,13 @@ export default async function WorkspacesPage() {
           </div>
         </div>
 
-        <div className={ui.actions}>
-          <Link
-            href="/account"
-            className={buttonStyles({ variant: "ghost", size: "sm" })}
-          >
-            账号与安全
-          </Link>
-          {canAccessSystemSettings ? (
-            <>
-              <Link
-                href="/settings/libraries"
-                className={buttonStyles({ variant: "ghost", size: "sm" })}
-              >
-                全局资料库
-              </Link>
-              <Link
-                href="/settings"
-                className={buttonStyles({ variant: "ghost", size: "sm" })}
-              >
-                系统设置
-              </Link>
-            </>
-          ) : null}
-          <Link
-            href="/workspaces/new"
-            className={cn(buttonStyles({ size: "sm" }), "gap-2")}
-          >
-            <PlusIcon className="size-3.5" strokeWidth={2.5} />
-            新建工作空间
-          </Link>
-        </div>
+        <WorkspacesHeaderActions
+          initialUser={{
+            name: session?.user?.name,
+            username,
+          }}
+          canAccessSystemSettings={canAccessSystemSettings}
+        />
       </div>
 
       {/* Workspace grid */}

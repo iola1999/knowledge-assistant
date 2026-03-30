@@ -27,7 +27,7 @@ export function buildWorkspaceUserPanelState({
     {
       key: "account",
       href: "/account",
-      label: "账号设置",
+      label: "账号与安全",
     },
   ];
 
@@ -49,11 +49,20 @@ export function buildWorkspaceUserPanelState({
     label: "退出登录",
   });
 
+  const accountActions = actions.filter((action) => action.key === "account");
+  const adminActions = actions.filter(
+    (action) => action.key === "global-libraries" || action.key === "system-settings",
+  );
+  const logoutAction = actions.find((action) => action.key === "logout") ?? null;
+
   return {
     username,
     displayName,
     avatarLabel: resolveWorkspaceUserAvatarLabel(displayName),
     actions,
+    accountActions,
+    adminActions,
+    logoutAction,
   };
 }
 

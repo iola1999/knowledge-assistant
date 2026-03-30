@@ -19,6 +19,9 @@ describe("buildWorkspaceUserPanelState", () => {
     expect(state.displayName).toBe("项目助手");
     expect(state.username).toBe("assistant");
     expect(state.actions.map((action) => action.key)).toEqual(["account", "logout"]);
+    expect(state.accountActions.map((action) => action.key)).toEqual(["account"]);
+    expect(state.adminActions).toEqual([]);
+    expect(state.logoutAction?.key).toBe("logout");
   });
 
   test("falls back to the initial username and keeps the admin-only action", () => {
@@ -42,6 +45,12 @@ describe("buildWorkspaceUserPanelState", () => {
       "system-settings",
       "logout",
     ]);
+    expect(state.accountActions.map((action) => action.key)).toEqual(["account"]);
+    expect(state.adminActions.map((action) => action.key)).toEqual([
+      "global-libraries",
+      "system-settings",
+    ]);
+    expect(state.logoutAction?.key).toBe("logout");
   });
 });
 

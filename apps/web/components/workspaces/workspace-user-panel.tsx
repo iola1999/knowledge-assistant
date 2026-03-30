@@ -1,19 +1,13 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import { useEffect, useId, useRef, useState } from "react";
 
-import {
-  ChevronDownIcon,
-  LibraryIcon,
-  LogoutIcon,
-  SlidersIcon,
-  UserIcon,
-} from "@/components/icons";
+import { ChevronDownIcon } from "@/components/icons";
+import { WorkspaceUserMenuContent } from "@/components/workspaces/workspace-user-menu-content";
 import { buildWorkspaceUserPanelState } from "@/lib/workspace-user-panel";
-import { cn, menuItemStyles, ui } from "@/lib/ui";
+import { cn, ui } from "@/lib/ui";
 
 type WorkspaceUserPanelProps = {
   initialUser: {
@@ -34,13 +28,13 @@ export function WorkspaceUserPanel({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const menuId = useId();
 
-  const { actions, avatarLabel, displayName, username } = buildWorkspaceUserPanelState({
-    sessionUser: session?.user,
-    initialUser,
-    canAccessSystemSettings,
-  });
-  const menuActions = actions.filter((action) => action.key !== "logout");
-  const logoutAction = actions.find((action) => action.key === "logout");
+  const { accountActions, adminActions, avatarLabel, displayName, logoutAction, username } =
+    buildWorkspaceUserPanelState({
+      sessionUser: session?.user,
+      initialUser,
+      canAccessSystemSettings,
+    });
+  const menuActions = [...accountActions, ...adminActions];
 
   useEffect(() => {
     setIsOpen(false);
@@ -94,71 +88,16 @@ export function WorkspaceUserPanel({
             "absolute inset-x-0 bottom-[calc(100%+0.5rem)] z-30",
           )}
         >
-          {/* Account header */}
-          <div className="flex items-center gap-3 px-3 pb-2 pt-2.5">
-            <div className="grid size-10 shrink-0 place-items-center rounded-full bg-app-surface-strong text-sm font-semibold text-app-accent">
-              {avatarLabel}
-            </div>
-            <div className="min-w-0 flex-1">
-              <strong className="block truncate text-[14px] font-semibold text-app-text">
-                {displayName}
-              </strong>
-              <span className="block truncate text-[12.5px] text-app-muted">@{username}</span>
-            </div>
-          </div>
-
-          <div className="mx-2 my-1 h-px bg-app-border/70" />
-
-          <nav className="grid gap-0.5 py-0.5">
-            {menuActions.map((action) => (
-              <Link
-                key={action.key}
-                href={action.href ?? "/"}
-                onClick={() => setIsOpen(false)}
-                className={cn(
-                  "flex items-center gap-2.5 rounded-xl px-3 py-2 transition",
-                  menuItemStyles(),
-                )}
-              >
-                <span className="grid size-7 shrink-0 place-items-center rounded-lg text-app-muted-strong">
-                  {action.key === "account" ? (
-                    <UserIcon />
-                  ) : action.key === "global-libraries" ? (
-                    <LibraryIcon />
-                  ) : (
-                    <SlidersIcon />
-                  )}
-                </span>
-                <span className="min-w-0 flex-1 truncate text-[14px] font-medium">
-                  {action.label}
-                </span>
-              </Link>
-            ))}
-          </nav>
-
-          {logoutAction ? (
-            <>
-              <div className="mx-2 my-1 h-px bg-app-border/70" />
-              <div className="pb-0.5 pt-0.5">
-                <button
-                  type="button"
-                  className={cn(
-                    "flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left transition",
-                    menuItemStyles({ tone: "danger" }),
-                  )}
-                  disabled={isSigningOut}
-                  onClick={onSignOut}
-                >
-                  <span className="grid size-7 shrink-0 place-items-center rounded-lg text-red-500">
-                    <LogoutIcon />
-                  </span>
-                  <span className="min-w-0 flex-1 truncate text-[14px] font-medium">
-                    {isSigningOut ? "退出中..." : logoutAction.label}
-                  </span>
-                </button>
-              </div>
-            </>
-          ) : null}
+          <WorkspaceUserMenuContent
+            displayName={displayName}
+            username={username}
+            avatarLabel={avatarLabel}
+            actions={menuActions}
+            logoutLabel={logoutAction?.label}
+            isSigningOut={isSigningOut}
+            onNavigate={() => setIsOpen(false)}
+            onSignOut={onSignOut}
+          />
         </div>
       ) : null}
 
