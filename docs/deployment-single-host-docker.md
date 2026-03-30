@@ -28,6 +28,11 @@
 cp .env.production.example .env.production
 ```
 
+注意：
+
+- `docker compose` 默认只会自动读取项目根目录的 `.env`，不会自动读取 `.env.production`。
+- 本文后续所有命令都必须显式带上 `--env-file .env.production`，否则 `web` / `worker` / `agent-runtime` 拿到的 `DATABASE_URL`、`AUTH_SECRET` 会变成空字符串。
+
 必须提供的 bootstrap 变量（web / worker / agent-runtime 只需要这三项）：
 
 - `DATABASE_URL`
@@ -50,7 +55,7 @@ cp .env.production.example .env.production
 ## 3. 构建镜像
 
 ```bash
-docker compose -f docker-compose.prod.yml build
+docker compose --env-file .env.production -f docker-compose.prod.yml build
 ```
 
 当前仓库就是通过 `docker compose build` 构建生产镜像。
@@ -61,7 +66,7 @@ docker compose -f docker-compose.prod.yml build
 ## 4. 启动基础设施
 
 ```bash
-docker compose -f docker-compose.prod.yml up -d postgres redis qdrant minio
+docker compose --env-file .env.production -f docker-compose.prod.yml up -d postgres redis qdrant minio
 ```
 
 等待基础设施健康检查通过。
@@ -69,7 +74,7 @@ docker compose -f docker-compose.prod.yml up -d postgres redis qdrant minio
 ## 5. 执行升级
 
 ```bash
-docker compose -f docker-compose.prod.yml run --rm upgrade
+docker compose --env-file .env.production -f docker-compose.prod.yml run --rm upgrade
 ```
 
 这个步骤会执行：
@@ -88,7 +93,7 @@ app upgrades 的执行状态记录在 `app_upgrades` 表里。
 ## 6. 启动运行时服务
 
 ```bash
-docker compose -f docker-compose.prod.yml up -d web worker agent-runtime parser
+docker compose --env-file .env.production -f docker-compose.prod.yml up -d web worker agent-runtime parser
 ```
 
 这些服务启动前都会先跑 `pnpm app:upgrade:check`。
@@ -99,7 +104,7 @@ docker compose -f docker-compose.prod.yml up -d web worker agent-runtime parser
 检查服务状态：
 
 ```bash
-docker compose -f docker-compose.prod.yml ps
+docker compose --env-file .env.production -f docker-compose.prod.yml ps
 ```
 
 健康检查目标：

@@ -20,4 +20,4 @@ WORKDIR /app
 COPY --from=deps /app /app
 COPY --from=web-build /app/apps/web/.next/standalone /app/
 COPY --from=web-build /app/apps/web/.next/static /app/apps/web/.next/static
-CMD ["node", "server.js"]
+CMD ["node", "apps/web/server.js"]
