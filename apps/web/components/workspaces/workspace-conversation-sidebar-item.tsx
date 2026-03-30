@@ -15,7 +15,7 @@ import { cn, menuItemStyles, ui } from "@/lib/ui";
 import { resolveSidebarConversationMenuPosition } from "@/lib/sidebar-menu";
 
 const SIDEBAR_MENU_WIDTH = 156;
-const SIDEBAR_MENU_HEIGHT = 62;
+const SIDEBAR_MENU_HEIGHT = 52;
 
 type WorkspaceConversationSidebarItemProps = {
   workspaceId: string;
@@ -189,7 +189,7 @@ export function WorkspaceConversationSidebarItem({
           aria-expanded={isMenuOpen}
           aria-label={`打开「${conversation.title}」操作菜单`}
           className={cn(
-            "absolute right-2 top-1/2 z-10 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-app-muted-strong transition focus:outline-none focus:ring-4 focus:ring-app-accent/10",
+            "absolute right-2 top-1/2 z-10 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-xl text-app-muted-strong transition focus:outline-none focus:ring-4 focus:ring-app-accent/10",
             isMenuOpen || alwaysShowMenu
               ? "bg-white text-app-text shadow-soft"
               : "pointer-events-none opacity-0 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100 hover:bg-white/92 hover:text-app-text",
@@ -229,7 +229,7 @@ export function WorkspaceConversationSidebarItem({
                 type="button"
                 role="menuitem"
                 className={cn(
-                  "flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left text-sm font-medium transition",
+                  "flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-medium transition",
                   menuItemStyles({ tone: "danger" }),
                 )}
                 onClick={(event) => {

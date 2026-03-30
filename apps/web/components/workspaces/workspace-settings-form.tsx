@@ -11,11 +11,13 @@ export function WorkspaceSettingsForm({
   workspaceId,
   initialTitle,
   initialPrompt,
+  framed = true,
 }: {
   sectionId?: string;
   workspaceId: string;
   initialTitle: string;
   initialPrompt?: string | null;
+  framed?: boolean;
 }) {
   const router = useRouter();
   const [title, setTitle] = useState(initialTitle);
@@ -53,7 +55,7 @@ export function WorkspaceSettingsForm({
   }
 
   return (
-    <form id={sectionId} onSubmit={onSubmit} className="rounded-2xl border border-app-border bg-white/90 p-5 shadow-soft md:p-6">
+    <form id={sectionId} onSubmit={onSubmit} className={framed ? ui.sectionPanel : "grid"}>
       <h2 className="text-[1.1rem] font-semibold text-app-text">设置</h2>
 
       <div className="mt-4 grid gap-4">

@@ -5,7 +5,7 @@ export function cn(...classes: Array<string | false | null | undefined>) {
 type FieldSize = "md" | "compact";
 type ButtonVariant = "primary" | "secondary" | "danger" | "ghost" | "dangerGhost";
 type ButtonSize = "md" | "sm" | "xs";
-type ButtonShape = "pill" | "icon";
+type ButtonShape = "rounded" | "pill" | "icon";
 type MenuTone = "default" | "danger";
 type WorkspaceTileVariant = "default" | "create";
 
@@ -47,11 +47,14 @@ export const ui = {
   panel:
     "rounded-[28px] border border-app-border bg-white/90 p-6 shadow-soft backdrop-blur-sm",
   panelLarge:
-    "rounded-[32px] border border-app-border bg-white/92 p-8 shadow-card backdrop-blur-sm",
-  subpanel: "rounded-3xl border border-app-border bg-app-surface-soft/80 p-5 shadow-soft",
+    "rounded-[28px] border border-app-border bg-white/92 p-8 shadow-card backdrop-blur-sm",
+  sectionPanel: "rounded-2xl border border-app-border bg-white/90 p-5 shadow-soft md:p-6",
+  subpanel: "rounded-[24px] border border-app-border bg-app-surface-soft/80 p-5 shadow-soft",
   subcard: "rounded-2xl border border-app-border bg-white/80 p-4 shadow-soft",
-  popover: "rounded-[26px] border border-app-border bg-white/98 p-3 shadow-card",
-  menu: "rounded-[20px] border border-app-border bg-white/98 p-2 shadow-card",
+  popover:
+    "rounded-2xl border border-app-border bg-white/98 p-1.5 shadow-card backdrop-blur-md",
+  menu: "rounded-2xl border border-app-border bg-white/98 p-1.5 shadow-card backdrop-blur-md",
+  dialog: "rounded-2xl border border-app-border shadow-card",
   toolbar: "flex flex-wrap items-start justify-between gap-3",
   actions: "flex flex-wrap items-center gap-2",
   label: "flex flex-col gap-2 text-sm font-medium text-app-muted-strong",
@@ -66,7 +69,7 @@ export function buttonStyles({
   variant = "primary",
   size = "md",
   block = false,
-  shape = "pill",
+  shape = "rounded",
 }: {
   variant?: ButtonVariant;
   size?: ButtonSize;
@@ -85,6 +88,7 @@ export function buttonStyles({
         : size === "sm"
           ? "min-h-9 px-3 text-sm"
           : "min-h-11 px-4 text-sm";
+  const radiusClass = shape === "pill" ? "rounded-full" : "rounded-xl";
   const variantClass =
     variant === "primary"
       ? "border-transparent bg-app-primary text-app-primary-contrast hover:bg-[#25211c]"
@@ -97,7 +101,8 @@ export function buttonStyles({
           : "border-transparent bg-transparent text-app-muted-strong hover:bg-black/5";
 
   return cn(
-    "inline-flex cursor-pointer items-center justify-center rounded-full border font-medium transition focus:outline-none focus:ring-4 focus:ring-app-accent/10 disabled:cursor-not-allowed disabled:opacity-60",
+    "inline-flex cursor-pointer items-center justify-center border font-medium transition focus:outline-none focus:ring-4 focus:ring-app-accent/10 disabled:cursor-not-allowed disabled:opacity-60",
+    radiusClass,
     sizeClass,
     variantClass,
     block && "w-full",

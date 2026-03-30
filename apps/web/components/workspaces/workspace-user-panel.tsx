@@ -12,7 +12,7 @@ import {
   UserIcon,
 } from "@/components/icons";
 import { buildWorkspaceUserPanelState } from "@/lib/workspace-user-panel";
-import { cn, menuItemStyles } from "@/lib/ui";
+import { cn, menuItemStyles, ui } from "@/lib/ui";
 
 type WorkspaceUserPanelProps = {
   initialUser: {
@@ -88,7 +88,10 @@ export function WorkspaceUserPanel({
       {isOpen ? (
         <div
           id={menuId}
-          className="absolute inset-x-0 bottom-[calc(100%+0.5rem)] z-30 rounded-2xl border border-app-border bg-white/98 p-1.5 shadow-card backdrop-blur-md"
+          className={cn(
+            ui.popover,
+            "absolute inset-x-0 bottom-[calc(100%+0.5rem)] z-30",
+          )}
         >
           {/* Account header */}
           <div className="flex items-center gap-3 px-3 pb-2 pt-2.5">

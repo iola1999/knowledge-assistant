@@ -96,7 +96,8 @@ export function ActionDialog({
         aria-modal="true"
         role={role}
         className={cn(
-          "relative z-10 w-full max-w-[560px] overflow-hidden rounded-[32px] border border-app-border bg-[color:color-mix(in_srgb,var(--surface)_96%,var(--bg-elevated))] shadow-card",
+          ui.dialog,
+          "relative z-10 w-full max-w-[560px] overflow-hidden bg-[color:color-mix(in_srgb,var(--surface)_96%,var(--bg-elevated))]",
         )}
       >
         <div
@@ -129,8 +130,8 @@ export function ActionDialog({
               type="button"
               aria-label="关闭对话框"
               className={cn(
-                buttonStyles({ variant: "ghost", size: "sm" }),
-                "h-9 w-9 rounded-full p-0 text-xl leading-none",
+                buttonStyles({ variant: "ghost", size: "sm", shape: "icon" }),
+                "text-xl leading-none",
               )}
               disabled={isSubmitting}
               onClick={onClose}

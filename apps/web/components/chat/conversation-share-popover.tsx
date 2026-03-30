@@ -293,7 +293,10 @@ export function ConversationSharePopover({
           id={panelId}
           role="dialog"
           aria-label="会话分享"
-          className="absolute right-0 top-[calc(100%+10px)] z-20 w-[min(320px,calc(100vw-24px))] overflow-hidden rounded-2xl border border-app-border bg-white/98 p-1.5 shadow-card backdrop-blur-md"
+          className={cn(
+            ui.popover,
+            "absolute right-0 top-[calc(100%+10px)] z-20 w-[min(320px,calc(100vw-24px))] overflow-hidden",
+          )}
         >
           {/* Header */}
           <div className="flex items-center justify-between gap-3 px-3 pb-1 pt-2.5">

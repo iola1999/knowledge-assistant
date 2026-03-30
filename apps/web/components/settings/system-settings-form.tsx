@@ -211,7 +211,7 @@ export function SystemSettingsForm({
               <section
                 id={section.id}
                 key={section.id}
-                className="rounded-2xl border border-app-border bg-white/90 p-5 shadow-soft scroll-mt-8 md:p-6"
+                className={cn(ui.sectionPanel, "scroll-mt-8")}
               >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="grid gap-0.5">

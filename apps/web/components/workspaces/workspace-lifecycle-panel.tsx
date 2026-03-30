@@ -9,9 +9,11 @@ import { buttonStyles, cn, ui } from "@/lib/ui";
 export function WorkspaceLifecyclePanel({
   workspaceId,
   workspaceTitle,
+  framed = true,
 }: {
   workspaceId: string;
   workspaceTitle: string;
+  framed?: boolean;
 }) {
   const router = useRouter();
   const [status, setStatus] = useState<{
@@ -56,7 +58,7 @@ export function WorkspaceLifecyclePanel({
 
   return (
     <>
-      <section className="rounded-2xl border border-app-border bg-white/90 p-5 shadow-soft md:p-6">
+      <section className={framed ? ui.sectionPanel : "grid border-t border-app-border pt-6"}>
         <h2 className="text-[1.1rem] font-semibold text-app-text">删除工作空间</h2>
 
         <div className="mt-4 flex flex-wrap items-center gap-3">

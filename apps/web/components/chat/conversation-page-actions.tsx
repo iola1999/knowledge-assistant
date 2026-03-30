@@ -113,7 +113,7 @@ export function ConversationPageActions({
           aria-controls={menuId}
           aria-expanded={isMenuOpen}
           aria-haspopup="dialog"
-          className="inline-flex size-9 items-center justify-center rounded-[16px] bg-transparent text-app-muted-strong transition hover:bg-app-surface-soft hover:text-app-text focus:outline-none focus:ring-4 focus:ring-app-accent/10 disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex size-9 items-center justify-center rounded-xl bg-transparent text-app-muted-strong transition hover:bg-app-surface-soft hover:text-app-text focus:outline-none focus:ring-4 focus:ring-app-accent/10 disabled:cursor-not-allowed disabled:opacity-60"
           disabled={isBusy}
           onClick={() => {
             setIsMenuOpen((current) => !current);
@@ -132,7 +132,10 @@ export function ConversationPageActions({
             id={menuId}
             role="dialog"
             aria-label="当前会话信息与更多操作"
-            className="absolute right-0 top-[calc(100%+10px)] z-20 w-[min(320px,calc(100vw-24px))] overflow-hidden rounded-2xl border border-app-border bg-white/98 p-1.5 shadow-card backdrop-blur-md"
+            className={cn(
+              ui.popover,
+              "absolute right-0 top-[calc(100%+10px)] z-20 w-[min(320px,calc(100vw-24px))] overflow-hidden",
+            )}
           >
             {/* Header */}
             <div className="px-3 pb-1 pt-2.5">

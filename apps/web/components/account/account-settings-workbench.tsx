@@ -18,6 +18,7 @@ import {
   resolveDefaultAccountSettingsSectionId,
   type AccountSettingsSectionId,
 } from "@/lib/account-settings";
+import { ui } from "@/lib/ui";
 import { resolveWorkspaceUserAvatarLabel } from "@/lib/workspace-user-panel";
 
 type AccountSettingsWorkbenchProps = {
@@ -138,7 +139,7 @@ function AccountSettingsSection({
   children: ReactNode;
 }) {
   return (
-    <section className="rounded-2xl border border-app-border bg-white/90 p-5 shadow-soft md:p-6">
+    <section className={ui.sectionPanel}>
       <h3 className="text-[1.1rem] font-semibold text-app-text">{title}</h3>
       <div className="mt-4 grid gap-4">{children}</div>
     </section>

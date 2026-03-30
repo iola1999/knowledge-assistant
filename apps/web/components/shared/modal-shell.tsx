@@ -2,7 +2,7 @@
 
 import { type ReactNode, useEffect, useId } from "react";
 
-import { buttonStyles, cn } from "@/lib/ui";
+import { buttonStyles, cn, ui } from "@/lib/ui";
 
 export function ModalShell({
   open,
@@ -62,7 +62,8 @@ export function ModalShell({
         aria-labelledby={titleId}
         aria-describedby={description ? descriptionId : undefined}
         className={cn(
-          "relative z-10 max-h-[min(88vh,960px)] w-full overflow-hidden rounded-[30px] border border-app-border bg-white shadow-card",
+          ui.dialog,
+          "relative z-10 max-h-[min(88vh,960px)] w-full overflow-hidden bg-white",
           width === "md"
             ? "max-w-[560px]"
             : width === "lg"
