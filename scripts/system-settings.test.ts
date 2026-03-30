@@ -46,6 +46,10 @@ describe("buildSystemSettingSeedRows", () => {
       settingKey: "anthropic_model",
       valueText: "claude-sonnet-4-5",
     });
+    expect(rows.find((row) => row.settingKey === "web_search_search_lang")).toMatchObject({
+      settingKey: "web_search_search_lang",
+      valueText: "zh-hans",
+    });
     expect(rows.find((row) => row.settingKey === "embedding_provider")).toMatchObject({
       settingKey: "embedding_provider",
       valueText: "local_hash",

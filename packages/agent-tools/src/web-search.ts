@@ -1,6 +1,68 @@
 type EnvMap = Record<string, string | undefined>;
 
 export const BRAVE_WEB_SEARCH_URL = "https://api.search.brave.com/res/v1/web/search";
+const DEFAULT_BRAVE_SEARCH_LANG = "zh-hans";
+const BRAVE_SUPPORTED_SEARCH_LANGS = new Set([
+  "ar",
+  "eu",
+  "bn",
+  "bg",
+  "ca",
+  "zh-hans",
+  "zh-hant",
+  "hr",
+  "cs",
+  "da",
+  "nl",
+  "en",
+  "en-gb",
+  "et",
+  "fi",
+  "fr",
+  "gl",
+  "de",
+  "el",
+  "gu",
+  "he",
+  "hi",
+  "hu",
+  "is",
+  "it",
+  "jp",
+  "kn",
+  "ko",
+  "lv",
+  "lt",
+  "ms",
+  "ml",
+  "mr",
+  "nb",
+  "pl",
+  "pt-br",
+  "pt-pt",
+  "pa",
+  "ro",
+  "ru",
+  "sr",
+  "sk",
+  "sl",
+  "es",
+  "sv",
+  "ta",
+  "te",
+  "th",
+  "tr",
+  "uk",
+  "vi",
+]);
+const BRAVE_SEARCH_LANGUAGE_ALIASES: Record<string, string> = {
+  zh: "zh-hans",
+  "zh-cn": "zh-hans",
+  "zh-sg": "zh-hans",
+  "zh-tw": "zh-hant",
+  "zh-hk": "zh-hant",
+  "zh-mo": "zh-hant",
+};
 
 export type WebSearchProviderConfig =
   | {
@@ -41,6 +103,22 @@ function normalizeProviderName(value: string | undefined) {
   return normalizeValue(value).toLowerCase();
 }
 
+function normalizeBraveSearchLang(value: string | undefined) {
+  const normalized = normalizeValue(value).toLowerCase();
+  if (!normalized) {
+    return DEFAULT_BRAVE_SEARCH_LANG;
+  }
+
+  const canonical = BRAVE_SEARCH_LANGUAGE_ALIASES[normalized] ?? normalized;
+  if (BRAVE_SUPPORTED_SEARCH_LANGS.has(canonical)) {
+    return canonical;
+  }
+
+  throw new Error(
+    `Unsupported Brave search language "${value}". Use a Brave-supported code such as en, en-gb, zh-hans, or zh-hant.`,
+  );
+}
+
 function uniqueStrings(values: string[]) {
   return Array.from(new Set(values.map((value) => value.trim()).filter(Boolean)));
 }
@@ -64,7 +142,7 @@ export function resolveWebSearchProvider(
     url: normalizeValue(env.BRAVE_SEARCH_API_URL) || BRAVE_WEB_SEARCH_URL,
     apiKey,
     country: normalizeValue(env.WEB_SEARCH_COUNTRY) || "CN",
-    searchLang: normalizeValue(env.WEB_SEARCH_SEARCH_LANG) || "zh",
+    searchLang: normalizeBraveSearchLang(env.WEB_SEARCH_SEARCH_LANG),
     uiLang: normalizeValue(env.WEB_SEARCH_UI_LANG) || "zh-CN",
   };
 }
@@ -119,7 +197,7 @@ export function buildBraveWebSearchUrl(input: {
   url.searchParams.set("q", input.query.trim());
   url.searchParams.set("count", String(input.topK));
   url.searchParams.set("country", input.country?.trim() || "CN");
-  url.searchParams.set("search_lang", input.searchLang?.trim() || "zh");
+  url.searchParams.set("search_lang", normalizeBraveSearchLang(input.searchLang));
   url.searchParams.set("ui_lang", input.uiLang?.trim() || "zh-CN");
   url.searchParams.set("extra_snippets", "true");
   return url;

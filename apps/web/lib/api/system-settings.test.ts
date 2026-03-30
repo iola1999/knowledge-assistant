@@ -255,6 +255,35 @@ describe("filterSystemSettingSections", () => {
 });
 
 describe("normalizeSystemSettingUpdates", () => {
+  test("canonicalizes Brave search language aliases before persisting", () => {
+    expect(
+      normalizeSystemSettingUpdates(
+        [
+          {
+            settingKey: "web_search_search_lang",
+            valueText: " zh ",
+          },
+          {
+            settingKey: "web_search_provider",
+            valueText: " brave ",
+          },
+        ],
+        ["web_search_search_lang", "web_search_provider"],
+      ),
+    ).toEqual([
+      {
+        settingKey: "web_search_provider",
+        valueText: "brave",
+      },
+      {
+        settingKey: "web_search_search_lang",
+        valueText: "zh-hans",
+      },
+    ]);
+  });
+});
+
+describe("normalizeSystemSettingUpdates", () => {
   test("keeps only known keys, trims values, and lets the last duplicate win", () => {
     const updates = normalizeSystemSettingUpdates(
       [

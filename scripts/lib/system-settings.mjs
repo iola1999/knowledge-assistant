@@ -139,7 +139,7 @@ const SYSTEM_SETTING_DEFINITIONS = [
   {
     settingKey: "web_search_search_lang",
     envName: "WEB_SEARCH_SEARCH_LANG",
-    defaultValue: "zh",
+    defaultValue: "zh-hans",
     summary: "联网搜索默认附带的检索语言。",
     description: "Default search language passed to the web search provider.",
   },

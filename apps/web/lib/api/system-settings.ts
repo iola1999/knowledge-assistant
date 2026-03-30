@@ -113,6 +113,15 @@ const KNOWN_SETTING_ORDER = [
 const knownSettingOrder = new Map(
   KNOWN_SETTING_ORDER.map((settingKey, index) => [settingKey, index]),
 );
+const WEB_SEARCH_SEARCH_LANG_SETTING_KEY = "web_search_search_lang";
+const WEB_SEARCH_LANGUAGE_ALIASES: Record<string, string> = {
+  zh: "zh-hans",
+  "zh-cn": "zh-hans",
+  "zh-sg": "zh-hans",
+  "zh-tw": "zh-hant",
+  "zh-hk": "zh-hant",
+  "zh-mo": "zh-hant",
+};
 
 function getSectionDefinition(settingKey: string) {
   return SECTION_DEFINITIONS.find((section) => section.match(settingKey))!;
@@ -246,6 +255,16 @@ export const systemSettingsUpdateSchema = z.object({
     .min(1, "At least one setting is required"),
 });
 
+function normalizeSystemSettingValue(settingKey: string, valueText: string) {
+  const trimmed = valueText.trim();
+  if (settingKey !== WEB_SEARCH_SEARCH_LANG_SETTING_KEY) {
+    return trimmed;
+  }
+
+  const normalized = trimmed.toLowerCase();
+  return WEB_SEARCH_LANGUAGE_ALIASES[normalized] ?? normalized;
+}
+
 export function normalizeSystemSettingUpdates(
   settings: Array<{ settingKey: string; valueText: string }>,
   knownKeys: Iterable<string>,
@@ -260,7 +279,7 @@ export function normalizeSystemSettingUpdates(
 
     normalized.set(setting.settingKey, {
       settingKey: setting.settingKey,
-      valueText: setting.valueText.trim(),
+      valueText: normalizeSystemSettingValue(setting.settingKey, setting.valueText),
     });
   }
 

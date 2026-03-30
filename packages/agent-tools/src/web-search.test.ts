@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   BRAVE_WEB_SEARCH_URL,
+  buildBraveWebSearchUrl,
   buildStatuteSearchQueries,
   normalizeBraveWebSearchResponse,
   resolveWebSearchProvider,
@@ -18,7 +19,7 @@ describe("resolveWebSearchProvider", () => {
       apiKey: "secret-key",
       url: BRAVE_WEB_SEARCH_URL,
       country: "CN",
-      searchLang: "zh",
+      searchLang: "zh-hans",
       uiLang: "zh-CN",
     });
   });
@@ -31,6 +32,49 @@ describe("resolveWebSearchProvider", () => {
     ).toEqual({
       type: "none",
     });
+  });
+
+  it("canonicalizes legacy Chinese search language aliases into Brave-supported values", () => {
+    expect(
+      resolveWebSearchProvider({
+        BRAVE_SEARCH_API_KEY: "secret-key",
+        WEB_SEARCH_SEARCH_LANG: "zh",
+      }),
+    ).toMatchObject({
+      type: "brave",
+      searchLang: "zh-hans",
+    });
+
+    expect(
+      resolveWebSearchProvider({
+        BRAVE_SEARCH_API_KEY: "secret-key",
+        WEB_SEARCH_SEARCH_LANG: "zh-TW",
+      }),
+    ).toMatchObject({
+      type: "brave",
+      searchLang: "zh-hant",
+    });
+  });
+
+  it("fails fast when the configured Brave search language is unsupported", () => {
+    expect(() =>
+      resolveWebSearchProvider({
+        BRAVE_SEARCH_API_KEY: "secret-key",
+        WEB_SEARCH_SEARCH_LANG: "xx",
+      }),
+    ).toThrow(/Unsupported Brave search language/i);
+  });
+});
+
+describe("buildBraveWebSearchUrl", () => {
+  it("writes a Brave-supported search_lang value into the request", () => {
+    const url = buildBraveWebSearchUrl({
+      query: "latest news",
+      topK: 5,
+      searchLang: "zh",
+    });
+
+    expect(url.searchParams.get("search_lang")).toBe("zh-hans");
   });
 });
 
