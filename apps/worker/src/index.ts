@@ -163,6 +163,7 @@ async function fetchVersion(documentVersionId: string) {
     .select({
       versionId: documentVersions.id,
       documentId: documentVersions.documentId,
+      libraryId: documents.libraryId,
       storageKey: documentVersions.storageKey,
       sha256: documentVersions.sha256,
       fileSizeBytes: documentVersions.fileSizeBytes,
@@ -307,6 +308,7 @@ async function parseDocument(documentVersionId: string) {
     },
     body: JSON.stringify({
       workspace_id: version.workspaceId,
+      library_id: version.libraryId,
       document_version_id: version.versionId,
       storage_key: version.storageKey,
       sha256: version.sha256,
@@ -448,6 +450,7 @@ async function chunkDocument(documentVersionId: string) {
       .insert(documentChunks)
       .values(
         chunkSeeds.map((chunk) => ({
+          libraryId: version.libraryId,
           workspaceId: version.workspaceId,
           documentId: version.documentId,
           documentVersionId,
@@ -473,6 +476,7 @@ async function chunkDocument(documentVersionId: string) {
           : null;
 
         return {
+          libraryId: version.libraryId,
           workspaceId: version.workspaceId,
           documentId: version.documentId,
           documentVersionId,
@@ -517,6 +521,7 @@ async function fetchChunksForIndex(documentVersionId: string) {
   const rows = await db
     .select({
       chunkId: documentChunks.id,
+      libraryId: documentChunks.libraryId,
       workspaceId: documentChunks.workspaceId,
       documentId: documentChunks.documentId,
       documentVersionId: documentChunks.documentVersionId,
@@ -539,6 +544,7 @@ async function fetchChunksForIndex(documentVersionId: string) {
 
   return rows.map((row) => ({
     pointId: row.chunkId,
+    libraryId: row.libraryId ?? "",
     workspaceId: row.workspaceId,
     documentId: row.documentId,
     documentVersionId: row.documentVersionId,
@@ -622,7 +628,7 @@ async function indexDocument(documentVersionId: string) {
 
   if (shouldSkipEmbeddingIndexing(indexingMode)) {
     await deleteDocumentVersionPoints({
-      workspaceId: version.workspaceId,
+      libraryId: version.libraryId ?? "",
       documentVersionId,
     });
     await db
@@ -664,7 +670,7 @@ async function indexDocument(documentVersionId: string) {
       : undefined;
 
   await deleteDocumentVersionPoints({
-    workspaceId: version.workspaceId,
+    libraryId: version.libraryId ?? "",
     documentVersionId,
   });
 

@@ -5,19 +5,25 @@ import {
   DEFAULT_CONVERSATION_STATUS,
   DEFAULT_DOCUMENT_STATUS,
   DEFAULT_DOCUMENT_TYPE,
+  DEFAULT_KNOWLEDGE_LIBRARY_STATUS,
   DEFAULT_MESSAGE_STATUS,
   DEFAULT_PARSE_STATUS,
   DEFAULT_REPORT_STATUS,
   DEFAULT_RETRIEVAL_RUN_TOP_K,
   DEFAULT_RUN_STATUS,
+  DEFAULT_WORKSPACE_LIBRARY_SUBSCRIPTION_STATUS,
   type AppUpgradeStatus,
   type DocumentStatus,
   type DocumentType,
+  type KnowledgeLibraryStatus,
+  type KnowledgeLibraryType,
+  type KnowledgeSourceScope,
   type MessageRole,
   type MessageStatus,
   type ParseStatus,
   type ReportStatus,
   type RunStatus,
+  type WorkspaceLibrarySubscriptionStatus,
 } from "@anchordesk/contracts";
 import {
   bigint,
@@ -119,10 +125,86 @@ export const workspaces = pgTable(
   ],
 );
 
+export const knowledgeLibraries = pgTable(
+  "knowledge_libraries",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    libraryType: varchar("library_type", { length: 32 })
+      .$type<KnowledgeLibraryType>()
+      .notNull(),
+    workspaceId: uuid("workspace_id").references(() => workspaces.id, {
+      onDelete: "cascade",
+    }),
+    slug: varchar("slug", { length: 160 }).notNull(),
+    title: varchar("title", { length: 200 }).notNull(),
+    description: text("description"),
+    status: varchar("status", { length: 32 })
+      .$type<KnowledgeLibraryStatus>()
+      .notNull()
+      .default(DEFAULT_KNOWLEDGE_LIBRARY_STATUS),
+    managedByUserId: uuid("managed_by_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
+  },
+  (table) => [
+    uniqueIndex("knowledge_libraries_slug_uid").on(table.slug),
+    uniqueIndex("knowledge_libraries_workspace_type_uid").on(
+      table.workspaceId,
+      table.libraryType,
+    ),
+    index("knowledge_libraries_workspace_idx").on(table.workspaceId),
+    index("knowledge_libraries_type_status_idx").on(table.libraryType, table.status),
+  ],
+);
+
+export const workspaceLibrarySubscriptions = pgTable(
+  "workspace_library_subscriptions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    libraryId: uuid("library_id")
+      .notNull()
+      .references(() => knowledgeLibraries.id, { onDelete: "cascade" }),
+    status: varchar("status", { length: 32 })
+      .$type<WorkspaceLibrarySubscriptionStatus>()
+      .notNull()
+      .default(DEFAULT_WORKSPACE_LIBRARY_SUBSCRIPTION_STATUS),
+    searchEnabled: boolean("search_enabled").notNull().default(true),
+    createdByUserId: uuid("created_by_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+  },
+  (table) => [
+    uniqueIndex("workspace_library_subscriptions_workspace_library_uid").on(
+      table.workspaceId,
+      table.libraryId,
+    ),
+    index("workspace_library_subscriptions_workspace_status_idx").on(
+      table.workspaceId,
+      table.status,
+    ),
+    index("workspace_library_subscriptions_library_status_idx").on(
+      table.libraryId,
+      table.status,
+    ),
+  ],
+);
+
 export const workspaceDirectories = pgTable(
   "workspace_directories",
   {
     id: uuid("id").defaultRandom().primaryKey(),
+    libraryId: uuid("library_id").references(() => knowledgeLibraries.id, {
+      onDelete: "cascade",
+    }),
     workspaceId: uuid("workspace_id")
       .notNull()
       .references(() => workspaces.id, { onDelete: "cascade" }),
@@ -143,6 +225,7 @@ export const workspaceDirectories = pgTable(
       table.workspaceId,
       table.path,
     ),
+    uniqueIndex("workspace_directories_library_path_uid").on(table.libraryId, table.path),
     index("workspace_directories_workspace_parent_idx").on(
       table.workspaceId,
       table.parentId,
@@ -158,9 +241,12 @@ export const documents = pgTable(
   "documents",
   {
     id: uuid("id").defaultRandom().primaryKey(),
-    workspaceId: uuid("workspace_id")
-      .notNull()
-      .references(() => workspaces.id, { onDelete: "cascade" }),
+    libraryId: uuid("library_id").references(() => knowledgeLibraries.id, {
+      onDelete: "cascade",
+    }),
+    workspaceId: uuid("workspace_id").references(() => workspaces.id, {
+      onDelete: "cascade",
+    }),
     title: varchar("title", { length: 255 }).notNull(),
     sourceFilename: varchar("source_filename", { length: 255 }).notNull(),
     logicalPath: text("logical_path").notNull(),
@@ -181,7 +267,9 @@ export const documents = pgTable(
     archivedAt: timestamp("archived_at", { withTimezone: true }),
   },
   (table) => [
+    uniqueIndex("documents_library_path_uid").on(table.libraryId, table.logicalPath),
     uniqueIndex("documents_workspace_path_uid").on(table.workspaceId, table.logicalPath),
+    index("documents_library_dir_idx").on(table.libraryId, table.directoryPath),
     index("documents_workspace_dir_idx").on(table.workspaceId, table.directoryPath),
   ],
 );
@@ -305,9 +393,12 @@ export const documentChunks = pgTable(
   "document_chunks",
   {
     id: uuid("id").defaultRandom().primaryKey(),
-    workspaceId: uuid("workspace_id")
-      .notNull()
-      .references(() => workspaces.id, { onDelete: "cascade" }),
+    libraryId: uuid("library_id").references(() => knowledgeLibraries.id, {
+      onDelete: "cascade",
+    }),
+    workspaceId: uuid("workspace_id").references(() => workspaces.id, {
+      onDelete: "cascade",
+    }),
     documentId: uuid("document_id")
       .notNull()
       .references(() => documents.id, { onDelete: "cascade" }),
@@ -328,6 +419,7 @@ export const documentChunks = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
+    index("document_chunks_library_idx").on(table.libraryId),
     index("document_chunks_workspace_idx").on(table.workspaceId),
     index("document_chunks_version_page_idx").on(table.documentVersionId, table.pageStart),
   ],
@@ -337,9 +429,12 @@ export const citationAnchors = pgTable(
   "citation_anchors",
   {
     id: uuid("id").defaultRandom().primaryKey(),
-    workspaceId: uuid("workspace_id")
-      .notNull()
-      .references(() => workspaces.id, { onDelete: "cascade" }),
+    libraryId: uuid("library_id").references(() => knowledgeLibraries.id, {
+      onDelete: "cascade",
+    }),
+    workspaceId: uuid("workspace_id").references(() => workspaces.id, {
+      onDelete: "cascade",
+    }),
     documentId: uuid("document_id")
       .notNull()
       .references(() => documents.id, { onDelete: "cascade" }),
@@ -358,6 +453,7 @@ export const citationAnchors = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
+    index("citation_anchors_library_idx").on(table.libraryId),
     index("citation_anchors_chunk_idx").on(table.chunkId),
     index("citation_anchors_doc_page_idx").on(table.documentVersionId, table.pageNo),
   ],
@@ -443,6 +539,9 @@ export const messageCitations = pgTable(
     anchorId: uuid("anchor_id")
       .notNull()
       .references(() => citationAnchors.id, { onDelete: "cascade" }),
+    libraryId: uuid("library_id").references(() => knowledgeLibraries.id, {
+      onDelete: "set null",
+    }),
     documentId: uuid("document_id")
       .notNull()
       .references(() => documents.id, { onDelete: "cascade" }),
@@ -452,6 +551,8 @@ export const messageCitations = pgTable(
     documentPath: text("document_path").notNull(),
     pageNo: integer("page_no").notNull(),
     blockId: uuid("block_id"),
+    sourceScope: varchar("source_scope", { length: 32 }).$type<KnowledgeSourceScope>(),
+    libraryTitleSnapshot: text("library_title_snapshot"),
     quoteText: text("quote_text").notNull(),
     label: text("label").notNull(),
     ordinal: integer("ordinal").notNull().default(0),
@@ -542,6 +643,7 @@ export const retrievalRuns = pgTable(
     messageId: uuid("message_id").references(() => messages.id, { onDelete: "set null" }),
     query: text("query").notNull(),
     rawQueriesJson: jsonb("raw_queries_json").$type<Record<string, unknown>>(),
+    searchedLibraryIdsJson: jsonb("searched_library_ids_json").$type<string[]>(),
     topK: integer("top_k").notNull().default(DEFAULT_RETRIEVAL_RUN_TOP_K),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },

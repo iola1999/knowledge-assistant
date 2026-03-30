@@ -12,6 +12,7 @@ import {
   documentJobs,
   documents,
   documentVersions,
+  ensureWorkspacePrivateLibrary,
   getDb,
 } from "@anchordesk/db";
 import { enqueueIngestFlow } from "@anchordesk/queue";
@@ -132,12 +133,14 @@ export async function POST(
   });
   const title = sourceFilename.replace(/\.[^.]+$/, "");
   const db = getDb();
+  const privateLibrary = await ensureWorkspacePrivateLibrary(workspaceId, db);
 
   await ensureWorkspaceDirectoryPath(workspaceId, directoryPath, db);
 
   const [document] = await db
     .insert(documents)
     .values({
+      libraryId: privateLibrary.id,
       workspaceId,
       title,
       sourceFilename,
@@ -200,6 +203,7 @@ export async function POST(
 
   await enqueueIngestFlow({
     workspaceId,
+    libraryId: privateLibrary.id,
     documentId: document.id,
     documentVersionId: documentVersion.id,
     indexingMode: DOCUMENT_INDEXING_MODE.PARSE_ONLY,

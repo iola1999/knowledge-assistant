@@ -12,6 +12,7 @@ import {
 } from "@anchordesk/storage";
 
 import {
+  ensureWorkspacePrivateLibrary,
   documents,
   documentJobs,
   documentVersions,
@@ -128,6 +129,7 @@ export async function POST(
   const logicalPath = `${directoryPath}/${sourceFilename}`.replace(/\/+/g, "/");
   const title = sourceFilename.replace(/\.[^.]+$/, "");
   const db = getDb();
+  const privateLibrary = await ensureWorkspacePrivateLibrary(workspaceId, db);
 
   await ensureWorkspaceDirectoryPath(workspaceId, directoryPath, db);
 
@@ -142,6 +144,7 @@ export async function POST(
     [document] = await db
       .insert(documents)
       .values({
+        libraryId: privateLibrary.id,
         workspaceId,
         title,
         sourceFilename,
@@ -197,6 +200,7 @@ export async function POST(
 
   await enqueueIngestFlow({
     workspaceId,
+    libraryId: privateLibrary.id,
     documentId: document.id,
     documentVersionId: documentVersion.id,
   });

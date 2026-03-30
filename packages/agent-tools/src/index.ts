@@ -27,9 +27,12 @@ import {
   documents,
   getDb,
   getConfiguredAnthropicApiKey,
+  getKnowledgeSourceScope,
+  knowledgeLibraries,
   retrievalResults,
   retrievalRuns,
   reports,
+  resolveWorkspaceLibraryScope,
   reportSections,
 } from "@anchordesk/db";
 import {
@@ -210,11 +213,13 @@ async function resolveEvidenceAnchors(input: {
   fallbackQuery: string;
 }) {
   const db = getDb();
+  const scope = await resolveWorkspaceLibraryScope(input.workspaceId, db);
   let anchorIds = uniqueStrings(input.evidenceAnchorIds);
 
   if (anchorIds.length === 0 && input.fallbackQuery.trim()) {
     const ranked = await searchWorkspaceKnowledge({
-      workspaceId: input.workspaceId,
+      libraryIds: scope.searchableLibraryIds,
+      privateLibraryId: scope.privateLibraryId,
       query: input.fallbackQuery.trim(),
       topK: Math.min(6, DEFAULT_SEARCH_WORKSPACE_KNOWLEDGE_TOP_K),
     });
@@ -222,6 +227,10 @@ async function resolveEvidenceAnchors(input: {
   }
 
   if (anchorIds.length === 0) {
+    return [];
+  }
+
+  if (scope.accessibleLibraryIds.length === 0) {
     return [];
   }
 
@@ -235,7 +244,7 @@ async function resolveEvidenceAnchors(input: {
     .from(citationAnchors)
     .where(
       and(
-        eq(citationAnchors.workspaceId, input.workspaceId),
+        inArray(citationAnchors.libraryId, scope.accessibleLibraryIds),
         inArray(citationAnchors.id, anchorIds),
       ),
     );
@@ -257,8 +266,10 @@ export async function searchWorkspaceKnowledgeHandler(input: unknown) {
   const db = getDb();
 
   try {
+    const scope = await resolveWorkspaceLibraryScope(args.workspace_id, db);
     const ranked = await searchWorkspaceKnowledge({
-      workspaceId: args.workspace_id,
+      libraryIds: scope.searchableLibraryIds,
+      privateLibraryId: scope.privateLibraryId,
       query: args.query,
       topK: args.top_k,
       filters: {
@@ -276,7 +287,12 @@ export async function searchWorkspaceKnowledgeHandler(input: unknown) {
         rawQueriesJson: {
           filters: args.filters ?? null,
           provider: describeRetrievalProvider(),
+          scope: {
+            searchable_library_ids: scope.searchableLibraryIds,
+            private_library_id: scope.privateLibraryId,
+          },
         },
+        searchedLibraryIdsJson: scope.searchableLibraryIds,
         topK: args.top_k,
       })
       .returning({
@@ -307,9 +323,12 @@ export async function searchWorkspaceKnowledgeHandler(input: unknown) {
     const hydrated = await db
       .select({
         anchorId: citationAnchors.id,
+        libraryId: citationAnchors.libraryId,
         documentId: citationAnchors.documentId,
         documentPath: citationAnchors.documentPath,
         documentTitle: documents.title,
+        libraryTitle: knowledgeLibraries.title,
+        libraryType: knowledgeLibraries.libraryType,
         anchorLabel: citationAnchors.anchorLabel,
         pageNo: citationAnchors.pageNo,
         sectionLabel: documentChunks.sectionLabel,
@@ -318,9 +337,10 @@ export async function searchWorkspaceKnowledgeHandler(input: unknown) {
       .from(citationAnchors)
       .innerJoin(documents, eq(documents.id, citationAnchors.documentId))
       .innerJoin(documentChunks, eq(documentChunks.id, citationAnchors.chunkId))
+      .innerJoin(knowledgeLibraries, eq(knowledgeLibraries.id, citationAnchors.libraryId))
       .where(
         and(
-          eq(citationAnchors.workspaceId, args.workspace_id),
+          inArray(citationAnchors.libraryId, scope.accessibleLibraryIds),
           inArray(citationAnchors.id, anchorIds),
         ),
       );
@@ -340,6 +360,9 @@ export async function searchWorkspaceKnowledgeHandler(input: unknown) {
 
           return {
             anchor_id: row.anchorId,
+            library_id: row.libraryId,
+            library_title: row.libraryTitle,
+            source_scope: getKnowledgeSourceScope(row.libraryType),
             document_id: row.documentId,
             document_title: row.documentTitle,
             document_path: row.documentPath,
@@ -374,6 +397,7 @@ export async function searchConversationAttachmentsHandler(input: unknown) {
     const hydrated = await db
       .select({
         anchorId: citationAnchors.id,
+        libraryId: documents.libraryId,
         chunkId: documentChunks.id,
         documentId: documents.id,
         documentVersionId: documentChunks.documentVersionId,
@@ -405,6 +429,7 @@ export async function searchConversationAttachmentsHandler(input: unknown) {
         documentId: row.documentId,
         documentVersionId: row.documentVersionId,
         documentPath: row.documentPath,
+        libraryId: row.libraryId ?? "",
         pageStart: row.pageNo,
         pageEnd: row.pageNo,
         sectionLabel: row.sectionLabel ?? null,

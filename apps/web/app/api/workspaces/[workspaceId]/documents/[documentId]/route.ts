@@ -1,6 +1,11 @@
 import { and, asc, eq, ne } from "drizzle-orm";
 
-import { documents, documentVersions, getDb } from "@anchordesk/db";
+import {
+  documents,
+  documentVersions,
+  findWorkspaceAccessibleDocument,
+  getDb,
+} from "@anchordesk/db";
 
 import { auth } from "@/auth";
 import {
@@ -34,11 +39,7 @@ export async function GET(
   }
 
   const db = getDb();
-  const [document] = await db
-    .select()
-    .from(documents)
-    .where(and(eq(documents.id, documentId), eq(documents.workspaceId, workspaceId)))
-    .limit(1);
+  const document = await findWorkspaceAccessibleDocument(workspaceId, documentId, db);
 
   if (!document) {
     return Response.json({ error: "Document not found" }, { status: 404 });
@@ -79,14 +80,17 @@ export async function PATCH(
   }
 
   const db = getDb();
-  const [document] = await db
-    .select()
-    .from(documents)
-    .where(and(eq(documents.id, documentId), eq(documents.workspaceId, workspaceId)))
-    .limit(1);
+  const document = await findWorkspaceAccessibleDocument(workspaceId, documentId, db);
 
   if (!document) {
     return Response.json({ error: "Document not found" }, { status: 404 });
+  }
+
+  if (document.workspaceId !== workspaceId) {
+    return Response.json(
+      { error: "Subscribed global library documents are read-only" },
+      { status: 403 },
+    );
   }
 
   const next = buildDocumentMetadataUpdate(
@@ -177,14 +181,17 @@ export async function DELETE(
   }
 
   const db = getDb();
-  const [document] = await db
-    .select({ id: documents.id })
-    .from(documents)
-    .where(and(eq(documents.id, documentId), eq(documents.workspaceId, workspaceId)))
-    .limit(1);
+  const document = await findWorkspaceAccessibleDocument(workspaceId, documentId, db);
 
   if (!document) {
     return Response.json({ error: "Document not found" }, { status: 404 });
+  }
+
+  if (document.workspaceId !== workspaceId) {
+    return Response.json(
+      { error: "Subscribed global library documents are read-only" },
+      { status: 403 },
+    );
   }
 
   await deleteDocumentSearchIndexAndAssets(documentId);

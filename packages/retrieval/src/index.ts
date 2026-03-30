@@ -44,7 +44,8 @@ type QdrantFilter = {
 
 export type RetrievalChunkRecord = {
   pointId: string;
-  workspaceId: string;
+  libraryId: string;
+  workspaceId: string | null;
   documentId: string;
   documentVersionId: string;
   chunkId: string;
@@ -68,13 +69,15 @@ export type WorkspaceKnowledgeFilters = {
 };
 
 export type WorkspaceKnowledgeSearchParams = {
-  workspaceId: string;
+  libraryIds: string[];
+  privateLibraryId?: string | null;
   query: string;
   topK: number;
   filters?: WorkspaceKnowledgeFilters;
 };
 
 export type WorkspaceKnowledgeSearchResult = {
+  libraryId: string;
   anchorId: string;
   chunkId: string;
   documentId: string;
@@ -101,7 +104,8 @@ type SearchCandidate = WorkspaceKnowledgeSearchResult & {
 };
 
 type RetrievalPointPayload = {
-  workspace_id: string;
+  library_id: string;
+  workspace_id: string | null;
   document_id: string;
   document_version_id: string;
   chunk_id: string;
@@ -251,6 +255,7 @@ async function createPayloadIndexes() {
   const client = getQdrantClient();
   const collectionName = getCollectionName();
   const indexes: Array<{ fieldName: string; schema: PayloadSchema }> = [
+    { fieldName: "library_id", schema: "keyword" },
     { fieldName: "workspace_id", schema: "keyword" },
     { fieldName: "document_id", schema: "keyword" },
     { fieldName: "document_version_id", schema: "keyword" },
@@ -330,7 +335,7 @@ export async function embedTexts(texts: string[]) {
 }
 
 export async function deleteDocumentVersionPoints(input: {
-  workspaceId: string;
+  libraryId: string;
   documentVersionId: string;
 }) {
   await ensureRetrievalCollection();
@@ -339,7 +344,7 @@ export async function deleteDocumentVersionPoints(input: {
     wait: true,
     filter: {
       must: [
-        { key: "workspace_id", match: { value: input.workspaceId } },
+        { key: "library_id", match: { value: input.libraryId } },
         { key: "document_version_id", match: { value: input.documentVersionId } },
       ],
     },
@@ -356,6 +361,7 @@ function toPayload(chunk: RetrievalChunkRecord): RetrievalPointPayload {
   });
 
   return {
+    library_id: chunk.libraryId,
     workspace_id: chunk.workspaceId,
     document_id: chunk.documentId,
     document_version_id: chunk.documentVersionId,
@@ -423,12 +429,21 @@ function matchesPostFilters(payload: RetrievalPointPayload, filters?: WorkspaceK
   return true;
 }
 
-function buildSearchFilter(
-  workspaceId: string,
+export function buildLibrarySearchFilter(
+  libraryIds: string[],
   filters?: WorkspaceKnowledgeFilters,
 ): QdrantFilter {
+  const normalizedLibraryIds = uniqueNormalized(libraryIds);
   const must: Array<Record<string, unknown>> = [
-    { key: "workspace_id", match: { value: workspaceId } },
+    normalizedLibraryIds.length <= 1
+      ? {
+          key: "library_id",
+          match: { value: normalizedLibraryIds[0] ?? "__missing_library_scope__" },
+        }
+      : {
+          key: "library_id",
+          match: { any: normalizedLibraryIds },
+        },
   ];
 
   if (filters?.directoryPrefix) {
@@ -553,6 +568,10 @@ async function rerankCandidates(
 export async function searchWorkspaceKnowledge(
   params: WorkspaceKnowledgeSearchParams,
 ): Promise<WorkspaceKnowledgeSearchResult[]> {
+  if (params.libraryIds.length === 0) {
+    return [];
+  }
+
   await ensureRetrievalCollection();
 
   const [queryVector] = await embedTexts([params.query]);
@@ -565,7 +584,7 @@ export async function searchWorkspaceKnowledge(
     vector: queryVector,
     limit: candidateLimit,
     with_payload: true,
-    filter: buildSearchFilter(params.workspaceId, params.filters) as never,
+    filter: buildLibrarySearchFilter(params.libraryIds, params.filters) as never,
   });
 
   const denseCandidates = results
@@ -593,8 +612,10 @@ export async function searchWorkspaceKnowledge(
       const denseScore = clampScore(typeof item.score === "number" ? item.score : 0);
       const bm25Score = bm25Scores[index] ?? 0;
       const keywordScore = computeKeywordScore(params.query, payload);
+      const privateLibraryBoost =
+        params.privateLibraryId && payload.library_id === params.privateLibraryId ? 0.03 : 0;
       const rerankScore = clampScore(
-        denseScore * 0.52 + bm25Score * 0.28 + keywordScore * 0.2,
+        denseScore * 0.52 + bm25Score * 0.28 + keywordScore * 0.2 + privateLibraryBoost,
       );
       const exactBoost =
         textContainsToken(payload.chunk_text, params.query) ||
@@ -604,6 +625,7 @@ export async function searchWorkspaceKnowledge(
       const finalScore = clampScore(rerankScore + exactBoost);
 
       return {
+        libraryId: payload.library_id,
         anchorId: payload.anchor_id,
         chunkId: payload.chunk_id,
         documentId: payload.document_id,

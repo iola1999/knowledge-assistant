@@ -1,6 +1,10 @@
 import { and, eq } from "drizzle-orm";
 
-import { documents, documentVersions, getDb } from "@anchordesk/db";
+import {
+  documentVersions,
+  findWorkspaceAccessibleDocument,
+  getDb,
+} from "@anchordesk/db";
 import { getObjectBytes } from "@anchordesk/storage";
 
 import { auth } from "@/auth";
@@ -25,11 +29,7 @@ export async function GET(
   }
 
   const db = getDb();
-  const [document] = await db
-    .select()
-    .from(documents)
-    .where(and(eq(documents.id, documentId), eq(documents.workspaceId, workspaceId)))
-    .limit(1);
+  const document = await findWorkspaceAccessibleDocument(workspaceId, documentId, db);
 
   if (!document || !document.latestVersionId) {
     return Response.json({ error: "Document not found" }, { status: 404 });

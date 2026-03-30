@@ -69,8 +69,16 @@ export async function POST(
       ? (job.metadataJson.indexing_mode as DocumentIndexingMode)
       : DEFAULT_DOCUMENT_INDEXING_MODE;
 
+  if (!job.workspaceId) {
+    return Response.json(
+      { error: "Global library document jobs are not retryable from this route yet" },
+      { status: 400 },
+    );
+  }
+
   await enqueueIngestFlow({
     workspaceId: job.workspaceId,
+    libraryId: job.libraryId ?? undefined,
     documentId: job.documentId,
     documentVersionId: job.documentVersionId,
     indexingMode,

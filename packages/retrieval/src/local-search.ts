@@ -6,6 +6,7 @@ import {
 import type { WorkspaceKnowledgeSearchResult } from "./index";
 
 export type LocalSearchChunkRecord = {
+  libraryId: string;
   anchorId: string;
   chunkId: string;
   documentId: string;
@@ -77,6 +78,7 @@ export function searchLocalChunks(input: {
       const finalScore = clampScore(rerankScore + exactBoost);
 
       return {
+        libraryId: chunk.libraryId,
         anchorId: chunk.anchorId,
         chunkId: chunk.chunkId,
         documentId: chunk.documentId,

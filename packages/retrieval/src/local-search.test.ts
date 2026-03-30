@@ -9,6 +9,7 @@ describe("searchLocalChunks", () => {
       topK: 2,
       chunks: [
         {
+          libraryId: "library-1",
           anchorId: "anchor-1",
           chunkId: "chunk-1",
           documentId: "doc-1",
@@ -23,6 +24,7 @@ describe("searchLocalChunks", () => {
           snippet: "上线检查清单要求在发布前完成回归测试和负责人确认。",
         },
         {
+          libraryId: "library-2",
           anchorId: "anchor-2",
           chunkId: "chunk-2",
           documentId: "doc-2",

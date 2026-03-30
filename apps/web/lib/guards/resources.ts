@@ -6,6 +6,8 @@ import {
   documentJobs,
   documentVersions,
   documents,
+  findWorkspaceAccessibleAnchor,
+  findWorkspaceAccessibleDocument,
   getDb,
   reports,
   workspaces,
@@ -42,27 +44,19 @@ export async function requireOwnedConversation(
 
 export async function requireOwnedDocument(documentId: string, userId: string) {
   const db = getDb();
-  const result = await db
-    .select({
-      id: documents.id,
-      workspaceId: documents.workspaceId,
-      title: documents.title,
-      logicalPath: documents.logicalPath,
-      latestVersionId: documents.latestVersionId,
-      status: documents.status,
-    })
-    .from(documents)
-    .innerJoin(workspaces, eq(workspaces.id, documents.workspaceId))
-    .where(
-      and(
-        eq(documents.id, documentId),
-        eq(workspaces.userId, userId),
-        isNull(workspaces.archivedAt),
-      ),
-    )
-    .limit(1);
+  const accessibleWorkspaces = await db
+    .select({ id: workspaces.id })
+    .from(workspaces)
+    .where(and(eq(workspaces.userId, userId), isNull(workspaces.archivedAt)));
 
-  return result[0] ?? null;
+  for (const workspace of accessibleWorkspaces) {
+    const document = await findWorkspaceAccessibleDocument(workspace.id, documentId, db);
+    if (document) {
+      return document;
+    }
+  }
+
+  return null;
 }
 
 export async function requireOwnedReport(reportId: string, userId: string) {
@@ -91,30 +85,19 @@ export async function requireOwnedReport(reportId: string, userId: string) {
 
 export async function requireOwnedAnchor(anchorId: string, userId: string) {
   const db = getDb();
-  const result = await db
-    .select({
-      id: citationAnchors.id,
-      workspaceId: citationAnchors.workspaceId,
-      documentId: citationAnchors.documentId,
-      documentVersionId: citationAnchors.documentVersionId,
-      pageNo: citationAnchors.pageNo,
-      documentPath: citationAnchors.documentPath,
-      anchorLabel: citationAnchors.anchorLabel,
-      anchorText: citationAnchors.anchorText,
-      bboxJson: citationAnchors.bboxJson,
-    })
-    .from(citationAnchors)
-    .innerJoin(workspaces, eq(workspaces.id, citationAnchors.workspaceId))
-    .where(
-      and(
-        eq(citationAnchors.id, anchorId),
-        eq(workspaces.userId, userId),
-        isNull(workspaces.archivedAt),
-      ),
-    )
-    .limit(1);
+  const accessibleWorkspaces = await db
+    .select({ id: workspaces.id })
+    .from(workspaces)
+    .where(and(eq(workspaces.userId, userId), isNull(workspaces.archivedAt)));
 
-  return result[0] ?? null;
+  for (const workspace of accessibleWorkspaces) {
+    const anchor = await findWorkspaceAccessibleAnchor(workspace.id, anchorId, db);
+    if (anchor) {
+      return anchor;
+    }
+  }
+
+  return null;
 }
 
 export async function requireOwnedDocumentJob(jobId: string, userId: string) {
@@ -133,6 +116,7 @@ export async function requireOwnedDocumentJob(jobId: string, userId: string) {
       updatedAt: documentJobs.updatedAt,
       startedAt: documentJobs.startedAt,
       finishedAt: documentJobs.finishedAt,
+      libraryId: documents.libraryId,
       workspaceId: documents.workspaceId,
       documentId: documents.id,
     })

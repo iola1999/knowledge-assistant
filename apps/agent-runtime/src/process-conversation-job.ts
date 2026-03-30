@@ -15,8 +15,11 @@ import {
   citationAnchors,
   conversations,
   getDb,
+  getKnowledgeSourceScope,
+  knowledgeLibraries,
   messageCitations,
   messages,
+  resolveWorkspaceLibraryScope,
 } from "@anchordesk/db";
 import { serializeErrorForLog } from "@anchordesk/logging";
 import type { ConversationResponseJobPayload } from "@anchordesk/queue";
@@ -81,14 +84,16 @@ async function persistMessageCitations(input: {
     quote_text: string;
   }>;
 }) {
+  const scope = await resolveWorkspaceLibraryScope(input.workspaceId, db);
   const citationMap = new Map(input.citations.map((citation) => [citation.anchor_id, citation]));
   const requestedAnchorIds = Array.from(citationMap.keys());
 
   const anchorRows =
-    requestedAnchorIds.length > 0
+    requestedAnchorIds.length > 0 && scope.accessibleLibraryIds.length > 0
       ? await db
           .select({
             anchorId: citationAnchors.id,
+            libraryId: citationAnchors.libraryId,
             documentId: citationAnchors.documentId,
             documentVersionId: citationAnchors.documentVersionId,
             documentPath: citationAnchors.documentPath,
@@ -96,11 +101,14 @@ async function persistMessageCitations(input: {
             pageNo: citationAnchors.pageNo,
             blockId: citationAnchors.blockId,
             quoteText: citationAnchors.anchorText,
+            libraryTitle: knowledgeLibraries.title,
+            libraryType: knowledgeLibraries.libraryType,
           })
           .from(citationAnchors)
+          .innerJoin(knowledgeLibraries, eq(knowledgeLibraries.id, citationAnchors.libraryId))
           .where(
             and(
-              eq(citationAnchors.workspaceId, input.workspaceId),
+              inArray(citationAnchors.libraryId, scope.accessibleLibraryIds),
               inArray(citationAnchors.id, requestedAnchorIds),
             ),
           )
@@ -117,11 +125,14 @@ async function persistMessageCitations(input: {
       return {
         messageId: input.assistantMessageId,
         anchorId: anchor.anchorId,
+        libraryId: anchor.libraryId,
         documentId: anchor.documentId,
         documentVersionId: anchor.documentVersionId,
         documentPath: anchor.documentPath,
         pageNo: anchor.pageNo,
         blockId: anchor.blockId,
+        sourceScope: getKnowledgeSourceScope(anchor.libraryType),
+        libraryTitleSnapshot: anchor.libraryTitle,
         quoteText: runtimeCitation?.quote_text || anchor.quoteText,
         label:
           runtimeCitation?.label ||

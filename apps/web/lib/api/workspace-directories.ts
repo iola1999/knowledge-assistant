@@ -1,6 +1,10 @@
 import { eq, and } from "drizzle-orm";
 
-import { getDb, workspaceDirectories } from "@anchordesk/db";
+import {
+  ensureWorkspacePrivateLibrary,
+  getDb,
+  workspaceDirectories,
+} from "@anchordesk/db";
 
 import {
   getDirectoryName,
@@ -19,6 +23,7 @@ export async function ensureWorkspaceDirectoryPath(
 ) {
   const normalizedPath = normalizeDirectoryPath(path);
   const ancestors = listAncestorDirectoryPaths(normalizedPath);
+  const privateLibrary = await ensureWorkspacePrivateLibrary(workspaceId, db);
   let parentId: string | null = null;
   let currentDirectory: WorkspaceDirectoryRecord | null = null;
 
@@ -27,6 +32,7 @@ export async function ensureWorkspaceDirectoryPath(
     const rows: WorkspaceDirectoryRecord[] = await db
       .insert(workspaceDirectories)
       .values({
+        libraryId: privateLibrary.id,
         workspaceId,
         parentId,
         name,
@@ -37,6 +43,7 @@ export async function ensureWorkspaceDirectoryPath(
       .onConflictDoUpdate({
         target: [workspaceDirectories.workspaceId, workspaceDirectories.path],
         set: {
+          libraryId: privateLibrary.id,
           parentId,
           name,
           deletedAt: null,

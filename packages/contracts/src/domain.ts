@@ -40,6 +40,52 @@ export const DOCUMENT_TYPE_VALUES = [
 ] as const;
 export type DocumentType = ValueOf<typeof DOCUMENT_TYPE>;
 
+export const KNOWLEDGE_LIBRARY_TYPE = {
+  WORKSPACE_PRIVATE: "workspace_private",
+  GLOBAL_MANAGED: "global_managed",
+} as const;
+export const KNOWLEDGE_LIBRARY_TYPE_VALUES = [
+  KNOWLEDGE_LIBRARY_TYPE.WORKSPACE_PRIVATE,
+  KNOWLEDGE_LIBRARY_TYPE.GLOBAL_MANAGED,
+] as const;
+export type KnowledgeLibraryType = ValueOf<typeof KNOWLEDGE_LIBRARY_TYPE>;
+
+export const KNOWLEDGE_LIBRARY_STATUS = {
+  DRAFT: "draft",
+  ACTIVE: "active",
+  ARCHIVED: "archived",
+} as const;
+export const KNOWLEDGE_LIBRARY_STATUS_VALUES = [
+  KNOWLEDGE_LIBRARY_STATUS.DRAFT,
+  KNOWLEDGE_LIBRARY_STATUS.ACTIVE,
+  KNOWLEDGE_LIBRARY_STATUS.ARCHIVED,
+] as const;
+export type KnowledgeLibraryStatus = ValueOf<typeof KNOWLEDGE_LIBRARY_STATUS>;
+
+export const WORKSPACE_LIBRARY_SUBSCRIPTION_STATUS = {
+  ACTIVE: "active",
+  PAUSED: "paused",
+  REVOKED: "revoked",
+} as const;
+export const WORKSPACE_LIBRARY_SUBSCRIPTION_STATUS_VALUES = [
+  WORKSPACE_LIBRARY_SUBSCRIPTION_STATUS.ACTIVE,
+  WORKSPACE_LIBRARY_SUBSCRIPTION_STATUS.PAUSED,
+  WORKSPACE_LIBRARY_SUBSCRIPTION_STATUS.REVOKED,
+] as const;
+export type WorkspaceLibrarySubscriptionStatus = ValueOf<
+  typeof WORKSPACE_LIBRARY_SUBSCRIPTION_STATUS
+>;
+
+export const KNOWLEDGE_SOURCE_SCOPE = {
+  WORKSPACE_PRIVATE: "workspace_private",
+  GLOBAL_LIBRARY: "global_library",
+} as const;
+export const KNOWLEDGE_SOURCE_SCOPE_VALUES = [
+  KNOWLEDGE_SOURCE_SCOPE.WORKSPACE_PRIVATE,
+  KNOWLEDGE_SOURCE_SCOPE.GLOBAL_LIBRARY,
+] as const;
+export type KnowledgeSourceScope = ValueOf<typeof KNOWLEDGE_SOURCE_SCOPE>;
+
 export const DOCUMENT_INDEXING_MODE = {
   FULL: "full",
   PARSE_ONLY: "parse_only",

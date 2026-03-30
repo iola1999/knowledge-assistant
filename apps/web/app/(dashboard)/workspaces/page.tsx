@@ -82,6 +82,10 @@ export default async function WorkspacesPage() {
   }
 
   for (const document of documentRows) {
+    if (!document.workspaceId) {
+      continue;
+    }
+
     documentCountByWorkspace.set(
       document.workspaceId,
       (documentCountByWorkspace.get(document.workspaceId) ?? 0) + 1,

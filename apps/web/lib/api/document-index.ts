@@ -39,6 +39,7 @@ async function listDocumentVersions(documentId: string) {
   return db
     .select({
       id: documentVersions.id,
+      libraryId: documents.libraryId,
       workspaceId: documents.workspaceId,
       storageKey: documentVersions.storageKey,
       metadataJson: documentVersions.metadataJson,
@@ -53,6 +54,7 @@ async function fetchChunksForIndex(documentVersionId: string) {
   const rows = await db
     .select({
       chunkId: documentChunks.id,
+      libraryId: documentChunks.libraryId,
       workspaceId: documentChunks.workspaceId,
       documentId: documentChunks.documentId,
       documentVersionId: documentChunks.documentVersionId,
@@ -75,6 +77,7 @@ async function fetchChunksForIndex(documentVersionId: string) {
 
   return rows.map((row) => ({
     pointId: row.chunkId,
+    libraryId: row.libraryId ?? "",
     workspaceId: row.workspaceId,
     documentId: row.documentId,
     documentVersionId: row.documentVersionId,
@@ -94,7 +97,7 @@ async function fetchChunksForIndex(documentVersionId: string) {
 }
 
 async function syncDocumentVersionIndex(input: {
-  workspaceId: string;
+  libraryId: string;
   documentVersionId: string;
   metadataJson?: Record<string, unknown> | null;
 }) {
@@ -126,8 +129,12 @@ export async function syncDocumentSearchIndex(documentId: string) {
   const versions = await listDocumentVersions(documentId);
 
   for (const version of versions) {
+    if (!version.libraryId) {
+      continue;
+    }
+
     await syncDocumentVersionIndex({
-      workspaceId: version.workspaceId,
+      libraryId: version.libraryId,
       documentVersionId: version.id,
       metadataJson: (version.metadataJson as Record<string, unknown> | null | undefined) ?? null,
     });
@@ -139,8 +146,12 @@ export async function deleteDocumentSearchIndexAndAssets(documentId: string) {
   const storageKeys = [...new Set(versions.map((version) => version.storageKey))];
 
   for (const version of versions) {
+    if (!version.libraryId) {
+      continue;
+    }
+
     await deleteDocumentVersionPoints({
-      workspaceId: version.workspaceId,
+      libraryId: version.libraryId,
       documentVersionId: version.id,
     });
   }
