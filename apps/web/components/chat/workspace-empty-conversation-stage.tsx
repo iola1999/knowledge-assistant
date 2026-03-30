@@ -59,6 +59,7 @@ export function WorkspaceEmptyConversationStage({
         initialMessages={pendingConversation.messages}
         initialCitations={[]}
         initialAttachments={pendingConversation.attachments}
+        scrollToBottomOnMount
         onAssistantTerminalEvent={onAssistantTerminalEvent}
       />
     );

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { MESSAGE_STATUS } from "@anchordesk/contracts";
 
@@ -21,6 +21,40 @@ import {
 
 type TimelineMessagesByAssistant = Record<string, AssistantProcessMessage[]>;
 
+function scrollConversationPanelToBottom(panel: HTMLDivElement) {
+  let scrollContainer: HTMLElement | null = panel.parentElement;
+
+  while (scrollContainer) {
+    const styles = window.getComputedStyle(scrollContainer);
+    if (styles.overflowY === "auto" || styles.overflowY === "scroll") {
+      break;
+    }
+
+    scrollContainer = scrollContainer.parentElement;
+  }
+
+  const target =
+    scrollContainer ??
+    (document.scrollingElement instanceof HTMLElement ? document.scrollingElement : null);
+
+  if (!target) {
+    panel.scrollIntoView({
+      block: "end",
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        ? "auto"
+        : "smooth",
+    });
+    return;
+  }
+
+  target.scrollTo({
+    top: target.scrollHeight,
+    behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      ? "auto"
+      : "smooth",
+  });
+}
+
 export function WorkspaceConversationPanel({
   conversationId,
   workspaceId,
@@ -28,6 +62,7 @@ export function WorkspaceConversationPanel({
   initialTimelineMessagesByAssistant,
   initialCitations,
   initialAttachments,
+  scrollToBottomOnMount = false,
   onSubmittedTurn,
   onAssistantTerminalEvent,
 }: {
@@ -37,6 +72,7 @@ export function WorkspaceConversationPanel({
   initialTimelineMessagesByAssistant?: TimelineMessagesByAssistant;
   initialCitations?: ConversationMessageCitation[];
   initialAttachments: ComposerAttachment[];
+  scrollToBottomOnMount?: boolean;
   onSubmittedTurn?: (turn: ComposerSubmittedTurn) => void;
   onAssistantTerminalEvent?: (conversationId: string) => void;
 }) {
@@ -45,12 +81,37 @@ export function WorkspaceConversationPanel({
     initialTimelineMessagesByAssistant ?? {},
   );
   const [citations, setCitations] = useState(initialCitations ?? []);
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  const pendingScrollToBottomRef = useRef(scrollToBottomOnMount);
 
   useEffect(() => {
     setMessages(initialMessages);
     setTimelineMessagesByAssistant(initialTimelineMessagesByAssistant ?? {});
     setCitations(initialCitations ?? []);
   }, [initialCitations, initialMessages, initialTimelineMessagesByAssistant]);
+
+  useEffect(() => {
+    if (!scrollToBottomOnMount) {
+      return;
+    }
+
+    pendingScrollToBottomRef.current = true;
+  }, [scrollToBottomOnMount]);
+
+  useEffect(() => {
+    if (!pendingScrollToBottomRef.current) {
+      return;
+    }
+
+    pendingScrollToBottomRef.current = false;
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        if (panelRef.current) {
+          scrollConversationPanelToBottom(panelRef.current);
+        }
+      });
+    });
+  }, [messages.length]);
 
   const activeAssistantMessageId = findLatestAssistantMessageId(messages);
   const activeAssistantStatus =
@@ -91,6 +152,7 @@ export function WorkspaceConversationPanel({
       return;
     }
 
+    pendingScrollToBottomRef.current = true;
     setMessages((current) =>
       appendSubmittedConversationTurn({
         messages: current,
@@ -119,7 +181,10 @@ export function WorkspaceConversationPanel({
   }
 
   return (
-    <div className="mx-auto flex min-h-full w-full max-w-[1080px] min-w-0 flex-col overflow-visible">
+    <div
+      ref={panelRef}
+      className="mx-auto flex min-h-full w-full max-w-[1080px] min-w-0 flex-col overflow-visible"
+    >
       <div className="min-w-0 flex-1 py-2 pr-1 min-[720px]:py-3">
         <ConversationSession
           conversationId={conversationId}
