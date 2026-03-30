@@ -254,20 +254,24 @@ export function WorkspaceShellFrame({
               </Link>
             </div>
 
-            <BreadcrumbTrail
-              workspace={workspace}
-              workspaces={workspaces}
-              conversations={conversations}
-              breadcrumbs={breadcrumbs}
-              activeView={activeView}
-              currentConversation={currentConversation}
-            />
-
-            {topActions ? (
-              <div className="flex flex-wrap items-center justify-end gap-2">
-                {topActions}
+            <div className="flex flex-wrap items-start justify-between gap-2.5">
+              <div className="min-w-0 flex-1">
+                <BreadcrumbTrail
+                  workspace={workspace}
+                  workspaces={workspaces}
+                  conversations={conversations}
+                  breadcrumbs={breadcrumbs}
+                  activeView={activeView}
+                  currentConversation={currentConversation}
+                />
               </div>
-            ) : null}
+
+              {topActions ? (
+                <div className="flex shrink-0 items-center justify-end gap-2">
+                  {topActions}
+                </div>
+              ) : null}
+            </div>
           </div>
 
           <div className="hidden min-[720px]:flex min-[720px]:flex-wrap min-[720px]:items-center min-[720px]:justify-between min-[720px]:gap-4">
@@ -424,14 +428,17 @@ function BreadcrumbTrail({
   currentConversation,
 }: BreadcrumbTrailProps) {
   return (
-    <div className="flex flex-wrap items-center gap-1.5 text-[13px] text-app-muted" aria-label="Breadcrumb">
+    <div
+      className="flex min-w-0 flex-wrap items-center gap-1.5 text-[13px] text-app-muted"
+      aria-label="Breadcrumb"
+    >
       {breadcrumbs.map((item, index) => {
         const isWorkspaceCrumb = item.label === workspace.title;
         const isCurrentConversationCrumb =
           Boolean(currentConversation) && index === breadcrumbs.length - 1;
 
         return (
-          <span key={`${item.label}-${index}`} className="flex items-center gap-1.5">
+          <span key={`${item.label}-${index}`} className="flex min-w-0 items-center gap-1.5">
             {isCurrentConversationCrumb && currentConversation ? (
               <ConversationBreadcrumbSwitcher
                 workspaceId={workspace.id}
