@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 
-import { ArrowUpIcon, PlusIcon } from "@/components/icons";
+import { ArrowUpIcon, PlusIcon, StopIcon } from "@/components/icons";
 import {
   COMPOSER_ATTACHMENT_STATUS,
   canSubmitWithAttachments,
@@ -15,8 +15,10 @@ import {
 import {
   buildComposerSubmittedTurn,
   COMPOSER_ENTER_ACTION,
+  COMPOSER_PRIMARY_ACTION,
   resolveComposerEnterKeyAction,
   resolveComposerHeading,
+  resolveComposerPrimaryAction,
   resolveComposerStageTextareaSizing,
   resolveComposerSubmitStatus,
 } from "@/lib/api/composer";
@@ -59,6 +61,8 @@ type ComposerProps = {
   className?: string;
   textareaClassName?: string;
   initialAttachments?: ComposerAttachment[];
+  isStreaming?: boolean;
+  onStop?: () => Promise<void> | void;
   onSubmitted?: (turn: ComposerSubmittedTurn) => void;
 };
 
@@ -96,6 +100,8 @@ export function Composer({
   className,
   textareaClassName,
   initialAttachments = [],
+  isStreaming = false,
+  onStop,
   onSubmitted,
 }: ComposerProps) {
   const heading = resolveComposerHeading({ title, description });
@@ -103,6 +109,7 @@ export function Composer({
   const [content, setContent] = useState("");
   const [status, setStatus] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [isStopping, setIsStopping] = useState(false);
   const [attachments, setAttachments] = useState<ComposerAttachment[]>(initialAttachments);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -125,9 +132,16 @@ export function Composer({
       hasPendingAttachments ||
       hasNoReadyAttachments);
   const stageTextareaSizing = resolveComposerStageTextareaSizing(rows);
-  const isSubmitDisabled = isPending || hasPendingAttachments;
+  const canStopStreaming = isStreaming && typeof onStop === "function";
+  const primaryAction = resolveComposerPrimaryAction({
+    content,
+    hasPendingAttachments,
+    isStreaming: canStopStreaming,
+  });
+  const isSubmitDisabled = isPending || primaryAction.disabled;
+  const isPrimaryActionDisabled = canStopStreaming ? isStopping : isSubmitDisabled;
   const stageActionButtonBase =
-    "inline-flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full border transition disabled:cursor-not-allowed disabled:opacity-55";
+    "inline-flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full border transition disabled:cursor-not-allowed disabled:border-app-border disabled:bg-app-surface-strong/72 disabled:text-app-muted disabled:shadow-none";
 
   useEffect(() => {
     setAttachments((current) => mergeAttachments(current, initialAttachments));
@@ -475,6 +489,10 @@ export function Composer({
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (canStopStreaming) {
+      return;
+    }
+
     const prompt = content.trim();
     if (!prompt) return;
     if (hasPendingAttachments) {
@@ -552,6 +570,10 @@ export function Composer({
   }
 
   function onTextareaKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (primaryAction.mode !== COMPOSER_PRIMARY_ACTION.SUBMIT) {
+      return;
+    }
+
     const action = resolveComposerEnterKeyAction({
       key: event.key,
       shiftKey: event.shiftKey,
@@ -572,6 +594,23 @@ export function Composer({
     }
 
     event.currentTarget.form?.requestSubmit();
+  }
+
+  async function handleStop() {
+    if (!onStop || isStopping) {
+      return;
+    }
+
+    setStatus(null);
+    setIsStopping(true);
+    try {
+      await onStop();
+      setStatus("已停止当前生成。");
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "停止失败。");
+    } finally {
+      setIsStopping(false);
+    }
   }
 
   return (
@@ -636,13 +675,31 @@ export function Composer({
               <button
                 className={cn(
                   stageActionButtonBase,
-                  "border-transparent bg-app-primary text-app-primary-contrast shadow-sm hover:bg-[#25211c]",
+                  "shadow-sm",
+                  canStopStreaming
+                    ? "border-transparent bg-app-primary text-app-primary-contrast hover:bg-[#25211c]"
+                    : "border-transparent bg-app-primary text-app-primary-contrast hover:bg-[#25211c]",
                 )}
-                disabled={isSubmitDisabled}
-                type="submit"
-                aria-label={submitLabel}
+                disabled={isPrimaryActionDisabled}
+                type={primaryAction.mode === COMPOSER_PRIMARY_ACTION.STOP ? "button" : "submit"}
+                aria-label={
+                  primaryAction.mode === COMPOSER_PRIMARY_ACTION.STOP
+                    ? "停止生成"
+                    : submitLabel
+                }
+                onClick={
+                  primaryAction.mode === COMPOSER_PRIMARY_ACTION.STOP
+                    ? () => {
+                        void handleStop();
+                      }
+                    : undefined
+                }
               >
-                <ArrowUpIcon className="size-5" aria-hidden="true" />
+                {primaryAction.mode === COMPOSER_PRIMARY_ACTION.STOP ? (
+                  <StopIcon className="size-[18px]" aria-hidden="true" />
+                ) : (
+                  <ArrowUpIcon className="size-5" aria-hidden="true" />
+                )}
               </button>
             </div>
           </div>
@@ -724,10 +781,23 @@ export function Composer({
             </div>
             <button
               className={buttonStyles()}
-              disabled={isSubmitDisabled}
-              type="submit"
+              disabled={isPrimaryActionDisabled}
+              type={primaryAction.mode === COMPOSER_PRIMARY_ACTION.STOP ? "button" : "submit"}
+              onClick={
+                primaryAction.mode === COMPOSER_PRIMARY_ACTION.STOP
+                  ? () => {
+                      void handleStop();
+                    }
+                  : undefined
+              }
             >
-              {isPending ? "刷新中..." : submitLabel}
+              {primaryAction.mode === COMPOSER_PRIMARY_ACTION.STOP
+                ? isStopping
+                  ? "停止中..."
+                  : "停止"
+                : isPending
+                  ? "刷新中..."
+                  : submitLabel}
             </button>
           </div>
         </>

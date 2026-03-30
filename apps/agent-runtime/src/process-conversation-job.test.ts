@@ -17,6 +17,7 @@ const mocks = vi.hoisted(() => {
   const queryResults = {
     conversations: [] as Array<Record<string, unknown>>,
     messages: [] as Array<Record<string, unknown>>,
+    messageSequence: [] as Array<Array<Record<string, unknown>>>,
     citationAnchors: [] as Array<Record<string, unknown>>,
   };
 
@@ -40,6 +41,9 @@ const mocks = vi.hoisted(() => {
             }
 
             if (table === tables.messages) {
+              if (queryResults.messageSequence.length > 0) {
+                return queryResults.messageSequence.shift() ?? [];
+              }
               return queryResults.messages;
             }
 
@@ -111,6 +115,7 @@ beforeAll(async () => {
 beforeEach(() => {
   mocks.queryResults.conversations = [];
   mocks.queryResults.messages = [];
+  mocks.queryResults.messageSequence = [];
   mocks.queryResults.citationAnchors = [];
   mocks.inserts.length = 0;
   mocks.updates.length = 0;
@@ -323,5 +328,78 @@ describe("processConversationResponseJob", () => {
         }),
       ]),
     );
+  });
+
+  it("stops persisting output when the assistant was already finalized elsewhere", async () => {
+    mocks.queryResults.conversations = [
+      {
+        id: "conversation-1",
+        workspaceId: "workspace-1",
+        agentSessionId: null,
+        agentWorkdir: null,
+      },
+    ];
+    mocks.queryResults.messageSequence = [
+      [
+        {
+          id: "assistant-1",
+          conversationId: "conversation-1",
+          status: MESSAGE_STATUS.STREAMING,
+          contentMarkdown: "",
+          structuredJson: null,
+        },
+      ],
+      [
+        {
+          id: "assistant-1",
+          conversationId: "conversation-1",
+          status: MESSAGE_STATUS.STREAMING,
+          contentMarkdown: "",
+          structuredJson: null,
+        },
+      ],
+      [
+        {
+          id: "assistant-1",
+          conversationId: "conversation-1",
+          status: MESSAGE_STATUS.COMPLETED,
+          contentMarkdown: "手动停止后的内容",
+          structuredJson: null,
+        },
+      ],
+    ];
+    mocks.runAgentResponse.mockResolvedValue({
+      citations: [],
+      ok: true as const,
+      sessionId: "session-1",
+      text: "最终回答",
+      workdir: "/tmp/agent-session",
+    });
+
+    await processConversationResponseJob({
+      assistantMessageId: "assistant-1",
+      conversationId: "conversation-1",
+      prompt: "总结一下",
+      userMessageId: "user-1",
+    });
+
+    expect(mocks.runAgentResponse).toHaveBeenCalledTimes(1);
+    expect(mocks.updates).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          table: mocks.tables.messages,
+          values: {
+            contentMarkdown: "最终回答",
+            status: MESSAGE_STATUS.COMPLETED,
+            structuredJson: null,
+          },
+        }),
+        expect.objectContaining({
+          table: mocks.tables.messages,
+          values: buildAssistantFailedMessageState(expect.anything()),
+        }),
+      ]),
+    );
+    expect(mocks.inserts).toEqual([]);
   });
 });

@@ -88,6 +88,30 @@ export function ArrowUpIcon({
   );
 }
 
+export function StopIcon({
+  className,
+  strokeWidth = 1.7,
+  ...props
+}: IconProps) {
+  return (
+    <IconBase
+      className={cn("size-4", className)}
+      stroke="currentColor"
+      strokeWidth={strokeWidth}
+      {...props}
+    >
+      <rect
+        x="5.75"
+        y="5.75"
+        width="8.5"
+        height="8.5"
+        rx="1.6"
+        strokeLinejoin="round"
+      />
+    </IconBase>
+  );
+}
+
 export function ShareIcon({
   className,
   strokeWidth = 1.7,

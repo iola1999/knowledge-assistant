@@ -3,8 +3,10 @@ import { describe, expect, it } from "vitest";
 import {
   buildComposerSubmittedTurn,
   COMPOSER_ENTER_ACTION,
+  COMPOSER_PRIMARY_ACTION,
   resolveComposerEnterKeyAction,
   resolveComposerHeading,
+  resolveComposerPrimaryAction,
   resolveComposerStageTextareaSizing,
   resolveComposerSubmitStatus,
 } from "./composer";
@@ -42,6 +44,47 @@ describe("resolveComposerSubmitStatus", () => {
     expect(resolveComposerSubmitStatus("queue offline")).toBe(
       "消息已保存，但 Agent 处理失败：queue offline",
     );
+  });
+});
+
+describe("resolveComposerPrimaryAction", () => {
+  it("switches to stop mode while the assistant is streaming", () => {
+    expect(
+      resolveComposerPrimaryAction({
+        content: "",
+        hasPendingAttachments: false,
+        isStreaming: true,
+      }),
+    ).toEqual({
+      mode: COMPOSER_PRIMARY_ACTION.STOP,
+      disabled: false,
+    });
+  });
+
+  it("disables submit mode when the prompt is empty", () => {
+    expect(
+      resolveComposerPrimaryAction({
+        content: "   ",
+        hasPendingAttachments: false,
+        isStreaming: false,
+      }),
+    ).toEqual({
+      mode: COMPOSER_PRIMARY_ACTION.SUBMIT,
+      disabled: true,
+    });
+  });
+
+  it("keeps submit disabled while attachments are still pending", () => {
+    expect(
+      resolveComposerPrimaryAction({
+        content: "继续分析",
+        hasPendingAttachments: true,
+        isStreaming: false,
+      }),
+    ).toEqual({
+      mode: COMPOSER_PRIMARY_ACTION.SUBMIT,
+      disabled: true,
+    });
   });
 });
 

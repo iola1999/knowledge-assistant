@@ -30,6 +30,13 @@ import { buildToolTimelineMessage } from "./timeline";
 
 const db = getDb();
 
+class AssistantRunStoppedError extends Error {
+  constructor(assistantMessageId: string) {
+    super(`Assistant run was stopped for message ${assistantMessageId}.`);
+    this.name = "AssistantRunStoppedError";
+  }
+}
+
 async function insertToolMessage(input: {
   conversationId: string;
   toolName: string;
@@ -203,6 +210,25 @@ export async function processConversationResponseJob(
   );
 
   try {
+    async function assertAssistantMessageStillStreaming() {
+      const [currentAssistantMessage] = await db
+        .select({
+          status: messages.status,
+        })
+        .from(messages)
+        .where(
+          and(
+            eq(messages.id, payload.assistantMessageId),
+            eq(messages.conversationId, payload.conversationId),
+          ),
+        )
+        .limit(1);
+
+      if (currentAssistantMessage?.status !== MESSAGE_STATUS.STREAMING) {
+        throw new AssistantRunStoppedError(payload.assistantMessageId);
+      }
+    }
+
     let streamedAssistantText = "";
     let lastPersistedAssistantText = assistantMessage.contentMarkdown;
     let lastPersistedAt = 0;
@@ -230,6 +256,7 @@ export async function processConversationResponseJob(
         return;
       }
 
+      await assertAssistantMessageStillStreaming();
       await updateStreamingAssistantMessage({
         assistantMessageId: payload.assistantMessageId,
         contentMarkdown: nextText,
@@ -239,6 +266,7 @@ export async function processConversationResponseJob(
     }
 
     async function persistAssistantHeartbeat(now: Date = new Date()) {
+      await assertAssistantMessageStillStreaming();
       currentRunState = refreshStreamingAssistantRunState(currentRunState, now);
       await updateStreamingAssistantRunState({
         assistantMessageId: payload.assistantMessageId,
@@ -250,6 +278,11 @@ export async function processConversationResponseJob(
 
     const heartbeatTimer = setInterval(() => {
       void persistAssistantHeartbeat().catch((heartbeatError) => {
+        if (heartbeatError instanceof AssistantRunStoppedError) {
+          clearInterval(heartbeatTimer);
+          return;
+        }
+
         jobLogger.warn(
           {
             error: serializeErrorForLog(heartbeatError),
@@ -271,6 +304,7 @@ export async function processConversationResponseJob(
         },
         {
           onToolStarted: async ({ toolInput, toolName, toolUseId }) => {
+            await assertAssistantMessageStillStreaming();
             jobLogger.debug(
               {
                 toolName,
@@ -287,6 +321,7 @@ export async function processConversationResponseJob(
             });
           },
           onToolFinished: async ({ toolInput, toolName, toolResponse, toolUseId }) => {
+            await assertAssistantMessageStillStreaming();
             jobLogger.debug(
               {
                 toolName,
@@ -304,6 +339,7 @@ export async function processConversationResponseJob(
             });
           },
           onToolFailed: async ({ toolInput, toolName, toolUseId, error }) => {
+            await assertAssistantMessageStillStreaming();
             jobLogger.warn(
               {
                 toolName,
@@ -322,6 +358,7 @@ export async function processConversationResponseJob(
             });
           },
           onAssistantDelta: async ({ fullText }) => {
+            await assertAssistantMessageStillStreaming();
             streamedAssistantText = fullText;
             await persistAssistantDelta(fullText);
           },
@@ -329,7 +366,6 @@ export async function processConversationResponseJob(
       );
 
       clearInterval(heartbeatTimer);
-      await persistAssistantDelta(streamedAssistantText, true);
 
       await db
         .update(conversations)
@@ -340,6 +376,8 @@ export async function processConversationResponseJob(
         })
         .where(eq(conversations.id, payload.conversationId));
 
+      await persistAssistantDelta(streamedAssistantText, true);
+      await assertAssistantMessageStillStreaming();
       await db
         .update(messages)
         .set({
@@ -371,6 +409,16 @@ export async function processConversationResponseJob(
       throw error;
     }
   } catch (error) {
+    if (error instanceof AssistantRunStoppedError) {
+      jobLogger.info(
+        {
+          workspaceId: conversation.workspaceId,
+        },
+        "conversation response job stopped because assistant message is no longer streaming",
+      );
+      return;
+    }
+
     const failedAssistantState = buildAssistantFailedMessageState(error);
     const failedToolState = buildRunFailedToolMessageState(error);
 

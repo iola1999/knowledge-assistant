@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 
+import { MESSAGE_STATUS } from "@anchordesk/contracts";
+
 import {
   Composer,
   type ComposerAttachment,
@@ -55,6 +57,34 @@ export function WorkspaceConversationPanel({
     (activeAssistantMessageId
       ? messages.find((message) => message.id === activeAssistantMessageId)?.status
       : null) ?? null;
+
+  async function handleStopStreamingAssistant() {
+    const response = await fetch(`/api/conversations/${conversationId}/stop`, {
+      method: "POST",
+    });
+    const body = (await response.json().catch(() => null)) as
+      | {
+          error?: string;
+          assistantMessage?: ConversationChatMessage;
+        }
+      | null;
+
+    if (!response.ok || !body?.assistantMessage) {
+      throw new Error(body?.error ?? "停止失败。");
+    }
+
+    setMessages((current) =>
+      current.map((message) =>
+        message.id === body.assistantMessage?.id
+          ? {
+              ...message,
+              ...body.assistantMessage,
+            }
+          : message,
+      ),
+    );
+    onAssistantTerminalEvent?.(conversationId);
+  }
 
   function handleSubmitted(turn: ComposerSubmittedTurn) {
     if (turn.conversationId !== conversationId) {
@@ -115,6 +145,8 @@ export function WorkspaceConversationPanel({
           className="border-transparent bg-transparent p-0 shadow-none backdrop-blur-0"
           textareaClassName="bg-transparent"
           initialAttachments={initialAttachments}
+          isStreaming={activeAssistantStatus === MESSAGE_STATUS.STREAMING}
+          onStop={handleStopStreamingAssistant}
           onSubmitted={handleSubmitted}
         />
       </div>

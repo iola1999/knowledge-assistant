@@ -23,6 +23,11 @@ export const COMPOSER_ENTER_ACTION = {
   SUBMIT: "submit",
 } as const;
 
+export const COMPOSER_PRIMARY_ACTION = {
+  STOP: "stop",
+  SUBMIT: "submit",
+} as const;
+
 export function resolveComposerEnterKeyAction(input: {
   key: string;
   shiftKey?: boolean | null;
@@ -70,6 +75,24 @@ export function resolveComposerSubmitStatus(agentError?: string | null) {
   }
 
   return `消息已保存，但 Agent 处理失败：${agentError}`;
+}
+
+export function resolveComposerPrimaryAction(input: {
+  content: string;
+  hasPendingAttachments: boolean;
+  isStreaming: boolean;
+}) {
+  if (input.isStreaming) {
+    return {
+      mode: COMPOSER_PRIMARY_ACTION.STOP,
+      disabled: false,
+    };
+  }
+
+  return {
+    mode: COMPOSER_PRIMARY_ACTION.SUBMIT,
+    disabled: input.hasPendingAttachments || !input.content.trim(),
+  };
 }
 
 export function buildComposerSubmittedTurn(input: {
