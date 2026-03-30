@@ -7,6 +7,7 @@ import { useEffect, useId, useRef, useState } from "react";
 
 import {
   ChevronDownIcon,
+  LibraryIcon,
   LogoutIcon,
   SlidersIcon,
   UserIcon,
@@ -120,7 +121,13 @@ export function WorkspaceUserPanel({
                 )}
               >
                 <span className="grid size-7 shrink-0 place-items-center rounded-lg text-app-muted-strong">
-                  {action.key === "account" ? <UserIcon /> : <SlidersIcon />}
+                  {action.key === "account" ? (
+                    <UserIcon />
+                  ) : action.key === "global-libraries" ? (
+                    <LibraryIcon />
+                  ) : (
+                    <SlidersIcon />
+                  )}
                 </span>
                 <span className="min-w-0 flex-1 truncate text-[14px] font-medium">
                   {action.label}

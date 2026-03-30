@@ -17,7 +17,6 @@ import {
 import { loadKnowledgeLibraryExplorerData } from "@/lib/api/knowledge-library-explorer";
 import { requireSessionUser } from "@/lib/auth/require-user";
 import { isSuperAdminUsername } from "@/lib/auth/super-admin";
-import { buttonStyles } from "@/lib/ui";
 
 export default async function GlobalLibraryDetailPage({
   params,
@@ -64,15 +63,6 @@ export default async function GlobalLibraryDetailPage({
             <p className="text-[13px] leading-6 text-app-muted-strong">
               上传文档、整理目录，并控制该资料库是否允许工作空间订阅
             </p>
-          </div>
-
-          <div className="mt-auto grid gap-2">
-            <Link
-              href="/settings"
-              className={buttonStyles({ variant: "ghost", size: "sm", block: true })}
-            >
-              打开系统设置
-            </Link>
           </div>
         </SettingsShellSidebar>
       }

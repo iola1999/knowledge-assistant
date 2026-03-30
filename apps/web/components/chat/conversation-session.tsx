@@ -19,12 +19,14 @@ import {
   SourceIcon,
 } from "@/components/icons";
 import { ConversationTimeline } from "@/components/chat/conversation-timeline";
+import { KnowledgeSourceBadge } from "@/components/shared/knowledge-source-badge";
 import { LinkifiedText } from "@/components/shared/linkified-text";
 import { MarkdownContent } from "@/components/shared/markdown-content";
 import {
   canShowAssistantResultPanel,
   describeAssistantStreamingStatus,
 } from "@/lib/api/conversation-process";
+import { buildCitationSourceBadges } from "@/lib/api/knowledge-libraries";
 import {
   findRegeneratableConversationTurn,
   type RetryableConversationMessage,
@@ -45,8 +47,6 @@ import { conversationDensityClassNames } from "@/lib/conversation-density";
 import { chipButtonStyles, cn, tabButtonStyles, ui } from "@/lib/ui";
 
 type ChatMessage = ConversationChatMessage;
-
-type TimelineMessage = ConversationTimelineMessagesByAssistant[string][number];
 
 type TimelineMessagesByAssistant = ConversationTimelineMessagesByAssistant;
 
@@ -134,38 +134,14 @@ function TabButton({
   );
 }
 
-function resolveCitationSourceBadge(citation: MessageCitation) {
-  if (citation.sourceScope === "global_library") {
-    return {
-      label: citation.libraryTitle?.trim()
-        ? `全局资料库 · ${citation.libraryTitle.trim()}`
-        : "全局资料库",
-      tone: "global" as const,
-    };
-  }
-
-  return {
-    label: "工作空间资料",
-    tone: "workspace" as const,
-  };
-}
-
 function CitationSourceBadge({
   citation,
 }: CitationSourceBadgeProps) {
-  const badge = resolveCitationSourceBadge(citation);
-
   return (
-    <span
-      className={cn(
-        "inline-flex w-fit items-center rounded-full border px-2 py-0.5 text-[11px]",
-        badge.tone === "global"
-          ? "border-app-border bg-app-surface-soft text-app-text"
-          : "border-app-border bg-white text-app-muted-strong",
-      )}
-    >
-      {badge.label}
-    </span>
+    <KnowledgeSourceBadge
+      sourceScope={citation.sourceScope}
+      libraryTitle={citation.libraryTitle}
+    />
   );
 }
 
@@ -542,6 +518,7 @@ export function ConversationSession({
           const isCurrentAssistant = activeAssistantMessageId === message.id;
           const isStreamingAssistant = isAssistant && message.status === MESSAGE_STATUS.STREAMING;
           const citations = citationsByMessage.get(message.id) ?? [];
+          const citationSourceBadges = buildCitationSourceBadges(citations);
           const hasSources = citations.length > 0;
           const processMessages = timelineMessagesByAssistant[message.id] ?? [];
           const showResultPanel =
@@ -637,6 +614,21 @@ export function ConversationSession({
                       ) : null}
                     </div>
                   </div>
+
+                  {citationSourceBadges.length > 0 ? (
+                    <div className="flex flex-wrap items-center gap-1.5 border-t border-app-border/70 pt-3">
+                      <span className="text-[11px] uppercase tracking-[0.12em] text-app-muted">
+                        命中来源
+                      </span>
+                      {citationSourceBadges.map((badge) => (
+                        <KnowledgeSourceBadge
+                          key={`${badge.tone}:${badge.label}`}
+                          sourceScope={badge.sourceScope}
+                          libraryTitle={badge.libraryTitle}
+                        />
+                      ))}
+                    </div>
+                  ) : null}
 
                   {selectedView === "sources" ? (
                     <div className={conversationDensityClassNames.sourcesList}>

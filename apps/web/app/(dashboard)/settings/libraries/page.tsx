@@ -13,7 +13,7 @@ import {
 } from "@/lib/api/knowledge-libraries";
 import { requireSessionUser } from "@/lib/auth/require-user";
 import { isSuperAdminUsername } from "@/lib/auth/super-admin";
-import { buttonStyles, ui } from "@/lib/ui";
+import { ui } from "@/lib/ui";
 
 export default async function GlobalLibrariesPage() {
   const user = await requireSessionUser();
@@ -28,11 +28,11 @@ export default async function GlobalLibrariesPage() {
       sidebar={
         <SettingsShellSidebar>
           <Link
-            href="/settings"
+            href="/workspaces"
             className="inline-flex items-center gap-1.5 self-start rounded-full px-1.5 py-1 text-[13px] text-app-muted-strong transition hover:bg-white/82 hover:text-app-text"
           >
             <ArrowLeftIcon />
-            返回系统设置
+            返回工作台
           </Link>
 
           <div className="grid gap-1 px-1">
@@ -40,15 +40,6 @@ export default async function GlobalLibrariesPage() {
             <p className="text-[13px] leading-6 text-app-muted-strong">
               创建、归档并维护可被工作空间订阅的共享资料
             </p>
-          </div>
-
-          <div className="mt-auto grid gap-2">
-            <Link
-              href="/workspaces"
-              className={buttonStyles({ variant: "ghost", size: "sm", block: true })}
-            >
-              返回工作台
-            </Link>
           </div>
         </SettingsShellSidebar>
       }

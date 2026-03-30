@@ -4,7 +4,7 @@ export type WorkspaceUserPanelUser = {
 };
 
 export type WorkspaceUserPanelAction = {
-  key: "account" | "system-settings" | "logout";
+  key: "account" | "global-libraries" | "system-settings" | "logout";
   href?: string;
   label: string;
 };
@@ -32,6 +32,11 @@ export function buildWorkspaceUserPanelState({
   ];
 
   if (canAccessSystemSettings) {
+    actions.push({
+      key: "global-libraries",
+      href: "/settings/libraries",
+      label: "全局资料库",
+    });
     actions.push({
       key: "system-settings",
       href: "/settings",

@@ -1,10 +1,10 @@
 "use client";
-
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useDeferredValue, useEffect, useState, useTransition } from "react";
 
 import { ArrowLeftIcon } from "@/components/icons";
+import { useMessage } from "@/components/shared/message-provider";
 import {
   SettingsShell,
   SettingsShellSidebar,
@@ -27,28 +27,17 @@ function flattenSections(sections: SystemSettingSection[]) {
   return flattenSettings(sections.flatMap((section) => section.items));
 }
 
-function countSettings(sections: SystemSettingSection[]) {
-  return sections.reduce((sum, section) => sum + section.items.length, 0);
-}
-
-function normalizeSearchText(value: string) {
-  return value.trim().toLocaleLowerCase();
-}
-
 export function SystemSettingsForm({
   sections,
 }: {
   sections: SystemSettingSection[];
 }) {
   const router = useRouter();
+  const message = useMessage();
   const [values, setValues] = useState<Record<string, string>>(() =>
     flattenSections(sections),
   );
   const [query, setQuery] = useState("");
-  const [status, setStatus] = useState<{
-    tone: "error" | "muted";
-    message: string;
-  } | null>(null);
   const [isPending, startTransition] = useTransition();
   const deferredQuery = useDeferredValue(query);
 
@@ -57,14 +46,10 @@ export function SystemSettingsForm({
   }, [sections]);
 
   const visibleSections = filterSystemSettingSections(sections, deferredQuery);
-  const totalSettingCount = countSettings(sections);
-  const visibleSettingCount = countSettings(visibleSections);
-  const hasSearchQuery = Boolean(normalizeSearchText(deferredQuery));
   const hasSettings = sections.length > 0;
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setStatus(null);
 
     try {
       const response = await fetch("/api/system-settings", {
@@ -85,10 +70,7 @@ export function SystemSettingsForm({
         | null;
 
       if (!response.ok) {
-        setStatus({
-          tone: "error",
-          message: body?.error ?? "保存系统设置失败",
-        });
+        message.error(body?.error ?? "保存系统设置失败");
         return;
       }
 
@@ -96,22 +78,15 @@ export function SystemSettingsForm({
         setValues(flattenSettings(body.settings));
       }
 
-      setStatus({
-        tone: "muted",
-        message: "已保存，重启相关进程后生效",
-      });
+      message.success("已保存，重启相关进程后生效");
 
       startTransition(() => {
         router.refresh();
       });
     } catch (error) {
-      setStatus({
-        tone: "error",
-        message:
-          error instanceof Error && error.message
-            ? error.message
-            : "保存系统设置失败",
-      });
+      message.error(
+        error instanceof Error && error.message ? error.message : "保存系统设置失败",
+      );
     }
   }
 
@@ -132,13 +107,6 @@ export function SystemSettingsForm({
               <div className="px-1">
                 <h1 className="text-[1.25rem] font-semibold text-app-text">系统设置</h1>
               </div>
-
-              <Link
-                href="/settings/libraries"
-                className={buttonStyles({ variant: "secondary", size: "sm", block: true })}
-              >
-                管理全局资料库
-              </Link>
 
               {hasSettings ? (
                 <div className="rounded-2xl border border-app-border bg-app-sidebar/50 p-2">
@@ -175,11 +143,6 @@ export function SystemSettingsForm({
               <button className={buttonStyles({ block: true })} disabled={isPending} type="submit">
                 {isPending ? "刷新中..." : "保存系统设置"}
               </button>
-              {status ? (
-                <p className={status.tone === "error" ? ui.error : ui.muted}>
-                  {status.message}
-                </p>
-              ) : null}
             </div>
           </SettingsShellSidebar>
         }

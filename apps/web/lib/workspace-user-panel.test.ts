@@ -38,6 +38,7 @@ describe("buildWorkspaceUserPanelState", () => {
     expect(state.avatarLabel).toBe("F");
     expect(state.actions.map((action) => action.key)).toEqual([
       "account",
+      "global-libraries",
       "system-settings",
       "logout",
     ]);

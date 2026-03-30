@@ -7,6 +7,8 @@ import {
 
 import {
   buildKnowledgeSourceBadge,
+  buildWorkspaceKnowledgeScopeSummary,
+  buildCitationSourceBadges,
   filterMountedGlobalLibraries,
   normalizeKnowledgeLibrarySlug,
 } from "./knowledge-libraries";
@@ -93,5 +95,86 @@ describe("filterMountedGlobalLibraries", () => {
       expect.objectContaining({ id: "library-a", title: "产品规范库" }),
       expect.objectContaining({ id: "library-b", title: "运营资料库" }),
     ]);
+  });
+});
+
+describe("buildCitationSourceBadges", () => {
+  test("dedupes repeated sources and keeps workspace before global libraries", () => {
+    expect(
+      buildCitationSourceBadges([
+        {
+          sourceScope: KNOWLEDGE_SOURCE_SCOPE.GLOBAL_LIBRARY,
+          libraryTitle: "平台规范库",
+        },
+        {
+          sourceScope: null,
+          libraryTitle: null,
+        },
+        {
+          sourceScope: KNOWLEDGE_SOURCE_SCOPE.GLOBAL_LIBRARY,
+          libraryTitle: "平台规范库",
+        },
+        {
+          sourceScope: KNOWLEDGE_SOURCE_SCOPE.GLOBAL_LIBRARY,
+          libraryTitle: "运营手册库",
+        },
+      ]),
+    ).toEqual([
+      expect.objectContaining({
+        label: "工作空间资料",
+        tone: "workspace",
+      }),
+      expect.objectContaining({
+        label: "全局资料库 · 平台规范库",
+        tone: "global",
+      }),
+      expect.objectContaining({
+        label: "全局资料库 · 运营手册库",
+        tone: "global",
+      }),
+    ]);
+  });
+});
+
+describe("buildWorkspaceKnowledgeScopeSummary", () => {
+  test("builds searchable and mounted-readonly summaries from workspace subscriptions", () => {
+    expect(
+      buildWorkspaceKnowledgeScopeSummary([
+        {
+          id: "library-a",
+          title: "平台规范库",
+          status: KNOWLEDGE_LIBRARY_STATUS.ACTIVE,
+          subscriptionStatus: WORKSPACE_LIBRARY_SUBSCRIPTION_STATUS.ACTIVE,
+          searchEnabled: true,
+        },
+        {
+          id: "library-b",
+          title: "法务模板库",
+          status: KNOWLEDGE_LIBRARY_STATUS.ACTIVE,
+          subscriptionStatus: WORKSPACE_LIBRARY_SUBSCRIPTION_STATUS.PAUSED,
+          searchEnabled: false,
+        },
+        {
+          id: "library-c",
+          title: "归档库",
+          status: KNOWLEDGE_LIBRARY_STATUS.ARCHIVED,
+          subscriptionStatus: WORKSPACE_LIBRARY_SUBSCRIPTION_STATUS.ACTIVE,
+          searchEnabled: true,
+        },
+      ]),
+    ).toEqual({
+      searchableBadges: [
+        expect.objectContaining({
+          label: "工作空间资料",
+          tone: "workspace",
+        }),
+        expect.objectContaining({
+          label: "全局资料库 · 平台规范库",
+          tone: "global",
+        }),
+      ],
+      mountedReadOnlyTitles: ["法务模板库"],
+      searchableGlobalCount: 1,
+    });
   });
 });

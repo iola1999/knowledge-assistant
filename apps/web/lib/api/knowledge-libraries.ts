@@ -85,6 +85,94 @@ export function buildKnowledgeSourceBadge(input: {
   };
 }
 
+export type KnowledgeSourceBadgeSummary = ReturnType<typeof buildKnowledgeSourceBadge> & {
+  sourceScope: KnowledgeSourceScope | null;
+  libraryTitle: string | null;
+};
+
+export function buildCitationSourceBadges<
+  T extends {
+    sourceScope: KnowledgeSourceScope | null | undefined;
+    libraryTitle: string | null | undefined;
+  },
+>(citations: T[]) {
+  const badgeByKey = new Map<string, KnowledgeSourceBadgeSummary>();
+
+  for (const citation of citations) {
+    const sourceScope = citation.sourceScope ?? null;
+    const libraryTitle = citation.libraryTitle?.trim() || null;
+    const badge = buildKnowledgeSourceBadge({
+      sourceScope,
+      libraryTitle,
+    });
+    const key =
+      sourceScope === KNOWLEDGE_SOURCE_SCOPE.GLOBAL_LIBRARY
+        ? `global:${libraryTitle ?? ""}`
+        : "workspace";
+
+    if (!badgeByKey.has(key)) {
+      badgeByKey.set(key, {
+        ...badge,
+        sourceScope,
+        libraryTitle,
+      });
+    }
+  }
+
+  return [...badgeByKey.values()].sort((left, right) => {
+    if (left.tone !== right.tone) {
+      return left.tone === "workspace" ? -1 : 1;
+    }
+
+    return left.label.localeCompare(right.label, "zh-CN");
+  });
+}
+
+export function buildWorkspaceKnowledgeScopeSummary<
+  T extends {
+    id: string;
+    title: string;
+    status: KnowledgeLibraryStatus;
+    subscriptionStatus: WorkspaceLibrarySubscriptionStatus | null | undefined;
+    searchEnabled: boolean;
+  },
+>(libraries: T[]) {
+  const searchableGlobalLibraries = filterMountedGlobalLibraries(libraries);
+  const mountedReadOnlyTitles = [...libraries]
+    .filter(
+      (library) =>
+        library.status === KNOWLEDGE_LIBRARY_STATUS.ACTIVE &&
+        (library.subscriptionStatus === WORKSPACE_LIBRARY_SUBSCRIPTION_STATUS.PAUSED ||
+          (library.subscriptionStatus === WORKSPACE_LIBRARY_SUBSCRIPTION_STATUS.ACTIVE &&
+            !library.searchEnabled)),
+    )
+    .sort((left, right) => left.title.localeCompare(right.title, "zh-CN"))
+    .map((library) => library.title);
+
+  return {
+    searchableBadges: [
+      {
+        ...buildKnowledgeSourceBadge({
+          sourceScope: null,
+          libraryTitle: null,
+        }),
+        sourceScope: null,
+        libraryTitle: null,
+      },
+      ...searchableGlobalLibraries.map((library) => ({
+        ...buildKnowledgeSourceBadge({
+          sourceScope: KNOWLEDGE_SOURCE_SCOPE.GLOBAL_LIBRARY,
+          libraryTitle: library.title,
+        }),
+        sourceScope: KNOWLEDGE_SOURCE_SCOPE.GLOBAL_LIBRARY,
+        libraryTitle: library.title,
+      })),
+    ],
+    mountedReadOnlyTitles,
+    searchableGlobalCount: searchableGlobalLibraries.length,
+  };
+}
+
 export function formatKnowledgeLibraryStatus(status: KnowledgeLibraryStatus) {
   if (status === KNOWLEDGE_LIBRARY_STATUS.ACTIVE) {
     return "可订阅";

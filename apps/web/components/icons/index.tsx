@@ -332,6 +332,32 @@ export function SlidersIcon({
   );
 }
 
+export function LibraryIcon({
+  className,
+  strokeWidth = 1.7,
+  ...props
+}: IconProps) {
+  return (
+    <IconBase
+      className={cn("size-4", className)}
+      stroke="currentColor"
+      strokeWidth={strokeWidth}
+      {...props}
+    >
+      <path
+        d="M5.25 4.75h8.5a2 2 0 0 1 2 2v7.75a.75.75 0 0 1-.75.75h-8.5a2 2 0 0 0-2 2V6.75a2 2 0 0 1 2-2Z"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M5.25 15.25h9.5M7.5 7.75h5.5M7.5 10.25h4.25"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </IconBase>
+  );
+}
+
 export function LogoutIcon({
   className,
   strokeWidth = 1.7,
@@ -413,4 +439,3 @@ export function AnchorDeskLogo({
     </IconBase>
   );
 }
-

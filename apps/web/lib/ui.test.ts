@@ -3,7 +3,9 @@ import { describe, expect, it } from "vitest";
 import {
   buttonStyles,
   chipButtonStyles,
+  createConversationNavButtonStyles,
   inputStyles,
+  messageStyles,
   menuItemStyles,
   navItemStyles,
   tabButtonStyles,
@@ -60,6 +62,24 @@ describe("navItemStyles", () => {
   });
 });
 
+describe("createConversationNavButtonStyles", () => {
+  it("uses the selected white treatment when the new conversation view is active", () => {
+    const classes = createConversationNavButtonStyles({ active: true });
+
+    expect(classes).toContain("bg-white");
+    expect(classes).toContain("text-app-text");
+    expect(classes).toContain("hover:bg-white");
+  });
+
+  it("keeps the button dark while browsing an existing conversation", () => {
+    const classes = createConversationNavButtonStyles({ active: false });
+
+    expect(classes).toContain("bg-app-primary");
+    expect(classes).toContain("text-app-primary-contrast");
+    expect(classes).not.toContain("hover:bg-app-surface-soft");
+  });
+});
+
 describe("menuItemStyles", () => {
   it("returns the destructive menu treatment when requested", () => {
     const classes = menuItemStyles({ tone: "danger" });
@@ -74,6 +94,24 @@ describe("menuItemStyles", () => {
     expect(classes).toContain("bg-app-surface-soft");
     expect(classes).toContain("font-medium");
     expect(classes).toContain("text-app-text");
+  });
+});
+
+describe("messageStyles", () => {
+  it("renders success messages with the approved success palette", () => {
+    const classes = messageStyles({ tone: "success" });
+
+    expect(classes).toContain("border-emerald-200");
+    expect(classes).toContain("bg-emerald-50/95");
+    expect(classes).toContain("text-emerald-800");
+  });
+
+  it("renders error messages with the approved danger palette", () => {
+    const classes = messageStyles({ tone: "error" });
+
+    expect(classes).toContain("border-red-200");
+    expect(classes).toContain("bg-red-50/95");
+    expect(classes).toContain("text-red-700");
   });
 });
 

@@ -9,6 +9,7 @@ type ButtonShape = "rounded" | "pill" | "icon";
 type MenuTone = "default" | "danger";
 type WorkspaceTileVariant = "default" | "create";
 type ConversationControlSize = "default" | "compact";
+export type MessageTone = "info" | "success" | "error";
 
 export function inputStyles({ size = "md" }: { size?: FieldSize } = {}) {
   return cn(
@@ -62,9 +63,28 @@ export const ui = {
   input: inputStyles(),
   textarea: textareaStyles(),
   select: selectStyles(),
+  chip:
+    "inline-flex items-center rounded-full border border-app-border bg-white/86 px-2.5 py-0.5 text-[11px] font-medium text-app-muted-strong",
+  chipSoft:
+    "inline-flex items-center rounded-full border border-app-border bg-app-surface-soft px-2.5 py-0.5 text-[11px] font-medium text-app-muted-strong",
   codeChip:
     "inline-flex items-center rounded-full bg-app-surface-strong px-3 py-1 text-[13px] text-app-text",
 };
+
+export function messageStyles({
+  tone = "info",
+}: {
+  tone?: MessageTone;
+} = {}) {
+  return cn(
+    "pointer-events-auto flex w-full items-start gap-3 rounded-2xl border px-4 py-3 shadow-card backdrop-blur-md",
+    tone === "success"
+      ? "border-emerald-200 bg-emerald-50/95 text-emerald-800"
+      : tone === "error"
+        ? "border-red-200 bg-red-50/95 text-red-700"
+        : "border-app-border bg-white/98 text-app-text",
+  );
+}
 
 export function buttonStyles({
   variant = "primary",
@@ -116,6 +136,19 @@ export function navItemStyles({ selected = false }: { selected?: boolean } = {})
     : "text-app-muted-strong hover:bg-white/78 hover:text-app-text";
 }
 
+export function createConversationNavButtonStyles({
+  active = false,
+}: {
+  active?: boolean;
+} = {}) {
+  return cn(
+    "group flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border text-[14px] font-medium transition-all",
+    active
+      ? "border-app-border-strong bg-white text-app-text shadow-sm hover:border-app-border-strong hover:bg-white hover:text-app-text"
+      : "border-app-primary bg-app-primary text-app-primary-contrast shadow-sm hover:border-app-primary hover:bg-app-primary hover:text-app-primary-contrast",
+  );
+}
+
 export function menuItemStyles({
   selected = false,
   tone = "default",
@@ -139,7 +172,7 @@ export function breadcrumbSwitcherTriggerStyles({
 } = {}) {
   return cn(
     buttonStyles({ variant: "ghost", size: "xs" }),
-    "min-h-0 max-w-full gap-1.5 px-2 py-1 text-app-muted transition-[background-color,color,transform] duration-200 [transition-timing-function:var(--ease-out-quart)] hover:bg-app-surface-soft/74 hover:text-app-text",
+    "min-h-0 min-w-0 max-w-full gap-1.5 px-2 py-1 text-app-muted transition-[background-color,color,transform] duration-200 [transition-timing-function:var(--ease-out-quart)] hover:bg-app-surface-soft/74 hover:text-app-text",
     open && "bg-app-surface-soft/82 text-app-text",
   );
 }
