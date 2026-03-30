@@ -4,22 +4,19 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import { ActionDialog } from "@/components/shared/action-dialog";
-import { buttonStyles, cn, ui } from "@/lib/ui";
+import { useMessage } from "@/components/shared/message-provider";
+import { buttonStyles } from "@/lib/ui";
 
 export function WorkspaceLifecyclePanel({
   workspaceId,
   workspaceTitle,
-  framed = true,
 }: {
   workspaceId: string;
   workspaceTitle: string;
-  framed?: boolean;
 }) {
   const router = useRouter();
-  const [status, setStatus] = useState<{
-    tone: "error" | "muted";
-    message: string;
-  } | null>(null);
+  const message = useMessage();
+  const [status, setStatus] = useState<{ message: string } | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -39,17 +36,21 @@ export function WorkspaceLifecyclePanel({
 
       if (!response.ok) {
         setStatus({
-          tone: "error",
           message: body?.error ?? "删除工作空间失败",
         });
         return;
       }
 
       setIsDeleteDialogOpen(false);
+      message.success("工作空间已删除");
 
       startTransition(() => {
         router.push("/workspaces");
         router.refresh();
+      });
+    } catch (error) {
+      setStatus({
+        message: error instanceof Error && error.message ? error.message : "删除工作空间失败",
       });
     } finally {
       setIsSubmitting(false);
@@ -58,10 +59,20 @@ export function WorkspaceLifecyclePanel({
 
   return (
     <>
-      <section className={framed ? ui.sectionPanel : "grid border-t border-app-border pt-6"}>
-        <h2 className="text-[1.1rem] font-semibold text-app-text">删除工作空间</h2>
+      <section className="rounded-2xl border border-red-200 bg-red-50/65 p-5 shadow-soft md:p-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="grid gap-1.5">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-red-600">
+              危险操作
+            </p>
+            <div className="grid gap-1">
+              <h2 className="text-[1.1rem] font-semibold text-app-text">删除工作空间</h2>
+              <p className="max-w-[42ch] text-[13px] leading-6 text-app-muted-strong">
+                删除后会从工作台隐藏，现有资料和会话不再开放访问
+              </p>
+            </div>
+          </div>
 
-        <div className="mt-4 flex flex-wrap items-center gap-3">
           <button
             type="button"
             className={buttonStyles({ variant: "danger" })}
@@ -74,10 +85,6 @@ export function WorkspaceLifecyclePanel({
             {isBusy ? "处理中..." : "删除工作空间"}
           </button>
         </div>
-
-        {status ? (
-          <p className={cn("mt-3", status.tone === "error" ? ui.error : ui.muted)}>{status.message}</p>
-        ) : null}
       </section>
 
       <ActionDialog
@@ -85,7 +92,7 @@ export function WorkspaceLifecyclePanel({
         tone="danger"
         role="alertdialog"
         title={`删除空间「${workspaceTitle}」`}
-        error={status?.tone === "error" ? status.message : null}
+        error={status?.message ?? null}
         confirmLabel="确认删除"
         pendingLabel="删除中..."
         onClose={() => {

@@ -108,7 +108,7 @@ export function ConversationPageActions({
 
   return (
     <>
-      <div ref={containerRef} className="relative flex flex-wrap items-center justify-end gap-2">
+      <div ref={containerRef} className="relative flex flex-nowrap items-center justify-end gap-1.5 min-[720px]:gap-2">
         <button
           aria-controls={menuId}
           aria-expanded={isMenuOpen}

@@ -9,6 +9,7 @@ import {
   type KnowledgeLibraryStatus,
 } from "@anchordesk/contracts";
 
+import { useMessage } from "@/components/shared/message-provider";
 import { buttonStyles, ui } from "@/lib/ui";
 
 export function GlobalLibraryMetadataForm({
@@ -25,18 +26,17 @@ export function GlobalLibraryMetadataForm({
   };
 }) {
   const router = useRouter();
+  const message = useMessage();
   const [title, setTitle] = useState(library.title);
   const [slug, setSlug] = useState(library.slug);
   const [description, setDescription] = useState(library.description ?? "");
   const [status, setStatus] = useState<KnowledgeLibraryStatus>(library.status);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
 
   async function save(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsSaving(true);
-    setMessage(null);
 
     try {
       const response = await fetch(`/api/knowledge-libraries/${library.id}`, {
@@ -56,12 +56,14 @@ export function GlobalLibraryMetadataForm({
         | null;
 
       if (!response.ok) {
-        setMessage(body?.error ?? "保存资料库失败");
+        message.error(body?.error ?? "保存资料库失败");
         return;
       }
 
-      setMessage("资料库设置已保存");
+      message.success("资料库设置已保存");
       router.refresh();
+    } catch (error) {
+      message.error(error instanceof Error && error.message ? error.message : "保存资料库失败");
     } finally {
       setIsSaving(false);
     }
@@ -69,7 +71,6 @@ export function GlobalLibraryMetadataForm({
 
   async function removeLibrary() {
     setIsDeleting(true);
-    setMessage(null);
 
     try {
       const response = await fetch(`/api/knowledge-libraries/${library.id}`, {
@@ -80,12 +81,15 @@ export function GlobalLibraryMetadataForm({
         | null;
 
       if (!response.ok) {
-        setMessage(body?.error ?? "删除资料库失败");
+        message.error(body?.error ?? "删除资料库失败");
         return;
       }
 
+      message.success("资料库已删除");
       router.push("/settings/libraries");
       router.refresh();
+    } catch (error) {
+      message.error(error instanceof Error && error.message ? error.message : "删除资料库失败");
     } finally {
       setIsDeleting(false);
     }
@@ -171,7 +175,6 @@ export function GlobalLibraryMetadataForm({
         >
           {isDeleting ? "删除中..." : "删除空资料库"}
         </button>
-        {message ? <span className={ui.error}>{message}</span> : null}
       </div>
 
       {library.documentCount > 0 || library.subscriptionCount > 0 ? (

@@ -172,7 +172,7 @@ export function breadcrumbSwitcherTriggerStyles({
 } = {}) {
   return cn(
     buttonStyles({ variant: "ghost", size: "xs" }),
-    "min-h-0 min-w-0 max-w-full gap-1.5 px-2 py-1 text-app-muted transition-[background-color,color,transform] duration-200 [transition-timing-function:var(--ease-out-quart)] hover:bg-app-surface-soft/74 hover:text-app-text",
+    "min-h-0 max-w-full gap-1.5 px-2 py-1 text-app-muted transition-[background-color,color,transform] duration-200 [transition-timing-function:var(--ease-out-quart)] hover:bg-app-surface-soft/74 hover:text-app-text",
     open && "bg-app-surface-soft/82 text-app-text",
   );
 }

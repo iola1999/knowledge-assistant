@@ -92,8 +92,8 @@ export type KnowledgeSourceBadgeSummary = ReturnType<typeof buildKnowledgeSource
 
 export function buildCitationSourceBadges<
   T extends {
-    sourceScope: KnowledgeSourceScope | null | undefined;
-    libraryTitle: string | null | undefined;
+    sourceScope?: KnowledgeSourceScope | null | undefined;
+    libraryTitle?: string | null | undefined;
   },
 >(citations: T[]) {
   const badgeByKey = new Map<string, KnowledgeSourceBadgeSummary>();

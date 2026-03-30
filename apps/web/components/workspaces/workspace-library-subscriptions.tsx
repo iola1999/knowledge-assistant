@@ -9,6 +9,7 @@ import {
   type WorkspaceLibrarySubscriptionStatus,
 } from "@anchordesk/contracts";
 
+import { useMessage } from "@/components/shared/message-provider";
 import {
   formatKnowledgeLibraryStatus,
   formatWorkspaceLibrarySubscriptionStatus,
@@ -35,7 +36,7 @@ export function WorkspaceLibrarySubscriptions({
   libraries: WorkspaceLibraryCatalogItem[];
 }) {
   const router = useRouter();
-  const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const message = useMessage();
   const [pendingLibraryId, setPendingLibraryId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -44,7 +45,6 @@ export function WorkspaceLibrarySubscriptions({
     status: WorkspaceLibrarySubscriptionStatus;
     searchEnabled?: boolean;
   }) {
-    setStatusMessage(null);
     setPendingLibraryId(input.libraryId);
 
     try {
@@ -60,14 +60,24 @@ export function WorkspaceLibrarySubscriptions({
         | null;
 
       if (!response.ok) {
-        setStatusMessage(body?.error ?? "订阅更新失败");
+        message.error(body?.error ?? "订阅更新失败");
         return;
       }
 
-      setStatusMessage("订阅已更新");
+      message.success(
+        input.status === WORKSPACE_LIBRARY_SUBSCRIPTION_STATUS.REVOKED
+          ? "已移除资料库挂载"
+          : input.status === WORKSPACE_LIBRARY_SUBSCRIPTION_STATUS.PAUSED
+            ? "已暂停检索"
+            : input.searchEnabled
+              ? "已启用订阅并参与检索"
+              : "已恢复订阅",
+      );
       startTransition(() => {
         router.refresh();
       });
+    } catch (error) {
+      message.error(error instanceof Error && error.message ? error.message : "订阅更新失败");
     } finally {
       setPendingLibraryId(null);
     }
@@ -79,10 +89,10 @@ export function WorkspaceLibrarySubscriptions({
         <div className="grid gap-0.5">
           <h2 className="text-[1.1rem] font-semibold text-app-text">全局资料库订阅</h2>
           <p className="text-[13px] leading-6 text-app-muted-strong">
-            工作空间可直接挂载管理员维护的资料库，并在对话检索中一起召回
+            启用后会参与对话检索
           </p>
         </div>
-        <span className="rounded-full border border-app-border bg-app-surface-soft px-2.5 py-0.5 text-[12px] text-app-muted">
+        <span className={ui.chipSoft}>
           {libraries.length} 个可见资料库
         </span>
       </div>
@@ -90,24 +100,32 @@ export function WorkspaceLibrarySubscriptions({
       <div className="mt-4 grid gap-3">
         {libraries.length > 0 ? (
           libraries.map((library) => {
-            const isMutating = pendingLibraryId === library.id;
+            const isBusy = pendingLibraryId !== null || isPending;
+            const isCurrentMutation = pendingLibraryId === library.id;
             const canSubscribe = library.status === "active";
 
             return (
-              <div
+              <article
                 key={library.id}
-                className="grid gap-3 rounded-[22px] border border-app-border bg-white/86 p-4"
+                className="grid gap-4 rounded-[24px] border border-app-border bg-app-surface-soft/58 p-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-center md:p-5"
               >
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="grid gap-1">
+                <div className="grid gap-3">
+                  <div className="grid gap-1.5">
                     <div className="flex flex-wrap items-center gap-2">
-                      <strong className="text-[14px] text-app-text">{library.title}</strong>
-                      <span className="rounded-full border border-app-border bg-app-surface-soft px-2.5 py-0.5 text-[11px] text-app-muted-strong">
+                      <h3 className="text-[15px] font-semibold text-app-text">{library.title}</h3>
+                      <span className={ui.chipSoft}>
                         {formatKnowledgeLibraryStatus(library.status)}
                       </span>
-                      <span className="rounded-full border border-app-border bg-white px-2.5 py-0.5 text-[11px] text-app-muted">
+                      <span className={ui.chip}>
                         {formatWorkspaceLibrarySubscriptionStatus(library.subscriptionStatus)}
                       </span>
+                      {library.subscriptionStatus &&
+                      library.subscriptionStatus !==
+                        WORKSPACE_LIBRARY_SUBSCRIPTION_STATUS.REVOKED ? (
+                        <span className={ui.chip}>
+                          {library.searchEnabled ? "参与检索" : "仅挂载"}
+                        </span>
+                      ) : null}
                     </div>
                     {library.description ? (
                       <p className="text-[13px] leading-6 text-app-muted-strong">
@@ -115,27 +133,20 @@ export function WorkspaceLibrarySubscriptions({
                       </p>
                     ) : null}
                   </div>
-                  <div className="grid gap-1 text-right text-[12px] text-app-muted">
+
+                  <div className="flex flex-wrap items-center gap-2.5 text-[12px] text-app-muted">
                     <span>{library.documentCount} 份资料</span>
-                    <span>
-                      更新于{" "}
-                      {new Date(library.updatedAt).toLocaleString("zh-CN", {
-                        month: "2-digit",
-                        day: "2-digit",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </span>
+                    <span>更新于 {formatLibraryUpdatedAt(library.updatedAt)}</span>
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2 md:justify-end">
                   {library.subscriptionStatus === WORKSPACE_LIBRARY_SUBSCRIPTION_STATUS.ACTIVE ? (
                     <>
                       <button
                         type="button"
                         className={buttonStyles({ variant: "secondary", size: "sm" })}
-                        disabled={isMutating}
+                        disabled={isBusy}
                         onClick={() =>
                           void mutateSubscription({
                             libraryId: library.id,
@@ -144,12 +155,12 @@ export function WorkspaceLibrarySubscriptions({
                           })
                         }
                       >
-                        {isMutating ? "处理中..." : "暂停检索"}
+                        {isCurrentMutation ? "处理中..." : "暂停检索"}
                       </button>
                       <button
                         type="button"
                         className={buttonStyles({ variant: "ghost", size: "sm" })}
-                        disabled={isMutating}
+                        disabled={isBusy}
                         onClick={() =>
                           void mutateSubscription({
                             libraryId: library.id,
@@ -166,7 +177,7 @@ export function WorkspaceLibrarySubscriptions({
                       <button
                         type="button"
                         className={buttonStyles({ size: "sm" })}
-                        disabled={isMutating || !canSubscribe}
+                        disabled={isBusy || !canSubscribe}
                         onClick={() =>
                           void mutateSubscription({
                             libraryId: library.id,
@@ -175,12 +186,12 @@ export function WorkspaceLibrarySubscriptions({
                           })
                         }
                       >
-                        {isMutating ? "处理中..." : "恢复订阅"}
+                        {isCurrentMutation ? "处理中..." : "恢复检索"}
                       </button>
                       <button
                         type="button"
                         className={buttonStyles({ variant: "ghost", size: "sm" })}
-                        disabled={isMutating}
+                        disabled={isBusy}
                         onClick={() =>
                           void mutateSubscription({
                             libraryId: library.id,
@@ -196,7 +207,7 @@ export function WorkspaceLibrarySubscriptions({
                     <button
                       type="button"
                       className={buttonStyles({ size: "sm" })}
-                      disabled={isMutating || !canSubscribe}
+                      disabled={isBusy || !canSubscribe}
                       onClick={() =>
                         void mutateSubscription({
                           libraryId: library.id,
@@ -205,11 +216,11 @@ export function WorkspaceLibrarySubscriptions({
                         })
                       }
                     >
-                      {isMutating ? "处理中..." : canSubscribe ? "订阅并参与检索" : "当前不可订阅"}
+                      {isCurrentMutation ? "处理中..." : canSubscribe ? "订阅并检索" : "当前不可订阅"}
                     </button>
                   )}
                 </div>
-              </div>
+              </article>
             );
           })
         ) : (
@@ -218,10 +229,15 @@ export function WorkspaceLibrarySubscriptions({
           </div>
         )}
       </div>
-
-      {statusMessage ? (
-        <p className={cn(ui.muted, isPending && "animate-pulse")}>{statusMessage}</p>
-      ) : null}
     </section>
   );
+}
+
+function formatLibraryUpdatedAt(value: string) {
+  return new Date(value).toLocaleString("zh-CN", {
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }

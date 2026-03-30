@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
+import { useMessage } from "@/components/shared/message-provider";
 import { WORKSPACE_PROMPT_MAX_LENGTH } from "@/lib/api/workspace-prompt";
 import { buttonStyles, cn, ui } from "@/lib/ui";
 
@@ -11,56 +12,71 @@ export function WorkspaceSettingsForm({
   workspaceId,
   initialTitle,
   initialPrompt,
-  framed = true,
 }: {
   sectionId?: string;
   workspaceId: string;
   initialTitle: string;
   initialPrompt?: string | null;
-  framed?: boolean;
 }) {
   const router = useRouter();
+  const message = useMessage();
   const [title, setTitle] = useState(initialTitle);
   const [workspacePrompt, setWorkspacePrompt] = useState(initialPrompt ?? "");
-  const [status, setStatus] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setStatus(null);
+    try {
+      const response = await fetch(`/api/workspaces/${workspaceId}`, {
+        method: "PATCH",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          title,
+          workspacePrompt,
+        }),
+      });
+      const body = (await response.json().catch(() => null)) as
+        | { error?: string }
+        | null;
 
-    const response = await fetch(`/api/workspaces/${workspaceId}`, {
-      method: "PATCH",
-      headers: {
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
-        title,
-        workspacePrompt,
-      }),
-    });
-    const body = (await response.json().catch(() => null)) as
-      | { error?: string }
-      | null;
+      if (!response.ok) {
+        message.error(body?.error ?? "保存空间设置失败");
+        return;
+      }
 
-    if (!response.ok) {
-      setStatus(body?.error ?? "保存空间设置失败。");
-      return;
+      message.success("空间设置已保存");
+      startTransition(() => {
+        router.refresh();
+      });
+    } catch (error) {
+      message.error(error instanceof Error && error.message ? error.message : "保存空间设置失败");
     }
-
-    setStatus("空间设置已保存。");
-    startTransition(() => {
-      router.refresh();
-    });
   }
 
   return (
-    <form id={sectionId} onSubmit={onSubmit} className={framed ? ui.sectionPanel : "grid"}>
-      <h2 className="text-[1.1rem] font-semibold text-app-text">设置</h2>
+    <form id={sectionId} onSubmit={onSubmit} className={ui.sectionPanel}>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="grid gap-0.5">
+          <h2 className="text-[1.1rem] font-semibold text-app-text">基础信息</h2>
+        </div>
+
+        <button
+          className={cn(buttonStyles({ size: "sm" }), "min-w-[104px]")}
+          disabled={isPending}
+          type="submit"
+        >
+          {isPending ? "保存中..." : "保存更改"}
+        </button>
+      </div>
 
       <div className="mt-4 grid gap-4">
-        <label className={ui.label}>
-          空间名称
+        <label className="grid gap-3 border-t border-app-border pt-4 md:grid-cols-[180px_minmax(0,1fr)] md:gap-5">
+          <div className="grid content-start gap-1">
+            <span className="text-[15px] font-semibold text-app-text">空间名称</span>
+            <span className="text-[13px] leading-6 text-app-muted">侧栏和标题区使用</span>
+          </div>
           <input
             required
             className={ui.input}
@@ -68,28 +84,27 @@ export function WorkspaceSettingsForm({
             onChange={(event) => setTitle(event.target.value)}
           />
         </label>
-        <label className={ui.label}>
-          <span className="flex items-center justify-between gap-3">
-            <span>预置提示词</span>
-            <span className="text-[12px] font-normal text-app-muted">
-              {workspacePrompt.length}/{WORKSPACE_PROMPT_MAX_LENGTH}
-            </span>
-          </span>
+
+        <label className="grid gap-3 border-t border-app-border pt-4 md:grid-cols-[180px_minmax(0,1fr)] md:gap-5">
+          <div className="grid content-start gap-1.5">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[15px] font-semibold text-app-text">预置提示词</span>
+              <span className={ui.chipSoft}>
+                {workspacePrompt.length}/{WORKSPACE_PROMPT_MAX_LENGTH}
+              </span>
+            </div>
+            <span className="text-[13px] leading-6 text-app-muted">为空则不追加空间级指令</span>
+          </div>
+
           <textarea
-            className={ui.textarea}
-            rows={5}
+            className={cn(ui.textarea, "min-h-[168px] resize-y")}
+            rows={6}
             maxLength={WORKSPACE_PROMPT_MAX_LENGTH}
             value={workspacePrompt}
             onChange={(event) => setWorkspacePrompt(event.target.value)}
+            placeholder="补充空间级约束"
           />
         </label>
-      </div>
-
-      <div className="mt-5 flex flex-wrap items-center gap-3">
-        <button className={cn(buttonStyles(), "justify-self-start")} disabled={isPending} type="submit">
-          {isPending ? "保存中..." : "保存设置"}
-        </button>
-        {status ? <span className={ui.muted}>{status}</span> : null}
       </div>
     </form>
   );

@@ -8,10 +8,12 @@ import {
   type KnowledgeLibraryStatus,
 } from "@anchordesk/contracts";
 
+import { useMessage } from "@/components/shared/message-provider";
 import { buttonStyles, ui } from "@/lib/ui";
 
 export function GlobalLibraryCreateForm() {
   const router = useRouter();
+  const message = useMessage();
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState("");
   const [description, setDescription] = useState("");
@@ -19,12 +21,10 @@ export function GlobalLibraryCreateForm() {
     KNOWLEDGE_LIBRARY_STATUS.DRAFT,
   );
   const [submitting, setSubmitting] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitting(true);
-    setMessage(null);
 
     try {
       const response = await fetch("/api/knowledge-libraries", {
@@ -44,12 +44,15 @@ export function GlobalLibraryCreateForm() {
         | null;
 
       if (!response.ok || !body?.library?.id) {
-        setMessage(body?.error ?? "创建资料库失败");
+        message.error(body?.error ?? "创建资料库失败");
         return;
       }
 
+      message.success("资料库已创建");
       router.push(`/settings/libraries/${body.library.id}`);
       router.refresh();
+    } catch (error) {
+      message.error(error instanceof Error && error.message ? error.message : "创建资料库失败");
     } finally {
       setSubmitting(false);
     }
@@ -117,7 +120,6 @@ export function GlobalLibraryCreateForm() {
         <button className={buttonStyles()} disabled={submitting} type="submit">
           {submitting ? "创建中..." : "创建并进入管理"}
         </button>
-        {message ? <span className={ui.error}>{message}</span> : null}
       </div>
     </form>
   );

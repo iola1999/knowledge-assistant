@@ -60,16 +60,21 @@ export function WorkspaceBreadcrumbSwitcher({
       : `/workspaces/${workspaceId}`;
 
   return (
-    <div ref={containerRef} className="relative">
+    <div ref={containerRef} className="relative min-w-0 max-w-full overflow-visible">
       <button
         type="button"
         aria-controls={menuId}
         aria-expanded={open}
         aria-haspopup="menu"
         onClick={() => setOpen((value) => !value)}
-        className={breadcrumbSwitcherTriggerStyles({ open })}
+        className={cn(breadcrumbSwitcherTriggerStyles({ open }), "min-w-0")}
       >
-        <span className="truncate">{workspace.title}</span>
+        <span
+          title={workspace.title}
+          className="max-w-[min(24vw,116px)] truncate min-[720px]:max-w-[min(16vw,180px)] xl:max-w-[220px]"
+        >
+          {workspace.title}
+        </span>
         <ChevronDownIcon
           className={cn(
             "size-3.5 text-app-muted transition-transform duration-200 [transition-timing-function:var(--ease-out-quart)]",
@@ -84,7 +89,7 @@ export function WorkspaceBreadcrumbSwitcher({
           role="menu"
           className={cn(
             ui.menu,
-            "animate-soft-enter absolute left-0 top-[calc(100%+8px)] z-10 grid min-w-[220px] gap-1",
+            "animate-soft-enter absolute left-0 top-[calc(100%+8px)] z-40 grid w-[min(260px,calc(100vw-20px))] gap-1",
           )}
         >
           {workspaces.map((workspaceItem) => (
@@ -94,11 +99,11 @@ export function WorkspaceBreadcrumbSwitcher({
               role="menuitem"
               onClick={() => setOpen(false)}
               className={cn(
-                "flex min-h-10 items-center rounded-xl px-3 text-sm transition hover:bg-app-surface-soft",
+                "flex min-h-10 min-w-0 items-center rounded-xl px-3 text-sm transition hover:bg-app-surface-soft",
                 menuItemStyles({ selected: workspaceItem.id === workspace.id }),
               )}
             >
-              {workspaceItem.title}
+              <span className="block min-w-0 flex-1 truncate">{workspaceItem.title}</span>
             </Link>
           ))}
         </div>

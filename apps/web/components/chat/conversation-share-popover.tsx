@@ -276,7 +276,7 @@ export function ConversationSharePopover({
         aria-haspopup="dialog"
         className={cn(
           buttonStyles({ size: "sm" }),
-          "gap-2.5 rounded-[18px] px-4 shadow-sm hover:bg-[#25211c]",
+          "gap-2 rounded-[18px] px-3.5 shadow-sm hover:bg-[#25211c] min-[720px]:gap-2.5 min-[720px]:px-4",
         )}
         disabled={isSubmitting}
         onClick={() => {

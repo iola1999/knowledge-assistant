@@ -15,7 +15,12 @@ import {
   WORKSPACE_SHELL_SIDEBAR_CONTENT_CLASS,
   resolveWorkspaceShellContentClass,
 } from "@/lib/workspace-shell";
-import { buttonStyles, cn, navItemStyles } from "@/lib/ui";
+import {
+  buttonStyles,
+  cn,
+  createConversationNavButtonStyles,
+  navItemStyles,
+} from "@/lib/ui";
 import { ConversationBreadcrumbSwitcher } from "@/components/workspaces/conversation-breadcrumb-switcher";
 import { WorkspaceBreadcrumbSwitcher } from "@/components/workspaces/workspace-breadcrumb-switcher";
 import { WorkspaceConversationSidebarItem } from "@/components/workspaces/workspace-conversation-sidebar-item";
@@ -254,7 +259,7 @@ export function WorkspaceShellFrame({
               </Link>
             </div>
 
-            <div className="flex flex-wrap items-start justify-between gap-2.5">
+            <div className="flex min-w-0 items-center justify-between gap-3">
               <div className="min-w-0 flex-1">
                 <BreadcrumbTrail
                   workspace={workspace}
@@ -267,24 +272,26 @@ export function WorkspaceShellFrame({
               </div>
 
               {topActions ? (
-                <div className="flex shrink-0 items-center justify-end gap-2">
+                <div className="flex shrink-0 items-center justify-end gap-1.5">
                   {topActions}
                 </div>
               ) : null}
             </div>
           </div>
 
-          <div className="hidden min-[720px]:flex min-[720px]:flex-wrap min-[720px]:items-center min-[720px]:justify-between min-[720px]:gap-4">
-            <BreadcrumbTrail
-              workspace={workspace}
-              workspaces={workspaces}
-              conversations={conversations}
-              breadcrumbs={breadcrumbs}
-              activeView={activeView}
-              currentConversation={currentConversation}
-            />
+          <div className="hidden min-[720px]:flex min-[720px]:min-w-0 min-[720px]:items-center min-[720px]:justify-between min-[720px]:gap-4">
+            <div className="min-w-0 flex-1">
+              <BreadcrumbTrail
+                workspace={workspace}
+                workspaces={workspaces}
+                conversations={conversations}
+                breadcrumbs={breadcrumbs}
+                activeView={activeView}
+                currentConversation={currentConversation}
+              />
+            </div>
 
-            {topActions ? <div className="flex flex-wrap items-center gap-2">{topActions}</div> : null}
+            {topActions ? <div className="flex shrink-0 items-center gap-2">{topActions}</div> : null}
           </div>
         </header>
 
@@ -314,6 +321,7 @@ function WorkspaceSidebarContent({
   const archivedConversations = conversations.filter(
     (item) => item.status === CONVERSATION_STATUS.ARCHIVED,
   );
+  const isCreateConversationActive = activeView === "chat" && !activeConversationId;
   const workspaceNavLink = (selected: boolean) =>
     cn(
       "group flex min-h-[36px] w-full items-center gap-2.5 rounded-[10px] px-2.5 text-[13px] font-medium transition-colors",
@@ -346,12 +354,9 @@ function WorkspaceSidebarContent({
           <Link
             href={`/workspaces/${workspace.id}`}
             onClick={onNavigate}
-            className={cn(
-              "group flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border text-[14px] font-medium transition-all",
-              activeView === "chat" && !activeConversationId
-                ? "border-app-primary bg-app-primary text-app-primary-contrast shadow-sm"
-                : "border-app-border-strong bg-white text-app-text shadow-sm hover:bg-app-surface-soft hover:shadow-soft",
-            )}
+            className={createConversationNavButtonStyles({
+              active: isCreateConversationActive,
+            })}
           >
             <PlusIcon className="size-3.5 transition-transform group-hover:scale-110" strokeWidth={2.5} />
             新建会话
@@ -429,16 +434,24 @@ function BreadcrumbTrail({
 }: BreadcrumbTrailProps) {
   return (
     <div
-      className="flex min-w-0 flex-wrap items-center gap-1.5 text-[13px] text-app-muted"
+      className="flex min-w-0 items-center gap-1.5 whitespace-nowrap text-[13px] text-app-muted"
       aria-label="Breadcrumb"
     >
       {breadcrumbs.map((item, index) => {
         const isWorkspaceCrumb = item.label === workspace.title;
         const isCurrentConversationCrumb =
           Boolean(currentConversation) && index === breadcrumbs.length - 1;
+        const isWorkspaceRootCrumb =
+          Boolean(currentConversation) && index === 0 && item.href === "/workspaces";
 
         return (
-          <span key={`${item.label}-${index}`} className="flex min-w-0 items-center gap-1.5">
+          <span
+            key={`${item.label}-${index}`}
+            className={cn(
+              "flex min-w-0 items-center gap-1.5",
+              isWorkspaceRootCrumb && "hidden min-[720px]:flex",
+            )}
+          >
             {isCurrentConversationCrumb && currentConversation ? (
               <ConversationBreadcrumbSwitcher
                 workspaceId={workspace.id}

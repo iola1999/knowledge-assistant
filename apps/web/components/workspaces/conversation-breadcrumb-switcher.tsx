@@ -89,23 +89,26 @@ export function ConversationBreadcrumbSwitcher({
       <span
         key={`${currentConversation.id}-${currentConversation.title}`}
         title={currentConversation.title}
-        className="animate-soft-fade hidden max-w-[28rem] min-w-0 truncate font-medium text-app-text min-[720px]:inline-block"
+        className="animate-soft-fade hidden min-w-0 max-w-[min(34vw,480px)] truncate font-medium text-app-text min-[720px]:inline-block xl:max-w-[560px]"
       >
         {currentConversation.title}
       </span>
 
-      <div ref={containerRef} className="relative min-[720px]:hidden">
+      <div
+        ref={containerRef}
+        className="relative min-w-0 max-w-full overflow-visible min-[720px]:hidden"
+      >
         <button
           type="button"
           aria-controls={menuId}
           aria-expanded={open}
           aria-haspopup="menu"
           onClick={() => setOpen((value) => !value)}
-          className={breadcrumbSwitcherTriggerStyles({ open })}
+          className={cn(breadcrumbSwitcherTriggerStyles({ open }), "min-w-0")}
         >
           <span
             title={currentConversation.title}
-            className="max-w-[min(52vw,240px)] truncate font-medium text-app-text"
+            className="max-w-[min(38vw,168px)] truncate font-medium text-app-text"
           >
             {currentConversation.title}
           </span>
@@ -123,7 +126,7 @@ export function ConversationBreadcrumbSwitcher({
             role="menu"
             className={cn(
               ui.menu,
-              "animate-soft-enter absolute left-0 top-[calc(100%+8px)] z-10 grid w-[min(320px,calc(100vw-24px))] gap-1",
+              "animate-soft-enter absolute left-0 top-[calc(100%+8px)] z-40 grid w-[min(280px,calc(100vw-20px))] gap-1",
             )}
           >
             {visibleConversations.map((conversation) => (
@@ -133,13 +136,13 @@ export function ConversationBreadcrumbSwitcher({
                 role="menuitem"
                 onClick={() => setOpen(false)}
                 className={cn(
-                  "flex min-h-10 items-center rounded-xl px-3 text-sm transition-[background-color,color] duration-200 [transition-timing-function:var(--ease-out-quart)]",
+                  "flex min-h-10 min-w-0 items-center rounded-xl px-3 text-sm transition-[background-color,color] duration-200 [transition-timing-function:var(--ease-out-quart)]",
                   menuItemStyles({
                     selected: conversation.id === currentConversation.id,
                   }),
                 )}
               >
-                <span className="truncate">{conversation.title}</span>
+                <span className="block min-w-0 flex-1 truncate">{conversation.title}</span>
               </Link>
             ))}
           </div>
