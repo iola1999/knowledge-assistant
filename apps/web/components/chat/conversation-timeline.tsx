@@ -139,7 +139,9 @@ function ToolPayloadBlock({
     <div className={conversationDensityClassNames.payloadDisclosure}>
       <div className="flex items-center justify-between gap-3 text-[11px] text-app-muted-strong">
         <span className="font-medium text-app-text">{label}</span>
-        <span className="truncate text-app-muted">{describePayloadPreview(value)}</span>
+        <span className="min-w-0 flex-1 truncate text-right text-app-muted">
+          {describePayloadPreview(value)}
+        </span>
       </div>
 
       <div className="mt-2 border-t border-app-border/60 pt-2">
@@ -160,7 +162,7 @@ function TimelineEntrySummary({
 }) {
   return (
     <div className={conversationDensityClassNames.timelineEntrySummary}>
-      <div className="grid gap-1.5">
+      <div className="grid min-w-0 gap-1.5">
         <div className="flex flex-wrap items-center gap-2">
           {expandable ? (
             <span className="text-sm leading-none text-app-muted transition group-open/timeline-entry:rotate-90">
@@ -177,7 +179,7 @@ function TimelineEntrySummary({
           </span>
           {entry.toolName ? <span className={ui.codeChip}>{entry.toolName}</span> : null}
         </div>
-        <p className="text-[12px] leading-5 text-app-muted-strong">
+        <p className="text-[12px] leading-5 text-app-muted-strong [overflow-wrap:anywhere]">
           {describeEntryHeadline({
             toolName: entry.toolName,
             status: entry.status,
