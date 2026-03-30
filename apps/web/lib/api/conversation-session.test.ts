@@ -1,7 +1,149 @@
 import { describe, expect, test } from "vitest";
 import { CONVERSATION_STREAM_EVENT, MESSAGE_ROLE, MESSAGE_STATUS } from "@anchordesk/contracts";
 
-import { applyAssistantTerminalEvent } from "./conversation-session";
+import {
+  applyAssistantTerminalEvent,
+  findLatestAssistantMessageId,
+  findStreamingAssistantMessageId,
+  restartAssistantMessageForRetry,
+} from "./conversation-session";
+
+describe("findLatestAssistantMessageId", () => {
+  test("returns the latest assistant turn in the chat thread", () => {
+    expect(
+      findLatestAssistantMessageId([
+        {
+          id: "user-1",
+          role: MESSAGE_ROLE.USER,
+          status: MESSAGE_STATUS.COMPLETED,
+          contentMarkdown: "问题一",
+          structuredJson: null,
+        },
+        {
+          id: "assistant-1",
+          role: MESSAGE_ROLE.ASSISTANT,
+          status: MESSAGE_STATUS.COMPLETED,
+          contentMarkdown: "回答一",
+          structuredJson: null,
+        },
+        {
+          id: "user-2",
+          role: MESSAGE_ROLE.USER,
+          status: MESSAGE_STATUS.COMPLETED,
+          contentMarkdown: "问题二",
+          structuredJson: null,
+        },
+        {
+          id: "assistant-2",
+          role: MESSAGE_ROLE.ASSISTANT,
+          status: MESSAGE_STATUS.FAILED,
+          contentMarkdown: "回答二失败",
+          structuredJson: null,
+        },
+      ]),
+    ).toBe("assistant-2");
+  });
+
+  test("returns null when the chat thread has no assistant output", () => {
+    expect(
+      findLatestAssistantMessageId([
+        {
+          id: "user-1",
+          role: MESSAGE_ROLE.USER,
+          status: MESSAGE_STATUS.COMPLETED,
+          contentMarkdown: "问题一",
+          structuredJson: null,
+        },
+      ]),
+    ).toBeNull();
+  });
+});
+
+describe("findStreamingAssistantMessageId", () => {
+  test("returns the assistant turn that is currently streaming", () => {
+    expect(
+      findStreamingAssistantMessageId([
+        {
+          id: "assistant-1",
+          role: MESSAGE_ROLE.ASSISTANT,
+          status: MESSAGE_STATUS.COMPLETED,
+          contentMarkdown: "已完成",
+          structuredJson: null,
+        },
+        {
+          id: "assistant-2",
+          role: MESSAGE_ROLE.ASSISTANT,
+          status: MESSAGE_STATUS.STREAMING,
+          contentMarkdown: "",
+          structuredJson: null,
+        },
+      ]),
+    ).toBe("assistant-2");
+  });
+
+  test("returns null when no assistant turn is streaming", () => {
+    expect(
+      findStreamingAssistantMessageId([
+        {
+          id: "assistant-1",
+          role: MESSAGE_ROLE.ASSISTANT,
+          status: MESSAGE_STATUS.FAILED,
+          contentMarkdown: "失败",
+          structuredJson: null,
+        },
+      ]),
+    ).toBeNull();
+  });
+});
+
+describe("restartAssistantMessageForRetry", () => {
+  test("resets the retried assistant turn to a fresh streaming state and clears citations", () => {
+    const now = new Date("2026-03-30T09:00:00.000Z");
+
+    expect(
+      restartAssistantMessageForRetry({
+        assistantMessageId: "assistant-1",
+        citations: [
+          {
+            id: "citation-1",
+            messageId: "assistant-1",
+            anchorId: "anchor-1",
+            documentId: "document-1",
+            label: "旧引用",
+            quoteText: "旧摘录",
+          },
+        ],
+        messages: [
+          {
+            id: "assistant-1",
+            role: MESSAGE_ROLE.ASSISTANT,
+            status: MESSAGE_STATUS.FAILED,
+            contentMarkdown: "Agent 处理失败：queue offline",
+            structuredJson: {
+              agent_error: "queue offline",
+            },
+          },
+        ],
+        now,
+      }),
+    ).toEqual({
+      messages: [
+        {
+          id: "assistant-1",
+          role: MESSAGE_ROLE.ASSISTANT,
+          status: MESSAGE_STATUS.STREAMING,
+          contentMarkdown: "",
+          structuredJson: {
+            run_started_at: "2026-03-30T09:00:00.000Z",
+            run_last_heartbeat_at: "2026-03-30T09:00:00.000Z",
+            run_lease_expires_at: "2026-03-30T09:00:45.000Z",
+          },
+        },
+      ],
+      citations: [],
+    });
+  });
+});
 
 describe("applyAssistantTerminalEvent", () => {
   test("hydrates the completed assistant message and replaces its citations", () => {

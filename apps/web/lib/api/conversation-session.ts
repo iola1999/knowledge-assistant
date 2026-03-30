@@ -1,4 +1,12 @@
-import { CONVERSATION_STREAM_EVENT, type ConversationStreamEvent, type MessageRole, type MessageStatus } from "@anchordesk/contracts";
+import {
+  buildStreamingAssistantRunState,
+  CONVERSATION_STREAM_EVENT,
+  MESSAGE_ROLE,
+  MESSAGE_STATUS,
+  type ConversationStreamEvent,
+  type MessageRole,
+  type MessageStatus,
+} from "@anchordesk/contracts";
 
 export type ConversationChatMessage = {
   id: string;
@@ -32,6 +40,57 @@ function replaceMessageCitations(
     ...citations.filter((citation) => citation.messageId !== messageId),
     ...nextCitations,
   ];
+}
+
+export function findLatestAssistantMessageId(messages: ConversationChatMessage[]) {
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    if (messages[index]?.role === MESSAGE_ROLE.ASSISTANT) {
+      return messages[index]!.id;
+    }
+  }
+
+  return null;
+}
+
+export function findStreamingAssistantMessageId(messages: ConversationChatMessage[]) {
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const message = messages[index];
+    if (
+      message?.role === MESSAGE_ROLE.ASSISTANT &&
+      message.status === MESSAGE_STATUS.STREAMING
+    ) {
+      return message.id;
+    }
+  }
+
+  return null;
+}
+
+export function restartAssistantMessageForRetry(input: {
+  assistantMessageId: string;
+  citations: ConversationMessageCitation[];
+  messages: ConversationChatMessage[];
+  now?: Date;
+}) {
+  const nextMessages = input.messages.map((message) =>
+    message.id === input.assistantMessageId
+      ? {
+          ...message,
+          status: MESSAGE_STATUS.STREAMING,
+          contentMarkdown: "",
+          structuredJson: buildStreamingAssistantRunState({
+            now: input.now,
+          }),
+        }
+      : message,
+  );
+
+  return {
+    messages: nextMessages,
+    citations: input.citations.filter(
+      (citation) => citation.messageId !== input.assistantMessageId,
+    ),
+  };
 }
 
 export function applyAssistantTerminalEvent(input: {

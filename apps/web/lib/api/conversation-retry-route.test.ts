@@ -1,0 +1,179 @@
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+
+import {
+  buildAssistantFailedMessageState,
+  MESSAGE_ROLE,
+  MESSAGE_STATUS,
+} from "@anchordesk/contracts";
+
+const mocks = vi.hoisted(() => {
+  const tables = {
+    conversations: Symbol("conversations"),
+    messageCitations: Symbol("messageCitations"),
+    messages: Symbol("messages"),
+  };
+
+  const recentChatMessages: Array<Record<string, unknown>> = [];
+  const updates: Array<{ table: unknown; values: unknown }> = [];
+  const deletes: Array<{ table: unknown }> = [];
+
+  const enqueueConversationResponse = vi.fn();
+  const auth = vi.fn();
+  const requireOwnedConversation = vi.fn();
+  const buildConversationPrompt = vi.fn();
+  const findRegeneratableConversationTurn = vi.fn();
+  const loggerChild = {
+    error: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+  };
+
+  const db = {
+    select: vi.fn(() => ({
+      from: vi.fn(() => ({
+        where: vi.fn(() => ({
+          orderBy: vi.fn(() => ({
+            limit: vi.fn(async () => recentChatMessages),
+          })),
+        })),
+      })),
+    })),
+    delete: vi.fn((table: unknown) => ({
+      where: vi.fn(async () => {
+        deletes.push({ table });
+        return [];
+      }),
+    })),
+    update: vi.fn((table: unknown) => ({
+      set: vi.fn((values: unknown) => ({
+        where: vi.fn(async () => {
+          updates.push({ table, values });
+          return [];
+        }),
+      })),
+    })),
+  };
+
+  return {
+    auth,
+    buildConversationPrompt,
+    db,
+    deletes,
+    enqueueConversationResponse,
+    findRegeneratableConversationTurn,
+    loggerChild,
+    recentChatMessages,
+    requireOwnedConversation,
+    tables,
+    updates,
+  };
+});
+
+vi.mock("@/auth", () => ({
+  auth: mocks.auth,
+}));
+
+vi.mock("@/lib/guards/resources", () => ({
+  requireOwnedConversation: mocks.requireOwnedConversation,
+}));
+
+vi.mock("@/lib/api/workspace-prompt", () => ({
+  buildConversationPrompt: mocks.buildConversationPrompt,
+}));
+
+vi.mock("@/lib/api/conversation-retry", () => ({
+  findRegeneratableConversationTurn: mocks.findRegeneratableConversationTurn,
+}));
+
+vi.mock("@/lib/server/logger", () => ({
+  buildRequestLogContext: () => ({}),
+  logger: {
+    child: () => mocks.loggerChild,
+  },
+  resolveRequestId: () => "request-1",
+}));
+
+vi.mock("@anchordesk/queue", () => ({
+  enqueueConversationResponse: mocks.enqueueConversationResponse,
+}));
+
+vi.mock("@anchordesk/db", () => ({
+  conversations: mocks.tables.conversations,
+  getDb: () => mocks.db,
+  messageCitations: mocks.tables.messageCitations,
+  messages: mocks.tables.messages,
+}));
+
+let POST: typeof import("../../app/api/conversations/[conversationId]/retry/route").POST;
+
+beforeAll(async () => {
+  ({ POST } = await import("../../app/api/conversations/[conversationId]/retry/route"));
+});
+
+beforeEach(() => {
+  mocks.recentChatMessages.length = 0;
+  mocks.updates.length = 0;
+  mocks.deletes.length = 0;
+  mocks.enqueueConversationResponse.mockReset();
+  mocks.auth.mockReset();
+  mocks.requireOwnedConversation.mockReset();
+  mocks.buildConversationPrompt.mockReset();
+  mocks.findRegeneratableConversationTurn.mockReset();
+  mocks.loggerChild.error.mockReset();
+  mocks.loggerChild.info.mockReset();
+  mocks.loggerChild.warn.mockReset();
+});
+
+describe("POST /api/conversations/[conversationId]/retry", () => {
+  it("restores the assistant failure state when re-enqueueing fails", async () => {
+    mocks.auth.mockResolvedValue({
+      user: { id: "user-1" },
+    });
+    mocks.requireOwnedConversation.mockResolvedValue({
+      id: "conversation-1",
+      workspaceId: "workspace-1",
+      workspacePrompt: "空间提示",
+    });
+    mocks.buildConversationPrompt.mockReturnValue("完整 prompt");
+    mocks.recentChatMessages.push({
+      id: "assistant-message-1",
+      role: MESSAGE_ROLE.ASSISTANT,
+      status: MESSAGE_STATUS.FAILED,
+      contentMarkdown: "Agent 处理失败：queue offline",
+    });
+    mocks.findRegeneratableConversationTurn.mockReturnValue({
+      assistantMessageId: "assistant-message-1",
+      userMessageId: "user-message-1",
+      promptContent: "总结一下",
+    });
+    mocks.enqueueConversationResponse.mockRejectedValue(new Error("queue offline"));
+
+    const response = await POST(
+      new Request("http://localhost/api/conversations/conversation-1/retry", {
+        method: "POST",
+      }),
+      {
+        params: Promise.resolve({ conversationId: "conversation-1" }),
+      },
+    );
+    const body = (await response.json()) as { error: string };
+
+    expect(response.status).toBe(500);
+    expect(body.error).toBe("重新生成失败：queue offline");
+    expect(mocks.deletes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          table: mocks.tables.messageCitations,
+        }),
+      ]),
+    );
+    expect(mocks.updates).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          table: mocks.tables.messages,
+          values: buildAssistantFailedMessageState("queue offline"),
+        }),
+      ]),
+    );
+  });
+});

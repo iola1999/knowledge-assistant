@@ -33,6 +33,9 @@ import {
   applyAssistantTerminalEvent,
   type ConversationChatMessage,
   type ConversationMessageCitation,
+  findLatestAssistantMessageId,
+  findStreamingAssistantMessageId,
+  restartAssistantMessageForRetry,
 } from "@/lib/api/conversation-session";
 import { chipButtonStyles, cn, tabButtonStyles, ui } from "@/lib/ui";
 
@@ -64,6 +67,17 @@ function readAssistantMessageContent(
   assistantMessageId?: string | null,
 ) {
   return messages.find((message) => message.id === assistantMessageId)?.contentMarkdown ?? "";
+}
+
+function resolveStreamingAssistantMessageId(input: {
+  assistantMessageId?: string | null;
+  assistantStatus?: MessageStatus | null;
+  messages: ChatMessage[];
+}) {
+  return (
+    findStreamingAssistantMessageId(input.messages) ??
+    (input.assistantStatus === MESSAGE_STATUS.STREAMING ? input.assistantMessageId ?? null : null)
+  );
 }
 
 function ActionButton({
@@ -144,13 +158,19 @@ export function ConversationSession({
     initialTimelineMessagesByAssistant ?? {},
   );
   const [messageCitations, setMessageCitations] = useState(initialCitations ?? []);
-  const [runtimeStatus, setRuntimeStatus] = useState<string | null>(
-    assistantStatus === MESSAGE_STATUS.STREAMING
+  const [runtimeStatus, setRuntimeStatus] = useState<string | null>(() => {
+    const initialStreamingAssistantMessageId = resolveStreamingAssistantMessageId({
+      assistantMessageId,
+      assistantStatus,
+      messages: initialMessages,
+    });
+
+    return initialStreamingAssistantMessageId
       ? describeAssistantStreamingStatus(
-          readAssistantMessageContent(initialMessages, assistantMessageId),
+          readAssistantMessageContent(initialMessages, initialStreamingAssistantMessageId),
         )
-      : null,
-  );
+      : null;
+  });
   const [messageViewModes, setMessageViewModes] = useState<Record<string, MessageViewMode>>({});
   const [actionStatusByMessage, setActionStatusByMessage] = useState<
     Record<string, string | null>
@@ -174,10 +194,15 @@ export function ConversationSession({
     setRegeneratingMessageId(null);
     chatMessagesRef.current = initialMessages;
     messageCitationsRef.current = initialCitations ?? [];
+    const nextStreamingAssistantMessageId = resolveStreamingAssistantMessageId({
+      assistantMessageId,
+      assistantStatus,
+      messages: initialMessages,
+    });
     setRuntimeStatus(
-      assistantStatus === MESSAGE_STATUS.STREAMING
+      nextStreamingAssistantMessageId
         ? describeAssistantStreamingStatus(
-            readAssistantMessageContent(initialMessages, assistantMessageId),
+            readAssistantMessageContent(initialMessages, nextStreamingAssistantMessageId),
           )
         : null,
     );
@@ -189,7 +214,16 @@ export function ConversationSession({
     initialCitations,
     initialMessages,
     initialTimelineMessagesByAssistant,
+    assistantMessageId,
   ]);
+
+  const activeAssistantMessageId =
+    findLatestAssistantMessageId(chatMessages) ?? assistantMessageId ?? null;
+  const streamingAssistantMessageId = resolveStreamingAssistantMessageId({
+    assistantMessageId,
+    assistantStatus,
+    messages: chatMessages,
+  });
 
   useEffect(() => {
     chatMessagesRef.current = chatMessages;
@@ -208,16 +242,12 @@ export function ConversationSession({
   }, []);
 
   useEffect(() => {
-    if (
-      !streamEnabled ||
-      !assistantMessageId ||
-      assistantStatus !== MESSAGE_STATUS.STREAMING
-    ) {
+    if (!streamEnabled || !streamingAssistantMessageId) {
       return;
     }
 
     const source = new EventSource(
-      `/api/conversations/${conversationId}/stream?assistantMessageId=${assistantMessageId}`,
+      `/api/conversations/${conversationId}/stream?assistantMessageId=${streamingAssistantMessageId}`,
     );
 
     const handleToolMessage = (event: MessageEvent<string>) => {
@@ -233,8 +263,8 @@ export function ConversationSession({
       seenTimelineIdsRef.current.add(payload.message_id);
       setTimelineMessagesByAssistant((current) => ({
         ...current,
-        [assistantMessageId]: [
-          ...(current[assistantMessageId] ?? []),
+        [streamingAssistantMessageId]: [
+          ...(current[streamingAssistantMessageId] ?? []),
           {
             id: payload.message_id,
             status: payload.status,
@@ -277,6 +307,8 @@ export function ConversationSession({
         citations: messageCitationsRef.current,
         event: payload,
       });
+      chatMessagesRef.current = nextState.messages;
+      messageCitationsRef.current = nextState.citations;
       setChatMessages(nextState.messages);
       setMessageCitations(nextState.citations);
       setRuntimeStatus("回答已生成");
@@ -298,6 +330,8 @@ export function ConversationSession({
         citations: messageCitationsRef.current,
         event: payload,
       });
+      chatMessagesRef.current = nextState.messages;
+      messageCitationsRef.current = nextState.citations;
       setChatMessages(nextState.messages);
       setMessageCitations(nextState.citations);
       setRuntimeStatus(`运行失败：${payload.error}`);
@@ -327,7 +361,7 @@ export function ConversationSession({
     source.onopen = () => {
       const currentContent = readAssistantMessageContent(
         chatMessagesRef.current,
-        assistantMessageId,
+        streamingAssistantMessageId,
       );
       setRuntimeStatus(describeAssistantStreamingStatus(currentContent));
     };
@@ -338,7 +372,7 @@ export function ConversationSession({
     return () => {
       source.close();
     };
-  }, [assistantMessageId, assistantStatus, conversationId, router, streamEnabled]);
+  }, [conversationId, router, streamEnabled, streamingAssistantMessageId]);
 
   const citationsByMessage = new Map<string, MessageCitation[]>();
   for (const citation of messageCitations) {
@@ -419,9 +453,26 @@ export function ConversationSession({
         return;
       }
 
-      startTransition(() => {
-        router.refresh();
+      const nextState = restartAssistantMessageForRetry({
+        assistantMessageId: messageId,
+        citations: messageCitationsRef.current,
+        messages: chatMessagesRef.current,
       });
+      chatMessagesRef.current = nextState.messages;
+      messageCitationsRef.current = nextState.citations;
+      setChatMessages(nextState.messages);
+      setMessageCitations(nextState.citations);
+      setTimelineMessagesByAssistant((current) => {
+        const nextTimelineMessagesByAssistant = { ...current };
+        delete nextTimelineMessagesByAssistant[messageId];
+        seenTimelineIdsRef.current = flattenTimelineMessageIds(nextTimelineMessagesByAssistant);
+        return nextTimelineMessagesByAssistant;
+      });
+      setRuntimeStatus(
+        describeAssistantStreamingStatus(
+          readAssistantMessageContent(nextState.messages, messageId),
+        ),
+      );
     } catch {
       setRegeneratingMessageId(null);
       setActionStatus(messageId, "重新生成失败");
@@ -434,7 +485,7 @@ export function ConversationSession({
         chatMessages.map((message) => {
           const isUser = message.role === MESSAGE_ROLE.USER;
           const isAssistant = message.role === MESSAGE_ROLE.ASSISTANT;
-          const isCurrentAssistant = assistantMessageId === message.id;
+          const isCurrentAssistant = activeAssistantMessageId === message.id;
           const isStreamingAssistant = isAssistant && message.status === MESSAGE_STATUS.STREAMING;
           const citations = citationsByMessage.get(message.id) ?? [];
           const hasSources = citations.length > 0;

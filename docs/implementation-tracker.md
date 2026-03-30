@@ -47,7 +47,7 @@
 - assistant / tool 的失败态 payload 已收口为共享构造函数，消息发送、重试、运行过期和 worker 失败路径复用同一套错误语义。
 - 上传链路现在由前端先计算 SHA256，再直传 `blobs/<sha256>`；worker 负责复核对象内容和 hash/key 一致性，对象层不再按工作空间前缀组织，目录归属仅由数据库 metadata 表达。
 - 本地缺少 `ANTHROPIC_API_KEY` 或关键 provider 时，主会话链路会直接进入失败态，并继续通过既有 SSE / message failed 链路暴露给前端。
-- 会话页现在已提供“重新生成”入口；当最新 assistant 消息处于 failed 状态时，可复用上一条 user prompt 直接重试当前回答。
+- 会话页现在已提供“重新生成”入口；当最新 assistant 消息处于 failed 状态时，可复用上一条 user prompt 直接重试当前回答，前端会先本地重置该轮的回答/citation/工具时间线，再交给 SSE 持续接管。
 - `presign -> documents/document_versions/document_jobs -> BullMQ parse/chunk/embed/index` 上传消化链路已通，解析结果会落到 `document_pages / document_blocks / document_chunks / citation_anchors`，并同步进入 Qdrant。
 - 会话级临时资料走独立的 `attachments/presign -> conversation_attachments -> parse/chunk/index(parse-only finalize)` 链路；它会生成 `document_pages / document_blocks / document_chunks / citation_anchors`，但不会写入 Qdrant。
 - 上传链路已明确收口：OCR 明确保持 disabled，图片/扫描件暂不纳入当前可用范围，前后端会直接限制并提示。
@@ -64,6 +64,8 @@
 
 ## 2. 最近完成
 
+- `working tree` Add executed regression tests for agent-runtime completion/failure handling and conversation message/retry enqueue failure responses
+- `working tree` Let failed-answer retry resume locally into streaming state, clear stale citations/tool timeline, and hand control back to SSE without waiting for an immediate hard refresh
 - `working tree` Surface persisted citation excerpts in conversation/share source cards and extend terminal SSE citation payload with `quote_text`
 - `working tree` Consolidate assistant/tool failed message payloads into shared contracts helpers across enqueue, retry, stale-run expiration, and worker failure paths
 - `working tree` Refine streaming runtime status copy so SSE reconnects show retrying instead of forcing an immediate hard refresh
@@ -109,8 +111,8 @@
 
 - 主会话链路完成态收口
   - 当前已能展示 tool start / completed / failed、assistant `answer_delta`、`answer_done`、`run_failed`
-  - assistant placeholder 到 completed/failed 的本地状态切换已补齐，最新失败回答也已支持直接重试
-  - 仍需继续收口页面刷新后的其余 UI 一致性，以及更完整的失败恢复体验
+  - assistant placeholder 到 completed/failed 的本地状态切换已补齐，最新失败回答也已支持直接重试并本地恢复 streaming
+  - 仍需继续收口页面刷新后的其余 UI 一致性，以及除重试外更完整的失败恢复体验
   - grounded final answer、citations 和引用跳转已能在终态事件到达后先本地切换，后续仍需继续减少刷新带来的其余断层
 - 工具契约与真实 provider 对齐
   - `search_web_general` / `search_statutes` / 报告生成等工具应逐步切到真实 provider 或明确失败语义
