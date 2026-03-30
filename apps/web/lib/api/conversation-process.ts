@@ -1,6 +1,7 @@
 import {
   MESSAGE_ROLE,
   MESSAGE_STATUS,
+  TIMELINE_EVENT,
   type MessageRole,
   type MessageStatus,
 } from "@anchordesk/contracts";
@@ -21,6 +22,77 @@ export type AssistantProcessMessage = {
   createdAt: string;
   structuredJson?: Record<string, unknown> | null;
 };
+
+export type AssistantProcessTimelineEntry = {
+  id: string;
+  kind: "tool_call" | "status_event";
+  toolName: string | null;
+  status: MessageStatus;
+  createdAt: string;
+  completedAt: string | null;
+  contentMarkdown: string;
+  input: unknown | null;
+  output: unknown | null;
+  error: string | null;
+};
+
+function normalizeCreatedAt(value: Date | string) {
+  return typeof value === "string" ? value : value.toISOString();
+}
+
+function readStructuredString(
+  structuredJson: Record<string, unknown> | null | undefined,
+  key: string,
+) {
+  const value = structuredJson?.[key];
+
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function readStructuredValue(
+  structuredJson: Record<string, unknown> | null | undefined,
+  key: string,
+) {
+  if (!structuredJson || !(key in structuredJson)) {
+    return null;
+  }
+
+  return structuredJson[key] ?? null;
+}
+
+function findOpenToolCallEntryIndex(
+  entries: AssistantProcessTimelineEntry[],
+  toolUseId: string | null,
+  toolName: string | null,
+  toolCallEntryIndexByUseId: Map<string, number>,
+) {
+  if (toolUseId) {
+    const existingIndex = toolCallEntryIndexByUseId.get(toolUseId);
+
+    if (typeof existingIndex === "number") {
+      return existingIndex;
+    }
+  }
+
+  if (!toolName) {
+    return -1;
+  }
+
+  for (let index = entries.length - 1; index >= 0; index -= 1) {
+    const entry = entries[index];
+
+    if (
+      entry.kind === "tool_call" &&
+      entry.toolName === toolName &&
+      entry.status === MESSAGE_STATUS.STREAMING &&
+      entry.completedAt === null
+    ) {
+      return index;
+    }
+  }
+
+  return -1;
+}
 
 export function groupAssistantProcessMessages(
   messages: ConversationProcessThreadMessage[],
@@ -48,16 +120,124 @@ export function groupAssistantProcessMessages(
       id: message.id,
       status: message.status,
       contentMarkdown: message.contentMarkdown,
-      createdAt:
-        typeof message.createdAt === "string"
-          ? message.createdAt
-          : message.createdAt.toISOString(),
+      createdAt: normalizeCreatedAt(message.createdAt),
       structuredJson: message.structuredJson ?? null,
     });
     grouped.set(activeAssistantId, currentGroup);
   }
 
   return Object.fromEntries(grouped);
+}
+
+export function buildAssistantProcessTimelineEntries(
+  timelineMessages: AssistantProcessMessage[],
+) {
+  const entries: AssistantProcessTimelineEntry[] = [];
+  const toolCallEntryIndexByUseId = new Map<string, number>();
+
+  for (const message of timelineMessages) {
+    const createdAt = normalizeCreatedAt(message.createdAt);
+    const structuredJson = message.structuredJson ?? null;
+    const timelineEvent = readStructuredString(structuredJson, "timeline_event");
+    const toolName = readStructuredString(structuredJson, "tool_name");
+    const toolUseId = readStructuredString(structuredJson, "tool_use_id");
+    const input = readStructuredValue(structuredJson, "tool_input");
+    const output = readStructuredValue(structuredJson, "tool_response");
+    const error = readStructuredString(structuredJson, "error");
+
+    const pushStatusEvent = () => {
+      entries.push({
+        id: message.id,
+        kind: "status_event",
+        toolName: null,
+        status: message.status,
+        createdAt,
+        completedAt: createdAt,
+        contentMarkdown: message.contentMarkdown,
+        input: null,
+        output: null,
+        error,
+      });
+    };
+
+    if (
+      timelineEvent === TIMELINE_EVENT.RUN_FAILED ||
+      (!toolName &&
+        timelineEvent !== TIMELINE_EVENT.TOOL_STARTED &&
+        timelineEvent !== TIMELINE_EVENT.TOOL_FINISHED &&
+        timelineEvent !== TIMELINE_EVENT.TOOL_FAILED)
+    ) {
+      pushStatusEvent();
+      continue;
+    }
+
+    if (!toolName) {
+      pushStatusEvent();
+      continue;
+    }
+
+    if (timelineEvent === TIMELINE_EVENT.TOOL_STARTED) {
+      const entryIndex = entries.push({
+        id: toolUseId ?? message.id,
+        kind: "tool_call",
+        toolName,
+        status: message.status,
+        createdAt,
+        completedAt: null,
+        contentMarkdown: message.contentMarkdown,
+        input,
+        output: null,
+        error,
+      });
+
+      if (toolUseId) {
+        toolCallEntryIndexByUseId.set(toolUseId, entryIndex - 1);
+      }
+      continue;
+    }
+
+    const existingIndex = findOpenToolCallEntryIndex(
+      entries,
+      toolUseId,
+      toolName,
+      toolCallEntryIndexByUseId,
+    );
+
+    if (existingIndex >= 0) {
+      const existingEntry = entries[existingIndex];
+      entries[existingIndex] = {
+        ...existingEntry,
+        status: message.status,
+        completedAt: createdAt,
+        contentMarkdown: message.contentMarkdown,
+        input: input ?? existingEntry.input,
+        output:
+          timelineEvent === TIMELINE_EVENT.TOOL_FINISHED ? output ?? existingEntry.output : null,
+        error:
+          timelineEvent === TIMELINE_EVENT.TOOL_FAILED ? error ?? existingEntry.error : null,
+      };
+      continue;
+    }
+
+    const entryIndex = entries.push({
+      id: toolUseId ?? message.id,
+      kind: "tool_call",
+      toolName,
+      status: message.status,
+      createdAt,
+      completedAt: createdAt,
+      contentMarkdown: message.contentMarkdown,
+      input,
+      output: timelineEvent === TIMELINE_EVENT.TOOL_FINISHED ? output : null,
+      error: timelineEvent === TIMELINE_EVENT.TOOL_FAILED ? error : null,
+    });
+
+    if (toolUseId) {
+      toolCallEntryIndexByUseId.set(toolUseId, entryIndex - 1);
+    }
+  }
+
+  return entries;
 }
 
 export function describeAssistantProcessSummary(input: {

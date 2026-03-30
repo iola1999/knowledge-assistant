@@ -83,8 +83,13 @@ vi.mock("@anchordesk/db", () => ({
   citationAnchors: mocks.tables.citationAnchors,
   conversations: mocks.tables.conversations,
   getDb: () => mocks.db,
+  getKnowledgeSourceScope: () => "workspace_private",
   messageCitations: mocks.tables.messageCitations,
   messages: mocks.tables.messages,
+  knowledgeLibraries: Symbol("knowledgeLibraries"),
+  resolveWorkspaceLibraryScope: async () => ({
+    accessibleLibraryIds: [],
+  }),
 }));
 
 vi.mock("./run-agent-response", () => ({
@@ -209,6 +214,15 @@ describe("processConversationResponseJob", () => {
             contentMarkdown: "开始调用工具：search_workspace_knowledge",
             role: "tool",
             status: "streaming",
+            structuredJson: {
+              timeline_event: "tool_started",
+              tool_name: "search_workspace_knowledge",
+              tool_input: {
+                query: "总结一下",
+              },
+              tool_response: null,
+              tool_use_id: "tool-1",
+            },
           }),
         }),
         expect.objectContaining({
@@ -218,6 +232,17 @@ describe("processConversationResponseJob", () => {
             contentMarkdown: "工具执行完成：search_workspace_knowledge",
             role: "tool",
             status: "completed",
+            structuredJson: {
+              timeline_event: "tool_finished",
+              tool_name: "search_workspace_knowledge",
+              tool_input: {
+                query: "总结一下",
+              },
+              tool_response: {
+                ok: true,
+              },
+              tool_use_id: "tool-1",
+            },
           }),
         }),
       ]),

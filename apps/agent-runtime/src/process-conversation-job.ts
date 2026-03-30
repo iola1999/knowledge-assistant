@@ -35,11 +35,17 @@ async function insertToolMessage(input: {
   toolName: string;
   state: ToolTimelineState;
   error?: string | null;
+  toolInput?: unknown;
+  toolResponse?: unknown;
+  toolUseId?: string | null;
 }) {
   const timeline = buildToolTimelineMessage({
     toolName: input.toolName,
     state: input.state,
     error: input.error ?? null,
+    toolInput: input.toolInput,
+    toolResponse: input.toolResponse,
+    toolUseId: input.toolUseId ?? null,
   });
 
   await db.insert(messages).values({
@@ -264,7 +270,7 @@ export async function processConversationResponseJob(
           agentWorkdir: conversation.agentWorkdir,
         },
         {
-          onToolStarted: async ({ toolName, toolUseId }) => {
+          onToolStarted: async ({ toolInput, toolName, toolUseId }) => {
             jobLogger.debug(
               {
                 toolName,
@@ -276,9 +282,11 @@ export async function processConversationResponseJob(
               conversationId: payload.conversationId,
               toolName,
               state: TOOL_TIMELINE_STATE.STARTED,
+              toolInput,
+              toolUseId,
             });
           },
-          onToolFinished: async ({ toolName, toolUseId }) => {
+          onToolFinished: async ({ toolInput, toolName, toolResponse, toolUseId }) => {
             jobLogger.debug(
               {
                 toolName,
@@ -290,9 +298,12 @@ export async function processConversationResponseJob(
               conversationId: payload.conversationId,
               toolName,
               state: TOOL_TIMELINE_STATE.COMPLETED,
+              toolInput,
+              toolResponse,
+              toolUseId,
             });
           },
-          onToolFailed: async ({ toolName, toolUseId, error }) => {
+          onToolFailed: async ({ toolInput, toolName, toolUseId, error }) => {
             jobLogger.warn(
               {
                 toolName,
@@ -306,6 +317,8 @@ export async function processConversationResponseJob(
               toolName,
               state: TOOL_TIMELINE_STATE.FAILED,
               error: normalizeConversationFailureMessage(error),
+              toolInput,
+              toolUseId,
             });
           },
           onAssistantDelta: async ({ fullText }) => {

@@ -6,12 +6,43 @@ import {
   TOOL_TIMELINE_STATE,
 } from "@anchordesk/contracts";
 
+function normalizeToolTimelineValue(value: unknown) {
+  if (value == null) {
+    return null;
+  }
+
+  if (typeof value !== "object") {
+    return value;
+  }
+
+  const content = (value as { content?: Array<{ type?: string; text?: string }> }).content;
+  const text = Array.isArray(content)
+    ? content.find((item) => item?.type === "text")?.text
+    : null;
+
+  if (typeof text === "string" && text.trim()) {
+    try {
+      return JSON.parse(text) as Record<string, unknown>;
+    } catch {
+      return value;
+    }
+  }
+
+  return value;
+}
+
 export function buildToolTimelineMessage(input: {
   toolName: string;
   state: ToolTimelineState;
   error?: string | null;
+  toolInput?: unknown;
+  toolResponse?: unknown;
+  toolUseId?: string | null;
 }) {
   const toolName = normalizeAssistantToolName(input.toolName);
+  const toolUseId = input.toolUseId?.trim() || null;
+  const toolInput = normalizeToolTimelineValue(input.toolInput);
+  const toolResponse = normalizeToolTimelineValue(input.toolResponse);
 
   if (input.state === TOOL_TIMELINE_STATE.STARTED) {
     return {
@@ -19,6 +50,9 @@ export function buildToolTimelineMessage(input: {
       structuredJson: {
         timeline_event: TIMELINE_EVENT.TOOL_STARTED,
         tool_name: toolName,
+        tool_input: toolInput,
+        tool_response: null,
+        tool_use_id: toolUseId,
       },
       status: MESSAGE_STATUS.STREAMING,
     };
@@ -31,6 +65,9 @@ export function buildToolTimelineMessage(input: {
         timeline_event: TIMELINE_EVENT.TOOL_FAILED,
         tool_name: toolName,
         error: input.error ?? null,
+        tool_input: toolInput,
+        tool_response: null,
+        tool_use_id: toolUseId,
       },
       status: MESSAGE_STATUS.FAILED,
     };
@@ -41,6 +78,9 @@ export function buildToolTimelineMessage(input: {
     structuredJson: {
       timeline_event: TIMELINE_EVENT.TOOL_FINISHED,
       tool_name: toolName,
+      tool_input: toolInput,
+      tool_response: toolResponse,
+      tool_use_id: toolUseId,
     },
     status: MESSAGE_STATUS.COMPLETED,
   };

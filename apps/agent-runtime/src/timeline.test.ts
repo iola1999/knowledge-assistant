@@ -16,12 +16,19 @@ describe("buildToolTimelineMessage", () => {
       buildToolTimelineMessage({
         toolName: ASSISTANT_MCP_TOOL.SEARCH_WORKSPACE_KNOWLEDGE,
         state: TOOL_TIMELINE_STATE.STARTED,
+        toolInput: { query: "总结一下" },
+        toolUseId: "tool-1",
       }),
     ).toEqual({
       contentMarkdown: `开始调用工具：${ASSISTANT_TOOL.SEARCH_WORKSPACE_KNOWLEDGE}`,
       structuredJson: {
         timeline_event: TIMELINE_EVENT.TOOL_STARTED,
         tool_name: ASSISTANT_TOOL.SEARCH_WORKSPACE_KNOWLEDGE,
+        tool_input: {
+          query: "总结一下",
+        },
+        tool_response: null,
+        tool_use_id: "tool-1",
       },
       status: MESSAGE_STATUS.STREAMING,
     });
@@ -33,6 +40,8 @@ describe("buildToolTimelineMessage", () => {
         toolName: ASSISTANT_TOOL.SEARCH_WEB_GENERAL,
         state: TOOL_TIMELINE_STATE.FAILED,
         error: "provider unavailable",
+        toolInput: { query: "伊朗局势" },
+        toolUseId: "tool-2",
       }),
     ).toEqual({
       contentMarkdown: `工具执行失败：${ASSISTANT_TOOL.SEARCH_WEB_GENERAL} · provider unavailable`,
@@ -40,6 +49,11 @@ describe("buildToolTimelineMessage", () => {
         timeline_event: TIMELINE_EVENT.TOOL_FAILED,
         tool_name: ASSISTANT_TOOL.SEARCH_WEB_GENERAL,
         error: "provider unavailable",
+        tool_input: {
+          query: "伊朗局势",
+        },
+        tool_response: null,
+        tool_use_id: "tool-2",
       },
       status: MESSAGE_STATUS.FAILED,
     });
@@ -50,12 +64,37 @@ describe("buildToolTimelineMessage", () => {
       buildToolTimelineMessage({
         toolName: `${ASSISTANT_COMPAT_TOOL_PREFIX}${ASSISTANT_TOOL.READ_CITATION_ANCHOR}`,
         state: TOOL_TIMELINE_STATE.COMPLETED,
+        toolInput: { anchor_id: "anchor-1" },
+        toolResponse: {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify({
+                anchor: {
+                  anchor_id: "anchor-1",
+                  text: "引用内容",
+                },
+              }),
+            },
+          ],
+        },
+        toolUseId: "tool-3",
       }),
     ).toEqual({
       contentMarkdown: `工具执行完成：${ASSISTANT_TOOL.READ_CITATION_ANCHOR}`,
       structuredJson: {
         timeline_event: TIMELINE_EVENT.TOOL_FINISHED,
         tool_name: ASSISTANT_TOOL.READ_CITATION_ANCHOR,
+        tool_input: {
+          anchor_id: "anchor-1",
+        },
+        tool_response: {
+          anchor: {
+            anchor_id: "anchor-1",
+            text: "引用内容",
+          },
+        },
+        tool_use_id: "tool-3",
       },
       status: MESSAGE_STATUS.COMPLETED,
     });

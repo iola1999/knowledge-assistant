@@ -1,7 +1,8 @@
 import { describe, expect, test } from "vitest";
-import { MESSAGE_ROLE, MESSAGE_STATUS } from "@anchordesk/contracts";
+import { MESSAGE_ROLE, MESSAGE_STATUS, TIMELINE_EVENT } from "@anchordesk/contracts";
 
 import {
+  buildAssistantProcessTimelineEntries,
   canShowAssistantProcess,
   canShowAssistantResultPanel,
   describeAssistantProcessSummary,
@@ -83,6 +84,130 @@ describe("groupAssistantProcessMessages", () => {
         },
       ],
     });
+  });
+});
+
+describe("buildAssistantProcessTimelineEntries", () => {
+  test("merges started and completed tool events from the same tool_use_id into one entry", () => {
+    expect(
+      buildAssistantProcessTimelineEntries([
+        {
+          id: "tool-start-1",
+          status: MESSAGE_STATUS.STREAMING,
+          contentMarkdown: "开始调用工具：search_web_general",
+          createdAt: "2026-03-29T08:00:02.000Z",
+          structuredJson: {
+            timeline_event: TIMELINE_EVENT.TOOL_STARTED,
+            tool_name: "search_web_general",
+            tool_input: {
+              query: "伊朗局势",
+            },
+            tool_use_id: "tool-use-1",
+          },
+        },
+        {
+          id: "tool-finish-1",
+          status: MESSAGE_STATUS.COMPLETED,
+          contentMarkdown: "工具执行完成：search_web_general",
+          createdAt: "2026-03-29T08:00:04.000Z",
+          structuredJson: {
+            timeline_event: TIMELINE_EVENT.TOOL_FINISHED,
+            tool_name: "search_web_general",
+            tool_input: {
+              query: "伊朗局势",
+            },
+            tool_response: {
+              results: [
+                {
+                  title: "最新局势",
+                },
+              ],
+            },
+            tool_use_id: "tool-use-1",
+          },
+        },
+        {
+          id: "tool-failed-1",
+          status: MESSAGE_STATUS.FAILED,
+          contentMarkdown: "工具执行失败：fetch_source · timeout",
+          createdAt: "2026-03-29T08:00:06.000Z",
+          structuredJson: {
+            timeline_event: TIMELINE_EVENT.TOOL_FAILED,
+            tool_name: "fetch_source",
+            tool_input: {
+              url: "https://example.com",
+            },
+            error: "timeout",
+            tool_use_id: "tool-use-2",
+          },
+        },
+      ]),
+    ).toEqual([
+      {
+        id: "tool-use-1",
+        kind: "tool_call",
+        toolName: "search_web_general",
+        status: MESSAGE_STATUS.COMPLETED,
+        createdAt: "2026-03-29T08:00:02.000Z",
+        completedAt: "2026-03-29T08:00:04.000Z",
+        contentMarkdown: "工具执行完成：search_web_general",
+        input: {
+          query: "伊朗局势",
+        },
+        output: {
+          results: [
+            {
+              title: "最新局势",
+            },
+          ],
+        },
+        error: null,
+      },
+      {
+        id: "tool-use-2",
+        kind: "tool_call",
+        toolName: "fetch_source",
+        status: MESSAGE_STATUS.FAILED,
+        createdAt: "2026-03-29T08:00:06.000Z",
+        completedAt: "2026-03-29T08:00:06.000Z",
+        contentMarkdown: "工具执行失败：fetch_source · timeout",
+        input: {
+          url: "https://example.com",
+        },
+        output: null,
+        error: "timeout",
+      },
+    ]);
+  });
+
+  test("keeps run_failed messages as standalone status events", () => {
+    expect(
+      buildAssistantProcessTimelineEntries([
+        {
+          id: "tool-run-failed-1",
+          status: MESSAGE_STATUS.FAILED,
+          contentMarkdown: "运行失败：queue offline",
+          createdAt: "2026-03-29T08:00:08.000Z",
+          structuredJson: {
+            timeline_event: TIMELINE_EVENT.RUN_FAILED,
+            error: "queue offline",
+          },
+        },
+      ]),
+    ).toEqual([
+      {
+        id: "tool-run-failed-1",
+        kind: "status_event",
+        toolName: null,
+        status: MESSAGE_STATUS.FAILED,
+        createdAt: "2026-03-29T08:00:08.000Z",
+        completedAt: "2026-03-29T08:00:08.000Z",
+        contentMarkdown: "运行失败：queue offline",
+        input: null,
+        output: null,
+        error: "queue offline",
+      },
+    ]);
   });
 });
 
