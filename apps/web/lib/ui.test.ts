@@ -34,7 +34,12 @@ describe("buttonStyles", () => {
 
     expect(classes).toContain("size-9");
     expect(classes).toContain("p-0");
-    expect(classes).toContain("rounded-full");
+    expect(classes).toContain("rounded-xl");
+  });
+
+  it("keeps pill buttons opt-in instead of making every button fully rounded", () => {
+    expect(buttonStyles()).toContain("rounded-xl");
+    expect(buttonStyles({ shape: "pill" })).toContain("rounded-full");
   });
 
   it("supports a danger ghost variant for destructive secondary actions", () => {
