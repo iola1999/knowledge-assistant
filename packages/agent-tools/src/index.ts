@@ -7,7 +7,6 @@ import { z } from "zod";
 import {
   ASSISTANT_MCP_SERVER_NAME,
   ASSISTANT_TOOL,
-  DEFAULT_FETCH_SOURCE_PARAGRAPH_LIMIT,
   DEFAULT_SEARCH_WORKSPACE_KNOWLEDGE_TOP_K,
   createReportOutlineInputSchema,
   fetchSourceInputSchema,
@@ -49,6 +48,7 @@ import {
   normalizeBraveWebSearchResponse,
   resolveWebSearchProvider,
 } from "./web-search";
+import { fetchMarkdownSource } from "./fetch-source";
 import {
   buildReportOutlinePrompt,
   buildReportSectionMarkdown,
@@ -609,26 +609,18 @@ export async function fetchSourceHandler(input: unknown) {
     };
   }
 
-  const response = await fetch(args.url);
-  const contentType = response.headers.get("content-type") ?? "text/plain";
-  const text = await response.text();
-  const normalized = text.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
-  const paragraphs = normalized
-    .split(/(?<=。)|(?<=\.)/)
-    .map((item) => item.trim())
-    .filter(Boolean)
-    .slice(0, DEFAULT_FETCH_SOURCE_PARAGRAPH_LIMIT);
-
-  return {
-    ok: true,
-    source: {
-      url: args.url,
-      title: url.hostname,
-      fetched_at: new Date().toISOString(),
-      content_type: contentType,
-      paragraphs,
-    },
-  };
+  try {
+    return {
+      ok: true,
+      source: await fetchMarkdownSource({
+        url: args.url,
+      }),
+    };
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Source fetch failed";
+    return buildToolFailure("FETCH_SOURCE_UNAVAILABLE", message, true);
+  }
 }
 
 export async function createReportOutlineHandler(input: unknown) {

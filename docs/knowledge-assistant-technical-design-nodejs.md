@@ -53,6 +53,7 @@
 - Agent 规划固定 Anthropic
 - embedding / rerank 优先 DashScope，未配置时回退本地方案
 - 工具 provider 未就绪时，应保持稳定契约并返回明确失败，不再提供本地 mock fallback
+- `fetch_source` 通过 `markdown.new` 获取 `text/markdown`，优先返回结构化 Markdown，而不是在本地直接解析原始 HTML
 - OCR 默认关闭，只有扫描件、图片型 PDF 或无文本层材料才启用
 - OCR provider 暂不推进本地实现；后续待商业 API 口径确认后再接入，候选方向优先考虑百炼
 
