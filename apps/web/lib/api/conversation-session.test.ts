@@ -2,11 +2,138 @@ import { describe, expect, test } from "vitest";
 import { CONVERSATION_STREAM_EVENT, MESSAGE_ROLE, MESSAGE_STATUS } from "@anchordesk/contracts";
 
 import {
+  appendSubmittedConversationTurn,
   applyAssistantTerminalEvent,
   findLatestAssistantMessageId,
   findStreamingAssistantMessageId,
   restartAssistantMessageForRetry,
 } from "./conversation-session";
+
+describe("appendSubmittedConversationTurn", () => {
+  test("appends the new user turn and assistant placeholder to the current thread", () => {
+    expect(
+      appendSubmittedConversationTurn({
+        messages: [
+          {
+            id: "user-1",
+            role: MESSAGE_ROLE.USER,
+            status: MESSAGE_STATUS.COMPLETED,
+            contentMarkdown: "旧问题",
+            structuredJson: null,
+          },
+          {
+            id: "assistant-1",
+            role: MESSAGE_ROLE.ASSISTANT,
+            status: MESSAGE_STATUS.COMPLETED,
+            contentMarkdown: "旧回答",
+            structuredJson: null,
+          },
+        ],
+        userMessage: {
+          id: "user-2",
+          role: MESSAGE_ROLE.USER,
+          status: MESSAGE_STATUS.COMPLETED,
+          contentMarkdown: "新问题",
+          structuredJson: null,
+        },
+        assistantMessage: {
+          id: "assistant-2",
+          role: MESSAGE_ROLE.ASSISTANT,
+          status: MESSAGE_STATUS.STREAMING,
+          contentMarkdown: "",
+          structuredJson: {
+            run_started_at: "2026-03-30T10:00:00.000Z",
+          },
+        },
+      }),
+    ).toEqual([
+      {
+        id: "user-1",
+        role: MESSAGE_ROLE.USER,
+        status: MESSAGE_STATUS.COMPLETED,
+        contentMarkdown: "旧问题",
+        structuredJson: null,
+      },
+      {
+        id: "assistant-1",
+        role: MESSAGE_ROLE.ASSISTANT,
+        status: MESSAGE_STATUS.COMPLETED,
+        contentMarkdown: "旧回答",
+        structuredJson: null,
+      },
+      {
+        id: "user-2",
+        role: MESSAGE_ROLE.USER,
+        status: MESSAGE_STATUS.COMPLETED,
+        contentMarkdown: "新问题",
+        structuredJson: null,
+      },
+      {
+        id: "assistant-2",
+        role: MESSAGE_ROLE.ASSISTANT,
+        status: MESSAGE_STATUS.STREAMING,
+        contentMarkdown: "",
+        structuredJson: {
+          run_started_at: "2026-03-30T10:00:00.000Z",
+        },
+      },
+    ]);
+  });
+
+  test("replaces duplicate submitted message ids instead of duplicating them", () => {
+    expect(
+      appendSubmittedConversationTurn({
+        messages: [
+          {
+            id: "user-1",
+            role: MESSAGE_ROLE.USER,
+            status: MESSAGE_STATUS.COMPLETED,
+            contentMarkdown: "旧问题",
+            structuredJson: null,
+          },
+          {
+            id: "assistant-1",
+            role: MESSAGE_ROLE.ASSISTANT,
+            status: MESSAGE_STATUS.FAILED,
+            contentMarkdown: "旧失败",
+            structuredJson: {
+              agent_error: "queue offline",
+            },
+          },
+        ],
+        userMessage: {
+          id: "user-1",
+          role: MESSAGE_ROLE.USER,
+          status: MESSAGE_STATUS.COMPLETED,
+          contentMarkdown: "更新后的问题",
+          structuredJson: null,
+        },
+        assistantMessage: {
+          id: "assistant-1",
+          role: MESSAGE_ROLE.ASSISTANT,
+          status: MESSAGE_STATUS.STREAMING,
+          contentMarkdown: "",
+          structuredJson: null,
+        },
+      }),
+    ).toEqual([
+      {
+        id: "user-1",
+        role: MESSAGE_ROLE.USER,
+        status: MESSAGE_STATUS.COMPLETED,
+        contentMarkdown: "更新后的问题",
+        structuredJson: null,
+      },
+      {
+        id: "assistant-1",
+        role: MESSAGE_ROLE.ASSISTANT,
+        status: MESSAGE_STATUS.STREAMING,
+        contentMarkdown: "",
+        structuredJson: null,
+      },
+    ]);
+  });
+});
 
 describe("findLatestAssistantMessageId", () => {
   test("returns the latest assistant turn in the chat thread", () => {

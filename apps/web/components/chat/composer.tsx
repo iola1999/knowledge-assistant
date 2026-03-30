@@ -22,8 +22,9 @@ import {
 import { computeFileSha256 } from "@/lib/api/file-digests";
 import { SUPPORTED_UPLOAD_ACCEPT } from "@/lib/api/upload-policy";
 import { buttonStyles, cn, ui } from "@/lib/ui";
+import type { ConversationChatMessage } from "@/lib/api/conversation-session";
 
-type ComposerAttachment = {
+export type ComposerAttachment = {
   id: string;
   attachmentId?: string;
   documentId?: string;
@@ -34,6 +35,12 @@ type ComposerAttachment = {
   progress: number;
   stage: string | null;
   errorMessage: string | null;
+};
+
+export type ComposerSubmittedTurn = {
+  assistantMessage: ConversationChatMessage;
+  conversationId: string;
+  userMessage: ConversationChatMessage;
 };
 
 type ComposerProps = {
@@ -49,6 +56,7 @@ type ComposerProps = {
   className?: string;
   textareaClassName?: string;
   initialAttachments?: ComposerAttachment[];
+  onSubmitted?: (turn: ComposerSubmittedTurn) => void;
 };
 
 function mergeAttachments(
@@ -85,6 +93,7 @@ export function Composer({
   className,
   textareaClassName,
   initialAttachments = [],
+  onSubmitted,
 }: ComposerProps) {
   const heading = resolveComposerHeading({ title, description });
   const router = useRouter();
@@ -507,16 +516,33 @@ export function Composer({
 
     if (response.ok) {
       const body = (await response.json().catch(() => null)) as
-        | { agentError?: string }
+        | {
+            agentError?: string;
+            assistantMessage?: ConversationChatMessage;
+            userMessage?: ConversationChatMessage;
+          }
         | null;
       setContent("");
       setStatus(resolveComposerSubmitStatus(body?.agentError ?? null));
-      startTransition(() => {
-        if (!conversationId && workspaceId) {
-          router.push(`/workspaces/${workspaceId}?conversationId=${targetConversationId}`);
-        }
-        router.refresh();
-      });
+      if (
+        conversationId &&
+        body?.userMessage &&
+        body?.assistantMessage &&
+        onSubmitted
+      ) {
+        onSubmitted({
+          assistantMessage: body.assistantMessage,
+          conversationId: targetConversationId,
+          userMessage: body.userMessage,
+        });
+      } else {
+        startTransition(() => {
+          if (!conversationId && workspaceId) {
+            router.push(`/workspaces/${workspaceId}?conversationId=${targetConversationId}`);
+          }
+          router.refresh();
+        });
+      }
     } else {
       setStatus("发送失败。");
     }

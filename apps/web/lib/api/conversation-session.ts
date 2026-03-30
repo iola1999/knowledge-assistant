@@ -42,6 +42,22 @@ function replaceMessageCitations(
   ];
 }
 
+export function appendSubmittedConversationTurn(input: {
+  assistantMessage: ConversationChatMessage;
+  messages: ConversationChatMessage[];
+  userMessage: ConversationChatMessage;
+}) {
+  return [
+    ...input.messages.filter(
+      (message) =>
+        message.id !== input.userMessage.id &&
+        message.id !== input.assistantMessage.id,
+    ),
+    input.userMessage,
+    input.assistantMessage,
+  ];
+}
+
 export function findLatestAssistantMessageId(messages: ConversationChatMessage[]) {
   for (let index = messages.length - 1; index >= 0; index -= 1) {
     if (messages[index]?.role === MESSAGE_ROLE.ASSISTANT) {

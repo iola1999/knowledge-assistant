@@ -17,7 +17,7 @@ import {
 import { auth } from "@/auth";
 import { Composer } from "@/components/chat/composer";
 import { ConversationPageActions } from "@/components/chat/conversation-page-actions";
-import { ConversationSession } from "@/components/chat/conversation-session";
+import { WorkspaceConversationPanel } from "@/components/chat/workspace-conversation-panel";
 import { WorkspaceShell } from "@/components/workspaces/workspace-shell";
 import { resolveComposerAttachmentStatus } from "@/lib/api/conversation-attachments";
 import { groupAssistantProcessMessages } from "@/lib/api/conversation-process";
@@ -89,10 +89,6 @@ export default async function WorkspacePage({
         .orderBy(asc(messages.createdAt))
     : [];
   const chatThread = thread.filter((message) => message.role !== MESSAGE_ROLE.TOOL);
-  const activeAssistantMessage =
-    [...chatThread]
-      .reverse()
-      .find((message) => message.role === MESSAGE_ROLE.ASSISTANT) ?? null;
   const citations =
     chatThread.length > 0
       ? await db
@@ -164,75 +160,52 @@ export default async function WorkspacePage({
       }
     >
       {activeConversation ? (
-        <div className="mx-auto flex h-full min-h-0 w-full max-w-[1080px] flex-col overflow-visible">
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain py-3 pr-1 min-[720px]:py-5">
-            <ConversationSession
-              conversationId={activeConversation.id}
-              workspaceId={workspaceId}
-              assistantMessageId={activeAssistantMessage?.id ?? null}
-              assistantStatus={
-                activeAssistantMessage?.role === MESSAGE_ROLE.ASSISTANT
-                  ? activeAssistantMessage.status
-                  : null
-              }
-              initialTimelineMessagesByAssistant={groupAssistantProcessMessages(
-                thread.map((message) => ({
-                  id: message.id,
-                  role: message.role,
-                  status: message.status,
-                  contentMarkdown: message.contentMarkdown,
-                  createdAt: message.createdAt,
-                  structuredJson:
-                    (message.structuredJson as Record<string, unknown> | null | undefined) ?? null,
-                })),
-              )}
-              initialMessages={chatThread.map((message) => ({
-                id: message.id,
-                role: message.role,
-                status: message.status,
-                contentMarkdown: message.contentMarkdown,
-                structuredJson:
-                  (message.structuredJson as Record<string, unknown> | null | undefined) ?? null,
-              }))}
-              initialCitations={citations.map((citation) => ({
-                id: citation.id,
-                messageId: citation.messageId,
-                anchorId: citation.anchorId,
-                documentId: citation.documentId,
-                label: citation.label,
-                quoteText: citation.quoteText,
-              }))}
-            />
-          </div>
-
-          <div className="shrink-0 border-app-border/60 pb-4 pt-3 min-[720px]:pb-6 min-[720px]:pt-4">
-            <Composer
-              conversationId={activeConversation.id}
-              workspaceId={workspaceId}
-              variant="stage"
-              rows={1}
-              placeholder="继续追问、要求整理成结论，或让助手基于资料补充论证"
-              submitLabel="继续"
-              className="border-transparent bg-transparent p-0 shadow-none backdrop-blur-0"
-              textareaClassName="bg-transparent"
-              initialAttachments={attachmentRows.map((attachment) => ({
-                id: attachment.id,
-                attachmentId: attachment.id,
-                documentId: attachment.documentId,
-                documentVersionId: attachment.documentVersionId,
-                documentJobId: attachment.jobId ?? undefined,
-                sourceFilename: attachment.sourceFilename,
-                status: resolveComposerAttachmentStatus({
-                  jobStatus: attachment.jobStatus ?? null,
-                  parseStage: attachment.stage ?? null,
-                }),
-                progress: attachment.progress ?? 0,
-                stage: attachment.stage ?? null,
-                errorMessage: attachment.errorMessage ?? null,
-              }))}
-            />
-          </div>
-        </div>
+        <WorkspaceConversationPanel
+          conversationId={activeConversation.id}
+          workspaceId={workspaceId}
+          initialTimelineMessagesByAssistant={groupAssistantProcessMessages(
+            thread.map((message) => ({
+              id: message.id,
+              role: message.role,
+              status: message.status,
+              contentMarkdown: message.contentMarkdown,
+              createdAt: message.createdAt,
+              structuredJson:
+                (message.structuredJson as Record<string, unknown> | null | undefined) ?? null,
+            })),
+          )}
+          initialMessages={chatThread.map((message) => ({
+            id: message.id,
+            role: message.role,
+            status: message.status,
+            contentMarkdown: message.contentMarkdown,
+            structuredJson:
+              (message.structuredJson as Record<string, unknown> | null | undefined) ?? null,
+          }))}
+          initialCitations={citations.map((citation) => ({
+            id: citation.id,
+            messageId: citation.messageId,
+            anchorId: citation.anchorId,
+            documentId: citation.documentId,
+            label: citation.label,
+            quoteText: citation.quoteText,
+          }))}
+          initialAttachments={attachmentRows.map((attachment) => ({
+            id: attachment.id,
+            attachmentId: attachment.id,
+            documentId: attachment.documentId,
+            documentVersionId: attachment.documentVersionId,
+            documentJobId: attachment.jobId ?? undefined,
+            sourceFilename: attachment.sourceFilename,
+            status: resolveComposerAttachmentStatus({
+              jobStatus: attachment.jobStatus ?? null,
+              parseStage: attachment.stage ?? null,
+            }),
+            progress: attachment.progress ?? 0,
+            stage: attachment.stage ?? null,
+            errorMessage: attachment.errorMessage ?? null,
+          }))}
+        />
       ) : (
         <div className="grid min-h-[calc(100dvh-156px)] place-items-center px-1 py-6 min-[720px]:min-h-[calc(100vh-180px)] min-[720px]:px-2 min-[720px]:py-8">
           <div className="grid w-full max-w-[860px] gap-6 text-center">

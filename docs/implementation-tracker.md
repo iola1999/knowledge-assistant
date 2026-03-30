@@ -42,6 +42,7 @@
 - 账号页已补齐修改密码与退出登录的基础入口；工作空间当前只保留软删除，不再提供归档。
 - `/api/conversations/[conversationId]/stream` 现在会持续推送数据库里的 `tool` 消息、assistant draft `answer_delta` 和完成/失败事件；前端会在当前会话里实时更新 assistant 气泡。
 - 当前回答流式是“数据库轮询 + assistant draft 持久化”链路；它已经满足 P0 的流式呈现，但仍不是 provider 直连 token transport。
+- 当前已进入会话时，发送新消息后前端会先本地插入 user message 和 assistant placeholder，再由 SSE 接上后续工具时间线与回答流式更新；首条消息创建新会话时仍通过路由切换进入新页面。
 - `answer_done` / `run_failed` 事件现在会附带最终 assistant 内容、structured state 和当前 message citations，前端会先切到本地最终态，再做后台刷新以保持页面其余部分一致。
 - 会话页和共享页的 citation 卡片现在会直接展示持久化的引用摘录 `quote_text`，不再只显示标签计数与跳转入口。
 - assistant / tool 的失败态 payload 已收口为共享构造函数，消息发送、重试、运行过期和 worker 失败路径复用同一套错误语义。
@@ -64,6 +65,7 @@
 
 ## 2. 最近完成
 
+- `working tree` Let existing conversations append the new user turn and assistant placeholder locally right after submit, then continue with SSE streaming without an immediate hard refresh
 - `working tree` Add executed regression tests for agent-runtime completion/failure handling and conversation message/retry enqueue failure responses
 - `working tree` Let failed-answer retry resume locally into streaming state, clear stale citations/tool timeline, and hand control back to SSE without waiting for an immediate hard refresh
 - `working tree` Surface persisted citation excerpts in conversation/share source cards and extend terminal SSE citation payload with `quote_text`
@@ -111,8 +113,8 @@
 
 - 主会话链路完成态收口
   - 当前已能展示 tool start / completed / failed、assistant `answer_delta`、`answer_done`、`run_failed`
-  - assistant placeholder 到 completed/failed 的本地状态切换已补齐，最新失败回答也已支持直接重试并本地恢复 streaming
-  - 仍需继续收口页面刷新后的其余 UI 一致性，以及除重试外更完整的失败恢复体验
+  - assistant placeholder 到 completed/failed 的本地状态切换已补齐；当前会话继续发送与最新失败回答重试都已支持直接本地恢复 streaming
+  - 仍需继续收口首条消息创建新会话时的切换体验、页面头部等外围 UI 一致性，以及除重试外更完整的失败恢复体验
   - grounded final answer、citations 和引用跳转已能在终态事件到达后先本地切换，后续仍需继续减少刷新带来的其余断层
 - 工具契约与真实 provider 对齐
   - `search_web_general` / `search_statutes` / 报告生成等工具应逐步切到真实 provider 或明确失败语义
