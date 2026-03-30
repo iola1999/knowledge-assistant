@@ -4,6 +4,7 @@ import { CONVERSATION_STREAM_EVENT, MESSAGE_ROLE, MESSAGE_STATUS } from "@anchor
 import {
   appendSubmittedConversationTurn,
   applyAssistantTerminalEvent,
+  buildConversationExportFilename,
   findLatestAssistantMessageId,
   findStreamingAssistantMessageId,
   resolveConversationStreamingAssistantMessageId,
@@ -184,6 +185,91 @@ describe("findLatestAssistantMessageId", () => {
         },
       ]),
     ).toBeNull();
+  });
+});
+
+describe("buildConversationExportFilename", () => {
+  test("uses the nearest user prompt prefix for the exported markdown filename", () => {
+    expect(
+      buildConversationExportFilename({
+        conversationId: "2cddead8-7dac-1234-9876-abcdefabcdef",
+        messageId: "assistant-2",
+        messages: [
+          {
+            id: "user-1",
+            role: MESSAGE_ROLE.USER,
+            status: MESSAGE_STATUS.COMPLETED,
+            contentMarkdown: "旧问题",
+            structuredJson: null,
+          },
+          {
+            id: "assistant-1",
+            role: MESSAGE_ROLE.ASSISTANT,
+            status: MESSAGE_STATUS.COMPLETED,
+            contentMarkdown: "旧回答",
+            structuredJson: null,
+          },
+          {
+            id: "user-2",
+            role: MESSAGE_ROLE.USER,
+            status: MESSAGE_STATUS.COMPLETED,
+            contentMarkdown: "  帮我整理 2026 年第一季度发布计划 / 风险清单\n并输出重点  ",
+            structuredJson: null,
+          },
+          {
+            id: "assistant-2",
+            role: MESSAGE_ROLE.ASSISTANT,
+            status: MESSAGE_STATUS.COMPLETED,
+            contentMarkdown: "新回答",
+            structuredJson: null,
+          },
+        ],
+      }),
+    ).toBe("帮我整理-2026-年第一季度发布计划-风险清单-并输出重点.md");
+  });
+
+  test("limits the prompt-derived filename to the configured prefix length", () => {
+    const filename = buildConversationExportFilename({
+      conversationId: "2cddead8-7dac-1234-9876-abcdefabcdef",
+      messageId: "assistant-1",
+      messages: [
+        {
+          id: "user-1",
+          role: MESSAGE_ROLE.USER,
+          status: MESSAGE_STATUS.COMPLETED,
+          contentMarkdown: "这是一个很长的提示词".repeat(12),
+          structuredJson: null,
+        },
+        {
+          id: "assistant-1",
+          role: MESSAGE_ROLE.ASSISTANT,
+          status: MESSAGE_STATUS.COMPLETED,
+          contentMarkdown: "回答",
+          structuredJson: null,
+        },
+      ],
+    });
+
+    expect(filename.endsWith(".md")).toBe(true);
+    expect(filename.slice(0, -3).length).toBeLessThanOrEqual(48);
+  });
+
+  test("falls back to a compact conversation id filename when no prompt is available", () => {
+    expect(
+      buildConversationExportFilename({
+        conversationId: "2cddead8-7dac-1234-9876-abcdefabcdef",
+        messageId: "assistant-1",
+        messages: [
+          {
+            id: "assistant-1",
+            role: MESSAGE_ROLE.ASSISTANT,
+            status: MESSAGE_STATUS.COMPLETED,
+            contentMarkdown: "回答",
+            structuredJson: null,
+          },
+        ],
+      }),
+    ).toBe("conversation-2cddead8.md");
   });
 });
 

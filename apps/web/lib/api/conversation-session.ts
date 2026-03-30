@@ -9,6 +9,8 @@ import {
   type MessageStatus,
 } from "@anchordesk/contracts";
 
+import { slugify } from "./slug";
+
 export type ConversationChatMessage = {
   id: string;
   role: MessageRole;
@@ -31,6 +33,8 @@ type AssistantTerminalEvent = Extract<
   | { type: typeof CONVERSATION_STREAM_EVENT.ANSWER_DONE }
   | { type: typeof CONVERSATION_STREAM_EVENT.RUN_FAILED }
 >;
+
+const CONVERSATION_EXPORT_FILENAME_STEM_LENGTH = 48;
 
 function replaceMessageCitations(
   citations: ConversationMessageCitation[],
@@ -81,6 +85,41 @@ export function findStreamingAssistantMessageId(messages: ConversationChatMessag
   }
 
   return null;
+}
+
+function findConversationExportPrompt(
+  messages: ConversationChatMessage[],
+  messageId: string,
+) {
+  const messageIndex = messages.findIndex((message) => message.id === messageId);
+
+  for (let index = messageIndex; index >= 0; index -= 1) {
+    const message = messages[index];
+    if (message?.role === MESSAGE_ROLE.USER && message.contentMarkdown.trim()) {
+      return message.contentMarkdown;
+    }
+  }
+
+  return null;
+}
+
+function buildConversationExportBasename(prompt: string) {
+  return slugify(
+    prompt.replace(/\s+/g, " ").trim().slice(0, CONVERSATION_EXPORT_FILENAME_STEM_LENGTH),
+  );
+}
+
+export function buildConversationExportFilename(input: {
+  conversationId: string;
+  messageId: string;
+  messages: ConversationChatMessage[];
+}) {
+  const prompt = findConversationExportPrompt(input.messages, input.messageId);
+  const basename = prompt ? buildConversationExportBasename(prompt) : null;
+
+  return basename
+    ? `${basename}.md`
+    : `conversation-${input.conversationId.slice(0, 8)}.md`;
 }
 
 export function resolveConversationStreamingAssistantMessageId(input: {

@@ -30,6 +30,7 @@ import {
 } from "@/lib/api/conversation-retry";
 import {
   applyAssistantTerminalEvent,
+  buildConversationExportFilename,
   type ConversationChatMessage,
   type ConversationMessageCitation,
   findLatestAssistantMessageId,
@@ -415,7 +416,11 @@ export function ConversationSession({
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = `conversation-${conversationId}-${messageId}.md`;
+    anchor.download = buildConversationExportFilename({
+      conversationId,
+      messageId,
+      messages: chatMessagesRef.current,
+    });
     anchor.click();
     URL.revokeObjectURL(url);
     setActionStatus(messageId, null);
