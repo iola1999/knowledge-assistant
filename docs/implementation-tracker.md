@@ -59,6 +59,9 @@
 - `search_web_general` 现在只负责返回候选链接；只有 `fetch_source` 拉回的网页正文才会进入最终 citation，因此“工具时间线里做过联网搜索”与“终态存在可展示网页引用”这两件事已被明确区分。
 - 当前已新增 `fetch_sources` 批量抓取工具；当模型需要抓取多个独立网页时，可在单次工具调用内并发拉取，并由 `fetch_source_max_concurrency` 控制该工具的进程内最大并发数。
 - `message_citations` 现已支持外部网页来源字段（`source_url` / `source_domain` / `source_title`）；会话页 source panel 可同时渲染工作空间文档跳转和网页外链。
+- grounded final answer 现已支持应用层内联 citation marker：模型先输出临时 token，应用层再规范化为 `[^n]`，前端把它渲染成正文角标并复用同一条 citation 卡片数据。
+- `fetch_source` 现已兼容 markdown provider 返回 JSON envelope 的情况，会先解包 `content` 再抽标题和段落，避免网页引用卡片落成整段 JSON。
+- `agent.log` 已补充 citation 排障字段；详见 [anchor-desk-citation-debugging.md](./anchor-desk-citation-debugging.md)。
 - assistant / tool 的失败态 payload 已收口为共享构造函数，消息发送、重试、运行过期和 worker 失败路径复用同一套错误语义。
 - 上传链路现在由前端先计算 SHA256，再直传 `blobs/<sha256>`；worker 负责复核对象内容和 hash/key 一致性，对象层不再按工作空间前缀组织，目录归属仅由数据库 metadata 表达。
 - 本地缺少 `ANTHROPIC_API_KEY` 或关键 provider 时，主会话链路会直接进入失败态，并继续通过既有 SSE / message failed 链路暴露给前端。
@@ -98,6 +101,8 @@
 - `working tree` Let failed-answer retry resume locally into streaming state, clear stale citations/tool timeline, and hand control back to SSE without waiting for an immediate hard refresh
 - `working tree` Surface persisted citation excerpts in conversation/share source cards and extend terminal SSE citation payload with `quote_text`
 - `working tree` Unify grounded evidence for workspace anchors and fetched web pages, and persist web citations into `message_citations`
+- `working tree` Add application-level inline citation markers in grounded answers and render them as正文角标 with shared source cards
+- `working tree` Add citation-chain debugging guide and richer agent-runtime citation logs
 - `working tree` Consolidate assistant/tool failed message payloads into shared contracts helpers across enqueue, retry, stale-run expiration, and worker failure paths
 - `working tree` Refine streaming runtime status copy so SSE reconnects show retrying instead of forcing an immediate hard refresh
 - `working tree` Consolidate runtime config to bootstrap env + DB system_settings; app services load settings at startup via initRuntimeSettings()

@@ -16,6 +16,11 @@ export type FetchedSourceDocument = {
   paragraphs: string[];
 };
 
+type MarkdownFetchJsonEnvelope = {
+  title?: unknown;
+  content?: unknown;
+};
+
 function normalizeValue(value: string | undefined) {
   return (value ?? "").trim();
 }
@@ -80,6 +85,40 @@ function normalizeMarkdownBlock(block: string) {
   );
 
   return isListBlock ? lines.join("\n") : lines.join(" ");
+}
+
+function unwrapMarkdownFetchBody(input: {
+  body: string;
+  contentType: string;
+}) {
+  const trimmedBody = input.body.trim();
+  const looksLikeJson =
+    input.contentType.toLowerCase().includes("application/json") ||
+    trimmedBody.startsWith("{");
+
+  if (!looksLikeJson) {
+    return {
+      markdown: input.body,
+      title: "",
+    };
+  }
+
+  try {
+    const parsed = JSON.parse(trimmedBody) as MarkdownFetchJsonEnvelope;
+    if (typeof parsed.content === "string" && parsed.content.trim()) {
+      return {
+        markdown: parsed.content,
+        title: typeof parsed.title === "string" ? parsed.title.trim() : "",
+      };
+    }
+  } catch {
+    // Fall back to treating the response as raw markdown/plain text.
+  }
+
+  return {
+    markdown: input.body,
+    title: "",
+  };
 }
 
 export function resolveMarkdownFetchProvider(
@@ -149,21 +188,29 @@ export async function fetchMarkdownSource(input: {
     );
   }
 
-  const markdown = await response.text();
-  if (!markdown.trim()) {
+  const body = await response.text();
+  if (!body.trim()) {
+    throw new Error("Markdown fetch provider returned empty content.");
+  }
+  const contentType = response.headers.get("content-type") ?? "text/markdown";
+  const unwrapped = unwrapMarkdownFetchBody({
+    body,
+    contentType,
+  });
+  if (!unwrapped.markdown.trim()) {
     throw new Error("Markdown fetch provider returned empty content.");
   }
 
   const paragraphLimit =
     input.paragraphLimit ?? DEFAULT_FETCH_SOURCE_PARAGRAPH_LIMIT;
-  const parsed = parseMarkdownSourceDocument(markdown, paragraphLimit);
-  const title = parsed.title || new URL(input.url).hostname;
+  const parsed = parseMarkdownSourceDocument(unwrapped.markdown, paragraphLimit);
+  const title = parsed.title || unwrapped.title || new URL(input.url).hostname;
 
   return {
     url: input.url,
     title,
     fetched_at: (input.now ?? (() => new Date()))().toISOString(),
-    content_type: response.headers.get("content-type") ?? "text/markdown",
+    content_type: contentType,
     paragraphs: parsed.paragraphs,
   };
 }

@@ -723,6 +723,9 @@ export function ConversationSession({
                         content={answerText}
                         className={conversationDensityClassNames.answerText}
                         streaming={isStreamingAssistant}
+                        citations={citations}
+                        workspaceId={workspaceId}
+                        sourceLinksEnabled={sourceLinksEnabled}
                       />
                     </div>
                   )}

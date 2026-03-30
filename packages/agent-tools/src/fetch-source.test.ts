@@ -134,4 +134,41 @@ Second paragraph.
       }),
     ).rejects.toThrow("temporarily unavailable");
   });
+
+  it("unwraps JSON provider responses that carry markdown content", async () => {
+    const fetchFn = vi.fn<typeof fetch>(async () =>
+      new Response(
+        JSON.stringify({
+          success: true,
+          title: "Wrapped Example Article",
+          content: `# Wrapped Example Article
+
+First paragraph.
+
+Second paragraph.
+`,
+        }),
+        {
+          status: 200,
+          headers: {
+            "content-type": "application/json; charset=utf-8",
+          },
+        },
+      ),
+    );
+
+    await expect(
+      fetchMarkdownSource({
+        url: "https://example.com/wrapped",
+        fetchFn,
+        now: () => new Date("2026-03-30T13:00:00.000Z"),
+      }),
+    ).resolves.toEqual({
+      url: "https://example.com/wrapped",
+      title: "Wrapped Example Article",
+      fetched_at: "2026-03-30T13:00:00.000Z",
+      content_type: "application/json; charset=utf-8",
+      paragraphs: ["First paragraph.", "Second paragraph."],
+    });
+  });
 });

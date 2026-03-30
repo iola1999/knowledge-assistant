@@ -9,6 +9,7 @@ import {
   ASSISTANT_ALLOWED_TOOL_NAMES,
   ASSISTANT_TOOL,
   DEFAULT_AGENT_MAX_TURNS,
+  extractDisplayInlineCitationOrdinals,
   KNOWLEDGE_SOURCE_SCOPE,
   GROUNDED_EVIDENCE_KIND,
   normalizeAssistantToolName,
@@ -487,6 +488,19 @@ export async function runAgentResponse(
                       citationMap,
                       webSearchResultsByUrl,
                     );
+                  } else {
+                    requestLogger.debug(
+                      {
+                        toolName: toolCall.tool_name,
+                        toolUseId: toolCall.tool_use_id,
+                        toolResponseType: Array.isArray(toolCall.tool_response)
+                          ? "array"
+                          : toolCall.tool_response === null
+                            ? "null"
+                            : typeof toolCall.tool_response,
+                      },
+                      "tool completed without a parseable payload",
+                    );
                   }
 
                   await hooks.onToolFinished?.({
@@ -554,6 +568,12 @@ export async function runAgentResponse(
         finalResultLength: finalResult.length,
         streamedDraftLength: streamedDraft.length,
         workspaceEvidenceCount: citationMap.size,
+        documentEvidenceCount: Array.from(citationMap.values()).filter(
+          (item) => item.kind === GROUNDED_EVIDENCE_KIND.DOCUMENT_ANCHOR,
+        ).length,
+        webEvidenceCount: Array.from(citationMap.values()).filter(
+          (item) => item.kind === GROUNDED_EVIDENCE_KIND.WEB_PAGE,
+        ).length,
       },
       "Claude Agent SDK query completed",
     );
@@ -573,17 +593,27 @@ export async function runAgentResponse(
   }
 
   try {
-    const groundedAnswer = await renderGroundedAnswer({
+    const groundedAnswerResult = await renderGroundedAnswer({
       prompt,
       draftText:
         finalResult || streamedDraft || "Agent completed without a final result payload.",
       evidence: Array.from(citationMap.values()),
     });
+    const groundedAnswer = groundedAnswerResult.groundedAnswer;
+    const inlineCitationMarkerCount = extractDisplayInlineCitationOrdinals(
+      groundedAnswer.answer_markdown,
+    ).length;
 
     requestLogger.info(
       {
         sessionId,
+        finalAnswerRenderMode: groundedAnswerResult.meta.mode,
+        parsedOutputPresent: groundedAnswerResult.meta.parsedOutputPresent,
+        parsedCitationReferenceCount:
+          groundedAnswerResult.meta.parsedCitationReferenceCount,
         citationCount: groundedAnswer.citations.length,
+        inlineCitationMarkerCount,
+        hasInlineCitationMarkers: inlineCitationMarkerCount > 0,
         answerLength: groundedAnswer.answer_markdown.length,
       },
       "grounded answer rendered",

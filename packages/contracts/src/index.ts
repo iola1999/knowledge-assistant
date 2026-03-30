@@ -5,4 +5,5 @@ export * from "./conversation-stream";
 export * from "./conversation-errors";
 export * from "./conversation-message-state";
 export * from "./citation-locator";
+export * from "./citation-markers";
 export * from "./constants";

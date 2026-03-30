@@ -16,6 +16,20 @@ import {
   normalizeGroundedAnswer,
 } from "./grounded-answer";
 
+export type FinalAnswerRenderMode =
+  | "model_parsed"
+  | "model_error_fallback"
+  | "missing_api_key_fallback";
+
+export type RenderGroundedAnswerResult = {
+  groundedAnswer: GroundedAnswer;
+  meta: {
+    mode: FinalAnswerRenderMode;
+    parsedCitationReferenceCount: number;
+    parsedOutputPresent: boolean;
+  };
+};
+
 function getModel() {
   return (
     process.env.ANTHROPIC_FINAL_ANSWER_MODEL ??
@@ -34,6 +48,9 @@ const FINAL_ANSWER_SYSTEM_PROMPT = [
   "Use only the validated evidence supplied by the application.",
   "Never invent anchor IDs, directory paths, quotes, or citations.",
   "If a citation is not supported by the provided evidence list, omit it.",
+  "Return JSON matching the requested schema.",
+  "In answer_markdown, place inline citation markers using the exact citation_token values supplied in the evidence registry.",
+  "In citations, include only evidence_id values that were actually used.",
   "Keep the answer concise, professional, and explicit about uncertainty.",
 ].join("\n");
 
@@ -51,12 +68,19 @@ export async function renderGroundedAnswer(input: {
   prompt: string;
   draftText: string;
   evidence: GroundedEvidence[];
-}): Promise<GroundedAnswer> {
+}): Promise<RenderGroundedAnswerResult> {
   if (!getConfiguredAnthropicApiKey()) {
-    return normalizeGroundedAnswer({
-      draftText: input.draftText,
-      evidence: input.evidence,
-    });
+    return {
+      groundedAnswer: normalizeGroundedAnswer({
+        draftText: input.draftText,
+        evidence: input.evidence,
+      }),
+      meta: {
+        mode: "missing_api_key_fallback",
+        parsedCitationReferenceCount: 0,
+        parsedOutputPresent: false,
+      },
+    };
   }
 
   try {
@@ -75,15 +99,31 @@ export async function renderGroundedAnswer(input: {
       },
     });
 
-    return normalizeGroundedAnswer({
-      parsed: message.parsed_output,
-      draftText: input.draftText,
-      evidence: input.evidence,
-    });
+    return {
+      groundedAnswer: normalizeGroundedAnswer({
+        parsed: message.parsed_output,
+        draftText: input.draftText,
+        evidence: input.evidence,
+      }),
+      meta: {
+        mode: "model_parsed",
+        parsedCitationReferenceCount: Array.isArray(message.parsed_output?.citations)
+          ? message.parsed_output.citations.length
+          : 0,
+        parsedOutputPresent: Boolean(message.parsed_output),
+      },
+    };
   } catch {
-    return normalizeGroundedAnswer({
-      draftText: input.draftText,
-      evidence: input.evidence,
-    });
+    return {
+      groundedAnswer: normalizeGroundedAnswer({
+        draftText: input.draftText,
+        evidence: input.evidence,
+      }),
+      meta: {
+        mode: "model_error_fallback",
+        parsedCitationReferenceCount: 0,
+        parsedOutputPresent: false,
+      },
+    };
   }
 }
