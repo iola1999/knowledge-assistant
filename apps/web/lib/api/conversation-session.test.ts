@@ -380,4 +380,53 @@ describe("applyAssistantTerminalEvent", () => {
     ]);
     expect(result.citations).toEqual([]);
   });
+
+  test("falls back to the local streaming assistant when run_failed has no message id", () => {
+    const result = applyAssistantTerminalEvent({
+      messages: [
+        {
+          id: "assistant-1",
+          role: MESSAGE_ROLE.ASSISTANT,
+          status: MESSAGE_STATUS.STREAMING,
+          contentMarkdown: "",
+          structuredJson: {
+            run_started_at: "2026-03-30T10:00:00.000Z",
+          },
+        },
+      ],
+      citations: [
+        {
+          id: "stale-citation",
+          messageId: "assistant-1",
+          anchorId: "2ef3ea43-971e-42f6-9465-d0d17117d8d1",
+          documentId: "3ee35888-e295-462b-a960-e2634c6c447b",
+          label: "旧引用",
+          quoteText: "旧摘录",
+        },
+      ],
+      fallbackMessageId: "assistant-1",
+      event: {
+        type: CONVERSATION_STREAM_EVENT.RUN_FAILED,
+        conversation_id: "16c8de0a-1b31-41d3-a48b-2d4d8f423886",
+        message_id: null,
+        status: MESSAGE_STATUS.FAILED,
+        content_markdown: null,
+        structured: null,
+        citations: [],
+        error: "Assistant message not found.",
+      },
+    });
+
+    expect(result.messages).toEqual([
+      expect.objectContaining({
+        id: "assistant-1",
+        status: MESSAGE_STATUS.FAILED,
+        contentMarkdown: "Agent 处理失败：Assistant message not found.",
+        structuredJson: {
+          agent_error: "Assistant message not found.",
+        },
+      }),
+    ]);
+    expect(result.citations).toEqual([]);
+  });
 });

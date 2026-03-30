@@ -46,6 +46,7 @@
 - 当前会话在本地提交后，侧栏会话列表也会立即同步最新会话标题、更新时间和选中态，不再只能等下一次服务端刷新。
 - 当前会话页头的标题、最后更新时间、消息数与附件数也会在本地提交后立即更新，不再只能等服务端重新返回当前页。
 - `answer_done` / `run_failed` 事件现在会附带最终 assistant 内容、structured state 和当前 message citations；前端会直接切到本地最终态，并同步更新当前会话页头与侧栏活动时间，不再依赖这一步的整页刷新。
+- 如果终态 `run_failed` 事件没有带回 `message_id`，前端也会把当前本地 streaming assistant 收口为 failed，避免界面停在“仍在生成”。
 - 会话页和共享页的 citation 卡片现在会直接展示持久化的引用摘录 `quote_text`，不再只显示标签计数与跳转入口。
 - assistant / tool 的失败态 payload 已收口为共享构造函数，消息发送、重试、运行过期和 worker 失败路径复用同一套错误语义。
 - 上传链路现在由前端先计算 SHA256，再直传 `blobs/<sha256>`；worker 负责复核对象内容和 hash/key 一致性，对象层不再按工作空间前缀组织，目录归属仅由数据库 metadata 表达。
@@ -68,6 +69,7 @@
 ## 2. 最近完成
 
 - `working tree` Stop relying on a terminal-event page refresh; `answer_done` / `run_failed` now update current conversation meta and sidebar activity locally
+- `working tree` When terminal `run_failed` arrives without `message_id`, close the local streaming assistant into a failed state instead of leaving the thread stuck in streaming
 - `working tree` Sync conversation page header meta locally after submit, including title, updated time, message count and attachment count
 - `working tree` Sync sidebar conversation ordering, latest title and active selection locally when a submitted turn creates or advances a conversation
 - `working tree` Let first-message conversation creation switch locally into the new thread immediately after submit, then sync the URL in background

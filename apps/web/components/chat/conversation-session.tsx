@@ -305,6 +305,7 @@ export function ConversationSession({
         messages: chatMessagesRef.current,
         citations: messageCitationsRef.current,
         event: payload,
+        fallbackMessageId: streamingAssistantMessageId,
       });
       chatMessagesRef.current = nextState.messages;
       messageCitationsRef.current = nextState.citations;
@@ -326,6 +327,7 @@ export function ConversationSession({
         messages: chatMessagesRef.current,
         citations: messageCitationsRef.current,
         event: payload,
+        fallbackMessageId: streamingAssistantMessageId,
       });
       chatMessagesRef.current = nextState.messages;
       messageCitationsRef.current = nextState.citations;

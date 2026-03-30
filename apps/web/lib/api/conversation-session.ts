@@ -1,4 +1,5 @@
 import {
+  buildAssistantFailedMessageState,
   buildStreamingAssistantRunState,
   CONVERSATION_STREAM_EVENT,
   MESSAGE_ROLE,
@@ -113,21 +114,36 @@ export function applyAssistantTerminalEvent(input: {
   messages: ConversationChatMessage[];
   citations: ConversationMessageCitation[];
   event: AssistantTerminalEvent;
+  fallbackMessageId?: string | null;
 }) {
-  if (!input.event.message_id) {
+  const targetMessageId = input.event.message_id ?? input.fallbackMessageId ?? null;
+
+  if (!targetMessageId) {
     return {
       messages: input.messages,
       citations: input.citations,
     };
   }
 
+  const fallbackFailedState =
+    input.event.type === CONVERSATION_STREAM_EVENT.RUN_FAILED &&
+    input.event.content_markdown === null
+      ? buildAssistantFailedMessageState(input.event.error)
+      : null;
+
   const nextMessages = input.messages.map((message) =>
-    message.id === input.event.message_id
+    message.id === targetMessageId
       ? {
           ...message,
           status: input.event.status,
-          contentMarkdown: input.event.content_markdown ?? message.contentMarkdown,
-          structuredJson: input.event.structured ?? null,
+          contentMarkdown:
+            input.event.content_markdown ??
+            fallbackFailedState?.contentMarkdown ??
+            message.contentMarkdown,
+          structuredJson:
+            input.event.structured ??
+            fallbackFailedState?.structuredJson ??
+            null,
         }
       : message,
   );
@@ -136,17 +152,17 @@ export function applyAssistantTerminalEvent(input: {
     input.event.type === CONVERSATION_STREAM_EVENT.ANSWER_DONE
       ? replaceMessageCitations(
           input.citations,
-          input.event.message_id,
+          targetMessageId,
           input.event.citations.map((citation) => ({
             id: citation.id,
-            messageId: input.event.message_id!,
+            messageId: targetMessageId,
             anchorId: citation.anchor_id,
             documentId: citation.document_id,
             label: citation.label,
             quoteText: citation.quote_text,
           })),
         )
-      : input.citations.filter((citation) => citation.messageId !== input.event.message_id);
+      : input.citations.filter((citation) => citation.messageId !== targetMessageId);
 
   return {
     messages: nextMessages,
