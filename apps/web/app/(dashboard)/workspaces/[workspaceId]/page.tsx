@@ -9,6 +9,7 @@ import {
   documentVersions,
   documents,
   getDb,
+  listEnabledModelProfiles,
   messageCitations,
   messages,
   workspaces,
@@ -34,7 +35,8 @@ export default async function WorkspacePage({
   const user = session?.user;
   const db = getDb();
 
-  const [workspaceList, workspaceRows, conversationList] = await Promise.all([
+  const [workspaceList, workspaceRows, conversationList, availableModelProfiles] =
+    await Promise.all([
     db
       .select({
         id: workspaces.id,
@@ -59,12 +61,14 @@ export default async function WorkspacePage({
         id: conversations.id,
         title: conversations.title,
         status: conversations.status,
+        modelProfileId: conversations.modelProfileId,
         updatedAt: conversations.updatedAt,
         createdAt: conversations.createdAt,
       })
       .from(conversations)
       .where(eq(conversations.workspaceId, workspaceId))
       .orderBy(desc(conversations.updatedAt), desc(conversations.createdAt)),
+    listEnabledModelProfiles(db),
   ]);
 
   const workspace = workspaceRows[0];
@@ -145,6 +149,7 @@ export default async function WorkspacePage({
               id: activeConversation.id,
               title: activeConversation.title,
               status: activeConversation.status,
+              modelProfileId: activeConversation.modelProfileId,
               createdAt: activeConversation.createdAt,
               updatedAt: activeConversation.updatedAt,
               messageCount: chatThread.length,
@@ -199,6 +204,15 @@ export default async function WorkspacePage({
         stage: attachment.stage ?? null,
         errorMessage: attachment.errorMessage ?? null,
       }))}
+      availableModelProfiles={availableModelProfiles.map((profile) => ({
+        id: profile.id,
+        displayName: profile.displayName,
+        modelName: profile.modelName,
+        isDefault: profile.isDefault,
+      }))}
+      defaultModelProfileId={
+        availableModelProfiles.find((profile) => profile.isDefault)?.id ?? null
+      }
     />
   );
 }

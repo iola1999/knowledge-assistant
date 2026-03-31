@@ -2,7 +2,9 @@ import { describe, expect, test } from "vitest";
 
 import {
   buildAnthropicClientConfig,
+  buildAnthropicClientConfigFromModelProfile,
   buildClaudeAgentEnv,
+  buildClaudeAgentEnvFromModelProfile,
   getConfiguredAnthropicApiKey,
   getConfiguredAnthropicBaseUrl,
 } from "./anthropic-config";
@@ -71,6 +73,41 @@ describe("Anthropic runtime config helpers", () => {
     ).toMatchObject({
       ANTHROPIC_API_KEY: "example-anthropic-api-key",
       ANTHROPIC_BASE_URL: undefined,
+    });
+  });
+
+  test("builds anthropic client config from a stored model profile", () => {
+    expect(
+      buildAnthropicClientConfigFromModelProfile({
+        apiKey: " sk-model ",
+        baseUrl: " https://anthropic-proxy.example.com ",
+      }),
+    ).toEqual({
+      apiKey: "sk-model",
+      baseURL: "https://anthropic-proxy.example.com",
+    });
+  });
+
+  test("builds agent env from a stored model profile without falling back to stale runtime env", () => {
+    expect(
+      buildClaudeAgentEnvFromModelProfile(
+        {
+          apiKey: " sk-model ",
+          baseUrl: " https://anthropic-proxy.example.com ",
+          modelName: " claude-sonnet-4-5 ",
+        },
+        {
+          PATH: "/usr/bin",
+          ANTHROPIC_API_KEY: "stale-key",
+          ANTHROPIC_BASE_URL: "https://stale.example.com",
+          ANTHROPIC_MODEL: "stale-model",
+        },
+      ),
+    ).toMatchObject({
+      PATH: "/usr/bin",
+      ANTHROPIC_API_KEY: "sk-model",
+      ANTHROPIC_BASE_URL: "https://anthropic-proxy.example.com",
+      ANTHROPIC_MODEL: "claude-sonnet-4-5",
     });
   });
 });

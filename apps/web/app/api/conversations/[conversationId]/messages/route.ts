@@ -12,6 +12,7 @@ import {
   conversations,
   getDb,
   messages,
+  resolveSelectedModelProfile,
 } from "@anchordesk/db";
 import { serializeErrorForLog } from "@anchordesk/logging";
 import { enqueueConversationResponse } from "@anchordesk/queue";
@@ -76,6 +77,7 @@ export async function POST(
   const body = (await request.json().catch(() => ({}))) as {
     content?: string;
     draftUploadId?: string;
+    modelProfileId?: string;
   };
   const content = String(body.content ?? "").trim();
   const draftUploadId = String(body.draftUploadId ?? "").trim() || null;
@@ -92,6 +94,36 @@ export async function POST(
   }
 
   const db = getDb();
+  let selectedModelProfile;
+  try {
+    selectedModelProfile = await resolveSelectedModelProfile(
+      {
+        requestedModelProfileId: body.modelProfileId,
+        conversationModelProfileId: conversation.modelProfileId,
+      },
+      db,
+    );
+  } catch (error) {
+    requestLogger.warn(
+      {
+        workspaceId: conversation.workspaceId,
+        userId,
+        requestedModelProfileId: body.modelProfileId ?? null,
+        conversationModelProfileId: conversation.modelProfileId ?? null,
+      },
+      "conversation message request rejected due to invalid model profile selection",
+    );
+    return Response.json(
+      {
+        error:
+          error instanceof Error && error.message
+            ? error.message
+            : "Invalid model profile selection",
+      },
+      { status: 400 },
+    );
+  }
+
   const [userMessage] = await db
     .insert(messages)
     .values({
@@ -114,6 +146,15 @@ export async function POST(
       .update(conversations)
       .set({
         title: buildConversationTitleFromPrompt(content),
+        modelProfileId: selectedModelProfile.id,
+        updatedAt: new Date(),
+      })
+      .where(eq(conversations.id, conversationId));
+  } else if (conversation.modelProfileId !== selectedModelProfile.id) {
+    await db
+      .update(conversations)
+      .set({
+        modelProfileId: selectedModelProfile.id,
         updatedAt: new Date(),
       })
       .where(eq(conversations.id, conversationId));
@@ -155,6 +196,7 @@ export async function POST(
       userMessageId: userMessage.id,
       assistantMessageId: assistantMessage.id,
       runId: initialRunState.run_id,
+      modelProfileId: selectedModelProfile.id,
       draftUploadId,
       prompt: buildConversationPrompt({
         content,
@@ -170,6 +212,7 @@ export async function POST(
         assistantMessageId: assistantMessage.id,
         assistantRunId: initialRunState.run_id,
         queueJobId: queueJob.id ?? null,
+        modelProfileId: selectedModelProfile.id,
         contentLength: content.length,
         hasDraftUploadId: Boolean(draftUploadId),
         hasWorkspacePrompt: Boolean(conversation.workspacePrompt),
@@ -206,6 +249,7 @@ export async function POST(
         userMessageId: userMessage.id,
         assistantMessageId: assistantMessage.id,
         assistantRunId: initialRunState.run_id,
+        modelProfileId: selectedModelProfile.id,
         contentLength: content.length,
         hasDraftUploadId: Boolean(draftUploadId),
         errorMessage: failedAssistantState.structuredJson.agent_error,

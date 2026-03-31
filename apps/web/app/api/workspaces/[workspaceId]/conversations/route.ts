@@ -1,6 +1,6 @@
 import { desc, eq } from "drizzle-orm";
 
-import { conversations, getDb } from "@anchordesk/db";
+import { conversations, getDb, resolveSelectedModelProfile } from "@anchordesk/db";
 
 import { auth } from "@/auth";
 import { requireOwnedWorkspace } from "@/lib/guards/workspace";
@@ -23,14 +23,37 @@ export async function POST(
     return Response.json({ error: "Workspace not found" }, { status: 404 });
   }
 
-  const body = (await request.json().catch(() => ({}))) as { title?: string };
+  const body = (await request.json().catch(() => ({}))) as {
+    title?: string;
+    modelProfileId?: string;
+  };
   const db = getDb();
+  let selectedModelProfile;
+  try {
+    selectedModelProfile = await resolveSelectedModelProfile(
+      {
+        requestedModelProfileId: body.modelProfileId,
+      },
+      db,
+    );
+  } catch (error) {
+    return Response.json(
+      {
+        error:
+          error instanceof Error && error.message
+            ? error.message
+            : "Invalid model profile selection",
+      },
+      { status: 400 },
+    );
+  }
 
   const [conversation] = await db
     .insert(conversations)
     .values({
       workspaceId,
       title: String(body.title ?? "").trim() || `${workspace.title} 对话`,
+      modelProfileId: selectedModelProfile.id,
     })
     .returning();
 

@@ -199,19 +199,23 @@ pnpm app:upgrade:check # 只检查是否还有 blocking pending upgrades
 ## 6. 系统参数怎么改
 
 首次完成 safe blocking upgrade 后，系统参数默认值会自动写入 `system_settings` 表。
-当前已经提供基础版后台设置页：`/settings`。
+当前已经提供两个后台入口：
+
+- `/settings`：系统参数页，维护底层运行参数
+- `/admin/models`：模型管理页，维护 Claude-compatible 模型配置
 
 推荐改法：
 
 1. 先启动 `pnpm dev`
 2. 使用第一个注册成功的账号登录
 3. 打开 `http://localhost:3000/settings`
-4. 在页面里修改系统参数
+4. 在页面里修改系统参数；如果要新增或切换对话模型，改去 `http://localhost:3000/admin/models`
 5. 保存后重启 `pnpm dev`
 
 说明：
 
 - `/settings` 只有 `users.is_super_admin = true` 的账号可以访问；默认就是第一个注册成功的用户。
+- `/admin/models` 同样只允许 super admin 访问。
 - `web` / `worker` / `agent-runtime` 会在启动时调用 `initRuntimeSettings()`；`parser` 进程本身仍直接读取 env，但在 `pnpm dev` 下会由启动脚本注入解析后的系统参数。
 - 保存数据库配置后不会热更新到已运行进程，所以需要重启开发进程。
 
@@ -243,12 +247,8 @@ order by setting_key;
 
 ```sql
 update system_settings
-set value_text = 'your-anthropic-key', updated_at = now()
-where setting_key = 'anthropic_api_key';
-
-update system_settings
-set value_text = 'https://anthropic-proxy.example.com', updated_at = now()
-where setting_key = 'anthropic_base_url';
+set value_text = 'brave', updated_at = now()
+where setting_key = 'web_search_provider';
 
 update system_settings
 set value_text = 'http://localhost:9000', updated_at = now()
@@ -259,8 +259,8 @@ where setting_key = 's3_endpoint';
 
 - S3 / MinIO endpoint、bucket、凭证
 - Qdrant endpoint / collection / api key
-- Anthropic API key / base URL / model
-- embedding / rerank provider 参数
+- 联网搜索、embedding、rerank 的运行参数
+- grounded final answer 的低层参数（如 `anthropic_final_answer_max_tokens`）
 - Agent / Parser / Web 的基础地址
 
 修改后重启相关进程即可生效。

@@ -31,6 +31,7 @@
 - 数据库与应用升级开始从 ad-hoc bootstrap 收敛到 versioned SQL migrations + tracked app upgrades。
 - 已新增生产单机 Docker 多容器部署资产与基础健康检查。
 - 运行时配置已收口为"bootstrap env + DB system_settings"模型：web / worker / agent-runtime 启动时从 DB 加载配置，Docker 生产部署只需提供 `DATABASE_URL`、`AUTH_SECRET`。
+- Claude-compatible 模型已从 `system_settings` 迁到 `llm_model_profiles`；管理员通过 `/admin/models` 维护模型，用户按 conversation 维度选择模型，切换模型时当前版本不主动重置 `Agent Session`。
 - 当前最缺的不是更多 agent 花样，而是先把 P0 承诺和实际实现对齐，把主会话链路、SSE、完成态刷新和 citation 展示彻底走顺。
 - 产品整体已切换为通用知识库助手定位，但保留 `search_statutes` 专项工具。
 - 全局资料库第一版已补齐管理员维护、workspace 订阅、资料页只读挂载和 citation 来源展示；后续以回归和细化为主，不单独上调优先级。
@@ -77,7 +78,7 @@
 - 文档阅读页已经支持 PDF 基础阅读、解析块查看和按引用锚点回跳，但仍没有 bbox 级高亮与更细粒度定位。
 - 新增 `search_conversation_attachments` tool，临时资料现在可在回答中被检索、引用，并跳转到对应文档块或行号附近。
 - 会话已支持生成公开只读分享链接；匿名访问共享会话时，内部资料引用不提供跳转，外部链接仍可打开。
-- 系统参数页和 `system_settings` 已经接管大部分 provider / infra 配置，并新增了注册开关；`DATABASE_URL`、`AUTH_SECRET` 继续保持 env-only。
+- 系统参数页和 `system_settings` 已经接管大部分 provider / infra 配置，并新增了注册开关；Claude-compatible 模型改由 `/admin/models` 与 `llm_model_profiles` 维护，`DATABASE_URL`、`AUTH_SECRET` 继续保持 env-only。
 - web / worker / agent-runtime 启动时通过 `initRuntimeSettings()` 从 DB 加载运行时配置到 `process.env`；Docker 生产部署中这三个服务只需 bootstrap env。
 - 报告链路已具备“创建 -> 默认大纲 -> 章节生成 -> DOCX 导出”的基础版；当前阶段只要求它不阻断主会话链路，不把研究/写作能力深化作为优先项。
 - parser 已有无文本 PDF 的 OCR 降级路径，但真实 OCR provider 仍未接入；当前仅保持 `disabled`。
@@ -191,7 +192,7 @@
 - 本地一键启动脚本只代管应用进程；基础设施默认通过 `pnpm infra:up` 拉起。
 - `AUTH_SECRET` 不进入 `system_settings`。
 - JWT 登录态现在依赖 Redis allowlist；如果 Redis 不可用，服务端应按会话失效处理，而不是继续无状态放行旧 token。
-- `/settings` 保存的是数据库配置，不会热更新到已运行进程。
+- `/settings` 与 `/admin/models` 的改动都不会热更新到已运行进程；涉及运行时 provider 的变更仍需重启相关服务。
 - OCR 不要默认开启。
 - OCR 当前明确保持 disabled，不应在未确认商业 provider 前继续扩展本地实现。
 - 公开分享链接本质是 bearer URL；公开页必须保持 `noindex`，且不能提供空间内资料跳转。

@@ -14,7 +14,7 @@ describe("normalizeConversationFailureMessage", () => {
       normalizeConversationFailureMessage(
         'Agent runtime failed: {"ok":false,"error":"Anthropic API key is not configured for report generation."}',
       ),
-    ).toBe("Anthropic LLM provider 未配置，请先在 /settings 配置 Anthropic API key。");
+    ).toBe("LLM 模型未配置，请先在 /admin/models 配置可用模型。");
   });
 
   test("keeps unknown failures readable", () => {

@@ -20,6 +20,7 @@ const mocks = vi.hoisted(() => {
   const enqueueConversationResponse = vi.fn();
   const auth = vi.fn();
   const requireOwnedConversation = vi.fn();
+  const resolveSelectedModelProfile = vi.fn();
   const buildConversationPrompt = vi.fn();
   const findRegeneratableConversationTurn = vi.fn();
   const loggerChild = {
@@ -75,6 +76,7 @@ const mocks = vi.hoisted(() => {
     loggerChild,
     recentChatMessages,
     requireOwnedConversation,
+    resolveSelectedModelProfile,
     tables,
     updates,
   };
@@ -113,6 +115,7 @@ vi.mock("@anchordesk/db", () => ({
   getDb: () => mocks.db,
   messageCitations: mocks.tables.messageCitations,
   messages: mocks.tables.messages,
+  resolveSelectedModelProfile: mocks.resolveSelectedModelProfile,
 }));
 
 let POST: typeof import("../../app/api/conversations/[conversationId]/retry/route").POST;
@@ -128,6 +131,7 @@ beforeEach(() => {
   mocks.enqueueConversationResponse.mockReset();
   mocks.auth.mockReset();
   mocks.requireOwnedConversation.mockReset();
+  mocks.resolveSelectedModelProfile.mockReset();
   mocks.buildConversationPrompt.mockReset();
   mocks.findRegeneratableConversationTurn.mockReset();
   mocks.loggerChild.error.mockReset();
@@ -144,6 +148,10 @@ describe("POST /api/conversations/[conversationId]/retry", () => {
       id: "conversation-1",
       workspaceId: "workspace-1",
       workspacePrompt: "空间提示",
+      modelProfileId: "model-profile-1",
+    });
+    mocks.resolveSelectedModelProfile.mockResolvedValue({
+      id: "model-profile-1",
     });
     mocks.buildConversationPrompt.mockReturnValue("完整 prompt");
     mocks.recentChatMessages.push({
@@ -201,6 +209,7 @@ describe("POST /api/conversations/[conversationId]/retry", () => {
     expect(mocks.enqueueConversationResponse).toHaveBeenCalledWith(
       expect.objectContaining({
         assistantMessageId: "assistant-message-1",
+        modelProfileId: "model-profile-1",
         runId: (retryStreamingUpdate?.values as { structuredJson?: { run_id?: string } }).structuredJson
           ?.run_id,
       }),

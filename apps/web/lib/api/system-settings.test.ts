@@ -12,11 +12,11 @@ describe("buildSystemSettingSections", () => {
   test("groups settings into stable sections and keeps unknown keys at the end", () => {
     const sections = buildSystemSettingSections([
       {
-        settingKey: "anthropic_api_key",
-        valueText: "secret",
-        isSecret: true,
-        summary: "Anthropic 密钥",
-        description: "Anthropic API key.",
+        settingKey: "web_search_provider",
+        valueText: "brave",
+        isSecret: false,
+        summary: "联网搜索 Provider",
+        description: "Web search provider.",
       },
       {
         settingKey: "s3_bucket",
@@ -56,8 +56,8 @@ describe("buildSystemSettingSections", () => {
       settingKey: "s3_bucket",
     });
     expect(sections[2]?.items[0]).toMatchObject({
-      settingKey: "anthropic_api_key",
-      inputKind: "password",
+      settingKey: "web_search_provider",
+      inputKind: "text",
     });
     expect(sections[3]?.items[0]).toMatchObject({
       settingKey: "custom_flag",
@@ -153,36 +153,36 @@ describe("buildSystemSettingSections", () => {
     ]);
   });
 
-  test("keeps anthropic base url next to other anthropic model settings", () => {
+  test("keeps final-answer token settings next to other model runtime parameters", () => {
     const sections = buildSystemSettingSections([
       {
-        settingKey: "anthropic_model",
-        valueText: "claude-sonnet-4-5",
+        settingKey: "embedding_provider",
+        valueText: "local_hash",
         isSecret: false,
-        summary: "Anthropic 模型",
-        description: "Anthropic model override.",
+        summary: "Embedding Provider",
+        description: "Embedding provider override.",
       },
       {
-        settingKey: "anthropic_base_url",
-        valueText: "https://anthropic-proxy.example.com",
+        settingKey: "anthropic_final_answer_max_tokens",
+        valueText: "1400",
         isSecret: false,
-        summary: "Anthropic 基础地址",
-        description: "Anthropic API base URL override.",
+        summary: "最终答案最大输出",
+        description: "Final answer maximum output tokens.",
       },
       {
-        settingKey: "anthropic_api_key",
-        valueText: "secret",
-        isSecret: true,
-        summary: "Anthropic 密钥",
-        description: "Anthropic API key.",
+        settingKey: "web_search_provider",
+        valueText: "brave",
+        isSecret: false,
+        summary: "联网搜索 Provider",
+        description: "Web search provider.",
       },
     ]);
 
     expect(sections.map((section) => section.id)).toEqual(["model"]);
     expect(sections[0]?.items.map((item) => item.settingKey)).toEqual([
-      "anthropic_api_key",
-      "anthropic_base_url",
-      "anthropic_model",
+      "web_search_provider",
+      "anthropic_final_answer_max_tokens",
+      "embedding_provider",
     ]);
   });
 
@@ -278,18 +278,18 @@ describe("filterSystemSettingSections", () => {
         description: "Public base URL for the web app.",
       },
       {
-        settingKey: "anthropic_api_key",
-        valueText: "secret",
-        isSecret: true,
-        summary: "Anthropic 密钥",
-        description: "Anthropic API key.",
+        settingKey: "anthropic_final_answer_max_tokens",
+        valueText: "1400",
+        isSecret: false,
+        summary: "最终答案最大输出",
+        description: "Final answer maximum output tokens.",
       },
     ]);
 
     expect(filterSystemSettingSections(sections, "anthropic")).toEqual([
       expect.objectContaining({
         id: "model",
-        items: [expect.objectContaining({ settingKey: "anthropic_api_key" })],
+        items: [expect.objectContaining({ settingKey: "anthropic_final_answer_max_tokens" })],
       }),
     ]);
   });
@@ -337,11 +337,11 @@ describe("normalizeSystemSettingUpdates", () => {
           valueText: " final-bucket ",
         },
         {
-          settingKey: "anthropic_api_key",
-          valueText: " secret-key ",
+          settingKey: "anthropic_final_answer_max_tokens",
+          valueText: " 1600 ",
         },
       ],
-      ["s3_bucket", "anthropic_api_key"],
+      ["s3_bucket", "anthropic_final_answer_max_tokens"],
     );
 
     expect(updates).toEqual([
@@ -350,8 +350,8 @@ describe("normalizeSystemSettingUpdates", () => {
         valueText: "final-bucket",
       },
       {
-        settingKey: "anthropic_api_key",
-        valueText: "secret-key",
+        settingKey: "anthropic_final_answer_max_tokens",
+        valueText: "1600",
       },
     ]);
   });

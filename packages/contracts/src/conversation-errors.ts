@@ -75,7 +75,7 @@ export function normalizeConversationFailureMessage(input: unknown) {
     message.includes("ANTHROPIC_API_KEY") ||
     message.includes("No API key provided")
   ) {
-    return "Anthropic LLM provider 未配置，请先在 /settings 配置 Anthropic API key。";
+    return "LLM 模型未配置，请先在 /admin/models 配置可用模型。";
   }
 
   if (message.includes("Web search provider is not configured")) {

@@ -97,8 +97,8 @@ describe("loadResolvedSystemEnvironment", () => {
     );
 
     expect(resolved).toMatchObject({
-      ANTHROPIC_API_KEY: "example-anthropic-api-key",
-      ANTHROPIC_BASE_URL: "https://api.anthropic.com",
+      REDIS_URL: "redis://localhost:6379",
+      ANTHROPIC_FINAL_ANSWER_MAX_TOKENS: "1400",
     });
   });
 });

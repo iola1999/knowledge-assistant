@@ -27,6 +27,7 @@ export async function requireOwnedConversation(
       workspacePrompt: workspaces.workspacePrompt,
       title: conversations.title,
       status: conversations.status,
+      modelProfileId: conversations.modelProfileId,
       agentSessionId: conversations.agentSessionId,
       agentWorkdir: conversations.agentWorkdir,
     })

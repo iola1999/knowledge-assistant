@@ -7,6 +7,17 @@ import {
   MESSAGE_STATUS,
 } from "@anchordesk/contracts";
 
+const DEFAULT_MODEL_PROFILE = {
+  id: "model-profile-1",
+  apiType: "anthropic",
+  displayName: "Sonnet 4.5",
+  modelName: "claude-sonnet-4-5",
+  baseUrl: "https://api.anthropic.com",
+  apiKey: "sk-test",
+  enabled: true,
+  isDefault: true,
+} as const;
+
 const mocks = vi.hoisted(() => {
   const tables = {
     conversations: Symbol("conversations"),
@@ -33,6 +44,8 @@ const mocks = vi.hoisted(() => {
     readyGlobalDocumentCount: 0,
     searchableGlobalLibraryCount: 0,
   }));
+  const resolveDefaultUsableModelProfile = vi.fn();
+  const resolveUsableModelProfileById = vi.fn();
   const appendConversationStreamEvent = vi.fn(async () => "1743490000000-0");
   const loggerChild = {
     debug: vi.fn(),
@@ -91,6 +104,8 @@ const mocks = vi.hoisted(() => {
     insertReturningQueue,
     loggerChild,
     queryResults,
+    resolveDefaultUsableModelProfile,
+    resolveUsableModelProfileById,
     runAgentResponse,
     summarizeWorkspaceSearchableKnowledge,
     tables,
@@ -106,6 +121,8 @@ vi.mock("@anchordesk/db", () => ({
   messageCitations: mocks.tables.messageCitations,
   messages: mocks.tables.messages,
   knowledgeLibraries: Symbol("knowledgeLibraries"),
+  resolveDefaultUsableModelProfile: mocks.resolveDefaultUsableModelProfile,
+  resolveUsableModelProfileById: mocks.resolveUsableModelProfileById,
   resolveWorkspaceLibraryScope: async () => ({
     accessibleLibraryIds: [],
   }),
@@ -149,6 +166,10 @@ beforeEach(() => {
     readyGlobalDocumentCount: 0,
     searchableGlobalLibraryCount: 0,
   });
+  mocks.resolveDefaultUsableModelProfile.mockReset();
+  mocks.resolveUsableModelProfileById.mockReset();
+  mocks.resolveDefaultUsableModelProfile.mockResolvedValue(DEFAULT_MODEL_PROFILE);
+  mocks.resolveUsableModelProfileById.mockResolvedValue(DEFAULT_MODEL_PROFILE);
   mocks.appendConversationStreamEvent.mockReset();
   mocks.appendConversationStreamEvent.mockImplementation(async () => "1743490000000-0");
   mocks.loggerChild.debug.mockReset();
@@ -306,14 +327,25 @@ describe("processConversationResponseJob", () => {
     await processConversationResponseJob({
       assistantMessageId: "assistant-1",
       conversationId: "conversation-1",
+      modelProfileId: "model-profile-1",
       runId: "run-1",
       prompt: "总结一下",
       userMessageId: "user-1",
     });
 
     expect(mocks.runAgentResponse).toHaveBeenCalledTimes(1);
+    expect(mocks.resolveUsableModelProfileById).toHaveBeenCalledWith(
+      "model-profile-1",
+      mocks.db,
+    );
+    expect(mocks.resolveDefaultUsableModelProfile).not.toHaveBeenCalled();
     expect(mocks.runAgentResponse).toHaveBeenCalledWith(
       expect.objectContaining({
+        conversationId: "conversation-1",
+        modelProfile: expect.objectContaining({
+          id: "model-profile-1",
+          modelName: "claude-sonnet-4-5",
+        }),
         searchableKnowledge: {
           hasReadySearchableKnowledge: false,
           totalReadyDocumentCount: 0,
@@ -469,8 +501,14 @@ describe("processConversationResponseJob", () => {
       "workspace-1",
       mocks.db,
     );
+    expect(mocks.resolveDefaultUsableModelProfile).toHaveBeenCalledWith(mocks.db);
+    expect(mocks.resolveUsableModelProfileById).not.toHaveBeenCalled();
     expect(mocks.runAgentResponse).toHaveBeenCalledWith(
       expect.objectContaining({
+        modelProfile: expect.objectContaining({
+          id: "model-profile-1",
+          modelName: "claude-sonnet-4-5",
+        }),
         searchableKnowledge: {
           hasReadySearchableKnowledge: true,
           totalReadyDocumentCount: 5,

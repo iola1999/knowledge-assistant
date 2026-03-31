@@ -6,7 +6,13 @@ import {
   MESSAGE_ROLE,
   MESSAGE_STATUS,
 } from "@anchordesk/contracts";
-import { conversations, getDb, messageCitations, messages } from "@anchordesk/db";
+import {
+  conversations,
+  getDb,
+  messageCitations,
+  messages,
+  resolveSelectedModelProfile,
+} from "@anchordesk/db";
 import { serializeErrorForLog } from "@anchordesk/logging";
 import { enqueueConversationResponse } from "@anchordesk/queue";
 
@@ -76,6 +82,33 @@ export async function POST(
     .where(eq(messageCitations.messageId, regeneratableTurn.assistantMessageId));
 
   const nextRunState = buildInitialStreamingAssistantRunState();
+  let selectedModelProfile;
+  try {
+    selectedModelProfile = await resolveSelectedModelProfile(
+      {
+        conversationModelProfileId: conversation.modelProfileId,
+      },
+      db,
+    );
+  } catch (error) {
+    requestLogger.warn(
+      {
+        workspaceId: conversation.workspaceId,
+        userId,
+        conversationModelProfileId: conversation.modelProfileId ?? null,
+      },
+      "conversation retry rejected because the stored model profile is unavailable",
+    );
+    return Response.json(
+      {
+        error:
+          error instanceof Error && error.message
+            ? error.message
+            : "Invalid model profile selection",
+      },
+      { status: 400 },
+    );
+  }
 
   const [assistantMessage] = await db
     .update(messages)
@@ -99,6 +132,7 @@ export async function POST(
       userMessageId: regeneratableTurn.userMessageId,
       assistantMessageId: regeneratableTurn.assistantMessageId,
       runId: nextRunState.run_id,
+      modelProfileId: selectedModelProfile.id,
       prompt: buildConversationPrompt({
         content: regeneratableTurn.promptContent,
         workspacePrompt: conversation.workspacePrompt,
@@ -119,6 +153,7 @@ export async function POST(
         userMessageId: regeneratableTurn.userMessageId,
         assistantMessageId: regeneratableTurn.assistantMessageId,
         assistantRunId: nextRunState.run_id,
+        modelProfileId: selectedModelProfile.id,
         queueJobId: queueJob.id ?? null,
         contentLength: regeneratableTurn.promptContent.length,
       },
@@ -155,6 +190,7 @@ export async function POST(
         userMessageId: regeneratableTurn.userMessageId,
         assistantMessageId: regeneratableTurn.assistantMessageId,
         assistantRunId: nextRunState.run_id,
+        modelProfileId: selectedModelProfile.id,
         errorMessage: failedAssistantState.structuredJson.agent_error,
         error: serializeErrorForLog(error),
       },

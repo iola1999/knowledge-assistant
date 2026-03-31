@@ -70,7 +70,7 @@ export function SystemSettingsForm({
         | null;
 
       if (!response.ok) {
-        message.error(body?.error ?? "保存系统设置失败");
+        message.error(body?.error ?? "保存系统参数失败");
         return;
       }
 
@@ -85,7 +85,7 @@ export function SystemSettingsForm({
       });
     } catch (error) {
       message.error(
-        error instanceof Error && error.message ? error.message : "保存系统设置失败",
+        error instanceof Error && error.message ? error.message : "保存系统参数失败",
       );
     }
   }
@@ -105,12 +105,12 @@ export function SystemSettingsForm({
 
             <div className="grid gap-4">
               <div className="px-1">
-                <h1 className="text-[1.25rem] font-semibold text-app-text">系统设置</h1>
+                <h1 className="text-[1.25rem] font-semibold text-app-text">系统参数</h1>
               </div>
 
               {hasSettings ? (
                 <div className="rounded-2xl border border-app-border bg-app-sidebar/50 p-2">
-                  <nav className="grid gap-0.5" aria-label="系统设置分组导航">
+                  <nav className="grid gap-0.5" aria-label="系统参数分组导航">
                     {visibleSections.map((section) => {
                       const totalItems = sections.find(
                         (candidate) => candidate.id === section.id,
@@ -141,7 +141,7 @@ export function SystemSettingsForm({
 
             <div className="mt-auto grid gap-2">
               <button className={buttonStyles({ block: true })} disabled={isPending} type="submit">
-                {isPending ? "刷新中..." : "保存系统设置"}
+                {isPending ? "刷新中..." : "保存系统参数"}
               </button>
             </div>
           </SettingsShellSidebar>
@@ -150,11 +150,11 @@ export function SystemSettingsForm({
         <div className="mx-auto flex w-full max-w-[980px] flex-col gap-4">
           <div className="sticky top-4 z-20 -mx-1 flex items-center justify-between gap-4 rounded-2xl border border-app-border/70 bg-white/90 px-4 py-3 shadow-soft backdrop-blur-sm">
             <h2 className="text-[1.25rem] font-semibold text-app-text">
-              运行时配置
+              运行时参数
             </h2>
 
             <label className="w-full max-w-[280px]">
-              <span className="sr-only">搜索系统设置</span>
+              <span className="sr-only">搜索系统参数</span>
               <input
                 autoComplete="off"
                 className={inputStyles({ size: "compact" })}

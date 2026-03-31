@@ -20,6 +20,7 @@ const mocks = vi.hoisted(() => {
   const enqueueConversationResponse = vi.fn();
   const auth = vi.fn();
   const requireOwnedConversation = vi.fn();
+  const resolveSelectedModelProfile = vi.fn();
   const buildConversationPrompt = vi.fn();
   const buildConversationTitleFromPrompt = vi.fn();
   const loggerChild = {
@@ -62,6 +63,7 @@ const mocks = vi.hoisted(() => {
     insertReturningQueue,
     loggerChild,
     requireOwnedConversation,
+    resolveSelectedModelProfile,
     selectExistingMessages,
     tables,
     updates,
@@ -101,6 +103,7 @@ vi.mock("@anchordesk/db", () => ({
   conversations: mocks.tables.conversations,
   getDb: () => mocks.db,
   messages: mocks.tables.messages,
+  resolveSelectedModelProfile: mocks.resolveSelectedModelProfile,
 }));
 
 let POST: typeof import("../../app/api/conversations/[conversationId]/messages/route").POST;
@@ -116,6 +119,7 @@ beforeEach(() => {
   mocks.enqueueConversationResponse.mockReset();
   mocks.auth.mockReset();
   mocks.requireOwnedConversation.mockReset();
+  mocks.resolveSelectedModelProfile.mockReset();
   mocks.buildConversationTitleFromPrompt.mockReset();
   mocks.buildConversationPrompt.mockReset();
   mocks.loggerChild.error.mockReset();
@@ -132,6 +136,10 @@ describe("POST /api/conversations/[conversationId]/messages", () => {
       id: "conversation-1",
       workspaceId: "workspace-1",
       workspacePrompt: "空间提示",
+      modelProfileId: "model-profile-1",
+    });
+    mocks.resolveSelectedModelProfile.mockResolvedValue({
+      id: "model-profile-1",
     });
     mocks.buildConversationTitleFromPrompt.mockReturnValue("总结一下");
     mocks.buildConversationPrompt.mockReturnValue("完整 prompt");
@@ -219,6 +227,7 @@ describe("POST /api/conversations/[conversationId]/messages", () => {
     expect(mocks.enqueueConversationResponse).toHaveBeenCalledWith(
       expect.objectContaining({
         assistantMessageId: "assistant-message-1",
+        modelProfileId: "model-profile-1",
         runId: expect.any(String),
       }),
     );

@@ -2,17 +2,16 @@ import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
 
 import { createReportOutlineInputSchema } from "@anchordesk/contracts";
-import { getConfiguredAnthropicApiKey } from "@anchordesk/db";
 
 import {
   buildReportOutlinePrompt,
   normalizeOutlineSections,
 } from "../report-generation";
 import {
-  getAnthropicClient,
-  getReportModel,
+  getReportModelRuntime,
   resolveEvidenceAnchors,
 } from "../report-runtime";
+import type { AssistantToolRuntimeContext } from "../runtime-context";
 import { buildToolFailure } from "../tool-output";
 
 const DEFAULT_REPORT_OUTLINE_MAX_TOKENS = 900;
@@ -37,13 +36,21 @@ const reportOutlineModelSchema = z.object({
     .max(6),
 });
 
-export async function createReportOutlineHandler(input: unknown) {
+export async function createReportOutlineHandler(
+  input: unknown,
+  context: AssistantToolRuntimeContext = {},
+) {
   const args = createReportOutlineInputSchema.parse(input);
+  let reportRuntime;
 
-  if (!getConfiguredAnthropicApiKey()) {
+  try {
+    reportRuntime = await getReportModelRuntime(context.modelProfile);
+  } catch (error) {
     return buildToolFailure(
       "REPORT_OUTLINE_NOT_CONFIGURED",
-      "Anthropic API key is not configured for report generation.",
+      error instanceof Error && error.message
+        ? error.message
+        : "Report outline model profile is not configured.",
       false,
     );
   }
@@ -54,8 +61,8 @@ export async function createReportOutlineHandler(input: unknown) {
       evidenceAnchorIds: args.evidence_anchor_ids,
       fallbackQuery: [args.title, args.task].filter(Boolean).join(" "),
     });
-    const message = await getAnthropicClient().messages.parse({
-      model: getReportModel(),
+    const message = await reportRuntime.client.messages.parse({
+      model: reportRuntime.model,
       max_tokens: DEFAULT_REPORT_OUTLINE_MAX_TOKENS,
       system: REPORT_OUTLINE_SYSTEM_PROMPT,
       messages: [

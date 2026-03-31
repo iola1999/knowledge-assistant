@@ -27,6 +27,7 @@ export type ConversationResponseJobPayload = {
   userMessageId: string;
   assistantMessageId: string;
   runId: string;
+  modelProfileId?: string;
   prompt: string;
   draftUploadId?: string | null;
 };

@@ -18,3 +18,8 @@ export type RerankProviderName = ValueOf<typeof RERANK_PROVIDER>;
 export const RERANK_PROVIDER_ALIAS = {
   LOCAL: "local",
 } as const;
+
+export const MODEL_PROFILE_API_TYPE = {
+  ANTHROPIC: "anthropic",
+} as const;
+export type ModelProfileApiType = ValueOf<typeof MODEL_PROFILE_API_TYPE>;

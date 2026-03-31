@@ -4,7 +4,12 @@ export type WorkspaceUserPanelUser = {
 };
 
 export type WorkspaceUserPanelAction = {
-  key: "account" | "global-libraries" | "system-settings" | "logout";
+  key:
+    | "account"
+    | "global-libraries"
+    | "model-management"
+    | "system-settings"
+    | "logout";
   href?: string;
   label: string;
 };
@@ -38,9 +43,14 @@ export function buildWorkspaceUserPanelState({
       label: "全局资料库",
     });
     actions.push({
+      key: "model-management",
+      href: "/admin/models",
+      label: "模型管理",
+    });
+    actions.push({
       key: "system-settings",
       href: "/settings",
-      label: "系统设置",
+      label: "系统参数",
     });
   }
 
@@ -51,7 +61,10 @@ export function buildWorkspaceUserPanelState({
 
   const accountActions = actions.filter((action) => action.key === "account");
   const adminActions = actions.filter(
-    (action) => action.key === "global-libraries" || action.key === "system-settings",
+    (action) =>
+      action.key === "global-libraries" ||
+      action.key === "model-management" ||
+      action.key === "system-settings",
   );
   const logoutAction = actions.find((action) => action.key === "logout") ?? null;
 

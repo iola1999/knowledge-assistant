@@ -7,7 +7,6 @@ import { afterEach, describe, expect, test } from "vitest";
 import {
   ASSISTANT_ALLOWED_TOOL_NAMES,
 } from "@anchordesk/contracts";
-import { getConfiguredAnthropicApiKey } from "@anchordesk/db";
 
 import {
   buildAgentSystemPrompt,
@@ -16,16 +15,9 @@ import {
   runAgentResponse,
 } from "./run-agent-response";
 
-const originalAnthropicApiKey = process.env.ANTHROPIC_API_KEY;
 const temporaryDirs: string[] = [];
 
 afterEach(async () => {
-  if (originalAnthropicApiKey === undefined) {
-    delete process.env.ANTHROPIC_API_KEY;
-  } else {
-    process.env.ANTHROPIC_API_KEY = originalAnthropicApiKey;
-  }
-
   await Promise.all(
     temporaryDirs.splice(0).map((directory) =>
       fs.rm(directory, { recursive: true, force: true }),
@@ -86,8 +78,6 @@ describe("runAgentResponse", () => {
   test.sequential(
     "fails fast when anthropic api key is missing",
     async () => {
-      delete process.env.ANTHROPIC_API_KEY;
-
       const agentWorkdir = await fs.mkdtemp(
         path.join(os.tmpdir(), "anchordesk-agent-runtime-"),
       );
@@ -99,6 +89,16 @@ describe("runAgentResponse", () => {
             prompt: "帮我总结当前空间里的资料",
             workspaceId: "workspace-1",
             conversationId: "conversation-1",
+            modelProfile: {
+              id: "model-profile-1",
+              apiType: "anthropic",
+              displayName: "Sonnet 4.5",
+              modelName: "claude-sonnet-4-5",
+              baseUrl: "https://api.anthropic.com",
+              apiKey: "",
+              enabled: true,
+              isDefault: true,
+            },
             agentWorkdir,
           },
           {
@@ -111,15 +111,6 @@ describe("runAgentResponse", () => {
           },
         ),
       ).rejects.toThrow("Anthropic API key is not configured");
-    },
-  );
-
-  test.sequential(
-    "does not special-case example anthropic api keys",
-    async () => {
-      process.env.ANTHROPIC_API_KEY = "example-anthropic-api-key";
-
-      expect(getConfiguredAnthropicApiKey()).toBe("example-anthropic-api-key");
     },
   );
 });

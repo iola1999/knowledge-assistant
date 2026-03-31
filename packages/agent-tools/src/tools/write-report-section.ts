@@ -3,22 +3,17 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { writeReportSectionInputSchema } from "@anchordesk/contracts";
-import {
-  getConfiguredAnthropicApiKey,
-  getDb,
-  reports,
-  reportSections,
-} from "@anchordesk/db";
+import { getDb, reports, reportSections } from "@anchordesk/db";
 
 import {
   buildReportSectionMarkdown,
   buildReportSectionPrompt,
 } from "../report-generation";
 import {
-  getAnthropicClient,
-  getReportModel,
+  getReportModelRuntime,
   resolveEvidenceAnchors,
 } from "../report-runtime";
+import type { AssistantToolRuntimeContext } from "../runtime-context";
 import { buildToolFailure, uniqueStrings } from "../tool-output";
 
 const DEFAULT_REPORT_SECTION_MAX_TOKENS = 1_400;
@@ -36,7 +31,10 @@ const reportSectionModelSchema = z.object({
   missing_information: z.array(z.string().trim().min(1)).default([]),
 });
 
-export async function writeReportSectionHandler(input: unknown) {
+export async function writeReportSectionHandler(
+  input: unknown,
+  context: AssistantToolRuntimeContext = {},
+) {
   const args = writeReportSectionInputSchema.parse(input);
   const db = getDb();
   const [reportSection] = await db
@@ -54,10 +52,16 @@ export async function writeReportSectionHandler(input: unknown) {
     return buildToolFailure("REPORT_SECTION_NOT_FOUND", "Report section not found.", false);
   }
 
-  if (!getConfiguredAnthropicApiKey()) {
+  let reportRuntime;
+
+  try {
+    reportRuntime = await getReportModelRuntime(context.modelProfile);
+  } catch (error) {
     return buildToolFailure(
       "REPORT_SECTION_NOT_CONFIGURED",
-      "Anthropic API key is not configured for report generation.",
+      error instanceof Error && error.message
+        ? error.message
+        : "Report section model profile is not configured.",
       false,
     );
   }
@@ -73,8 +77,8 @@ export async function writeReportSectionHandler(input: unknown) {
     const evidenceById = new Map(
       evidence.map((item) => [item.anchor_id, item] as const),
     );
-    const message = await getAnthropicClient().messages.parse({
-      model: getReportModel(),
+    const message = await reportRuntime.client.messages.parse({
+      model: reportRuntime.model,
       max_tokens: DEFAULT_REPORT_SECTION_MAX_TOKENS,
       system: REPORT_SECTION_SYSTEM_PROMPT,
       messages: [

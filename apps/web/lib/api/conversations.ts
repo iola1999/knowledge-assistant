@@ -18,6 +18,7 @@ export type WorkspaceConversationListItem = {
   id: string;
   title: string;
   status: ConversationStatus;
+  modelProfileId?: string | null;
   updatedAt: Date;
 };
 
@@ -65,6 +66,7 @@ export function appendCurrentConversationBreadcrumb(input: {
 export function applySubmittedConversationToList(input: {
   conversationId: string;
   conversations: WorkspaceConversationListItem[];
+  modelProfileId?: string | null;
   now?: Date;
   promptContent: string;
 }) {
@@ -72,11 +74,16 @@ export function applySubmittedConversationToList(input: {
   const existingConversation = input.conversations.find(
     (conversation) => conversation.id === input.conversationId,
   );
+  const resolvedModelProfileId =
+    input.modelProfileId ?? existingConversation?.modelProfileId;
   const nextConversation: WorkspaceConversationListItem = {
     id: input.conversationId,
     title:
       existingConversation?.title ?? buildConversationTitleFromPrompt(input.promptContent),
     status: existingConversation?.status ?? CONVERSATION_STATUS.ACTIVE,
+    ...(resolvedModelProfileId === undefined
+      ? {}
+      : { modelProfileId: resolvedModelProfileId ?? null }),
     updatedAt: now,
   };
 
@@ -92,16 +99,21 @@ export function applySubmittedTurnToConversationMeta(input: {
   attachmentCount: number;
   conversationId: string;
   current?: WorkspaceConversationMeta | null;
+  modelProfileId?: string | null;
   now?: Date;
   promptContent: string;
 }): WorkspaceConversationMeta {
   const now = input.now ?? new Date();
+  const resolvedModelProfileId = input.modelProfileId ?? input.current?.modelProfileId;
 
   if (!input.current || input.current.id !== input.conversationId) {
     return {
       id: input.conversationId,
       title: buildConversationTitleFromPrompt(input.promptContent),
       status: CONVERSATION_STATUS.ACTIVE,
+      ...(resolvedModelProfileId === undefined
+        ? {}
+        : { modelProfileId: resolvedModelProfileId ?? null }),
       createdAt: now,
       updatedAt: now,
       messageCount: 2,
@@ -111,6 +123,9 @@ export function applySubmittedTurnToConversationMeta(input: {
 
   return {
     ...input.current,
+    ...(resolvedModelProfileId === undefined
+      ? {}
+      : { modelProfileId: resolvedModelProfileId ?? null }),
     updatedAt: now,
     messageCount: input.current.messageCount + 2,
     attachmentCount: Math.max(input.current.attachmentCount, input.attachmentCount),

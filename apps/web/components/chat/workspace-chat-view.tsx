@@ -8,6 +8,10 @@ import { ConversationPageActions } from "@/components/chat/conversation-page-act
 import { type ComposerAttachment, type ComposerSubmittedTurn } from "@/components/chat/composer";
 import { WorkspaceEmptyConversationStage } from "@/components/chat/workspace-empty-conversation-stage";
 import { WorkspaceConversationPanel } from "@/components/chat/workspace-conversation-panel";
+import {
+  resolveInitialModelProfileId,
+  type EnabledModelProfileOption,
+} from "@/lib/api/model-profiles";
 import { type AssistantProcessMessage } from "@/lib/api/conversation-process";
 import {
   applySubmittedConversationToList,
@@ -39,6 +43,8 @@ export function WorkspaceChatView({
   initialMessages,
   initialCitations,
   initialAttachments,
+  availableModelProfiles,
+  defaultModelProfileId,
 }: {
   workspace: {
     id: string;
@@ -61,6 +67,8 @@ export function WorkspaceChatView({
   initialMessages?: ConversationChatMessage[];
   initialCitations?: ConversationMessageCitation[];
   initialAttachments?: ComposerAttachment[];
+  availableModelProfiles: EnabledModelProfileOption[];
+  defaultModelProfileId?: string | null;
 }) {
   const [conversations, setConversations] = useState(initialConversations);
   const [activeConversationId, setActiveConversationId] = useState<string | undefined>(
@@ -69,28 +77,50 @@ export function WorkspaceChatView({
   const [activeConversationMeta, setActiveConversationMeta] = useState<
     WorkspaceConversationMeta | null
   >(activeConversation ?? null);
+  const [selectedModelProfileId, setSelectedModelProfileId] = useState<string | null>(() =>
+    resolveInitialModelProfileId({
+      availableModelProfiles,
+      defaultModelProfileId,
+      preferredModelProfileId: activeConversation?.modelProfileId,
+    }),
+  );
 
   useEffect(() => {
     setConversations(initialConversations);
     setActiveConversationId(activeConversation?.id);
     setActiveConversationMeta(activeConversation ?? null);
-  }, [activeConversation, initialConversations]);
+    setSelectedModelProfileId(
+      resolveInitialModelProfileId({
+        availableModelProfiles,
+        defaultModelProfileId,
+        preferredModelProfileId: activeConversation?.modelProfileId,
+      }),
+    );
+  }, [
+    activeConversation,
+    availableModelProfiles,
+    defaultModelProfileId,
+    initialConversations,
+  ]);
 
   function handleSubmittedTurn(turn: ComposerSubmittedTurn) {
     setConversations((current) =>
       applySubmittedConversationToList({
         conversations: current,
         conversationId: turn.conversationId,
+        modelProfileId: turn.modelProfileId,
         promptContent: turn.userMessage.contentMarkdown,
       }),
     );
     setActiveConversationId(turn.conversationId);
+    setSelectedModelProfileId(turn.modelProfileId);
     setActiveConversationMeta((current) =>
       applySubmittedTurnToConversationMeta({
         current,
         conversationId: turn.conversationId,
         promptContent: turn.userMessage.contentMarkdown,
         attachmentCount: turn.attachments.length,
+        modelProfileId: turn.modelProfileId,
       }),
     );
   }
@@ -163,6 +193,9 @@ export function WorkspaceChatView({
           initialMessages={initialMessages ?? []}
           initialCitations={initialCitations ?? []}
           initialAttachments={initialAttachments ?? []}
+          availableModelProfiles={availableModelProfiles}
+          selectedModelProfileId={selectedModelProfileId}
+          onSelectedModelProfileIdChange={setSelectedModelProfileId}
           onSubmittedTurn={handleSubmittedTurn}
           onAssistantTerminalEvent={handleAssistantTerminalEvent}
         />
@@ -170,6 +203,8 @@ export function WorkspaceChatView({
         <WorkspaceEmptyConversationStage
           workspaceId={workspaceId}
           workspaceTitle={workspace.title}
+          availableModelProfiles={availableModelProfiles}
+          defaultModelProfileId={defaultModelProfileId}
           onSubmittedTurn={handleSubmittedTurn}
           onAssistantTerminalEvent={handleAssistantTerminalEvent}
         />
