@@ -295,6 +295,23 @@ export function RegenerateIcon({
   );
 }
 
+export function CheckIcon({
+  className,
+  strokeWidth = 1.8,
+  ...props
+}: IconProps) {
+  return (
+    <IconBase
+      className={cn("size-4", className)}
+      stroke="currentColor"
+      strokeWidth={strokeWidth}
+      {...props}
+    >
+      <path d="m5.75 10 2.6 2.6 5.9-5.95" strokeLinecap="round" strokeLinejoin="round" />
+    </IconBase>
+  );
+}
+
 export function ShieldCheckIcon({
   className,
   strokeWidth = 1.7,

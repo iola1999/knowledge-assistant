@@ -65,6 +65,15 @@ export function formatEnabledModelProfileLabel(
   return `${displayName} · ${modelName}`;
 }
 
+export function formatUserFacingModelProfileLabel(
+  profile: Pick<EnabledModelProfileOption, "displayName" | "modelName">,
+) {
+  const displayName = profile.displayName.trim();
+  const modelName = profile.modelName.trim();
+
+  return displayName || modelName;
+}
+
 export function resolveInitialModelProfileId(input: {
   availableModelProfiles: EnabledModelProfileOption[];
   defaultModelProfileId?: string | null;

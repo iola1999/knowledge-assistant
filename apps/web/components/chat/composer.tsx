@@ -2,9 +2,20 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useId, useRef, useState, useTransition } from "react";
 
-import { ArrowUpIcon, PlusIcon, StopIcon } from "@/components/icons";
+import {
+  ArrowUpIcon,
+  CheckIcon,
+  ChevronDownIcon,
+  PlusIcon,
+  StopIcon,
+} from "@/components/icons";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/shared/popover";
 import {
   COMPOSER_ATTACHMENT_STATUS,
   canSubmitWithAttachments,
@@ -24,12 +35,12 @@ import {
 } from "@/lib/api/composer";
 import { computeFileSha256 } from "@/lib/api/file-digests";
 import {
-  formatEnabledModelProfileLabel,
+  formatUserFacingModelProfileLabel,
   type EnabledModelProfileOption,
 } from "@/lib/api/model-profiles";
 import { SUPPORTED_UPLOAD_ACCEPT } from "@/lib/api/upload-policy";
 import { conversationDensityClassNames } from "@/lib/conversation-density";
-import { buttonStyles, cn, selectStyles, ui } from "@/lib/ui";
+import { buttonStyles, cn, menuItemStyles, ui } from "@/lib/ui";
 import type { ConversationChatMessage } from "@/lib/api/conversation-session";
 
 export type ComposerAttachment = {
@@ -92,6 +103,132 @@ function mergeAttachments(
 
   return Array.from(merged.values()).sort((left, right) =>
     left.sourceFilename.localeCompare(right.sourceFilename, "zh-CN"),
+  );
+}
+
+function ModelProfileSelector({
+  availableModelProfiles,
+  currentModelProfileId,
+  className,
+  onChange,
+}: {
+  availableModelProfiles: EnabledModelProfileOption[];
+  currentModelProfileId: string | null;
+  className?: string;
+  onChange?: (modelProfileId: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const menuId = useId();
+  const selectedProfile =
+    availableModelProfiles.find((profile) => profile.id === currentModelProfileId) ??
+    availableModelProfiles[0] ??
+    null;
+
+  if (!selectedProfile) {
+    return null;
+  }
+
+  return (
+    <Popover
+      open={open}
+      onOpenChange={setOpen}
+      placement="top-start"
+      sideOffset={10}
+      collisionPadding={12}
+    >
+      <div className={cn("min-w-0 max-w-full overflow-visible", className)}>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            aria-controls={menuId}
+            aria-expanded={open}
+            aria-haspopup="menu"
+            className={cn(
+              "inline-flex h-9 min-w-0 max-w-full items-center gap-2 rounded-full border border-app-border/90 bg-app-surface-soft/92 pl-2.5 pr-3 text-[13px] font-medium text-app-muted-strong transition-[background-color,border-color,color,transform,box-shadow] duration-200 [transition-timing-function:var(--ease-out-quart)] hover:-translate-y-px hover:border-app-border-strong hover:bg-white hover:text-app-text focus:outline-none focus:ring-4 focus:ring-app-accent/10",
+              open && "border-app-border-strong bg-white text-app-text shadow-sm",
+            )}
+          >
+            <span className="flex size-4 shrink-0 items-center justify-center rounded-full bg-app-surface-strong text-app-accent">
+              <span className="size-1.5 rounded-full bg-current" />
+            </span>
+            <span className="truncate">
+              {formatUserFacingModelProfileLabel(selectedProfile)}
+            </span>
+            <ChevronDownIcon
+              className={cn(
+                "size-3.5 shrink-0 text-app-muted transition-transform duration-200 [transition-timing-function:var(--ease-out-quart)]",
+                open && "rotate-180 text-app-text",
+              )}
+              aria-hidden="true"
+            />
+          </button>
+        </PopoverTrigger>
+
+        <PopoverContent
+          id={menuId}
+          role="menu"
+          aria-label="选择当前会话模型"
+          className="animate-soft-enter z-40 w-[min(320px,calc(100vw-24px))] overflow-hidden"
+        >
+          <div className="px-3 pb-1 pt-2.5">
+            <p className={ui.eyebrow}>Model</p>
+            <h2 className="mt-1 text-[15px] font-semibold text-app-text">选择模型</h2>
+          </div>
+
+          <div className="mx-2 my-1.5 h-px bg-app-border/70" />
+
+          <div className="grid gap-1 pb-0.5 pt-0.5">
+            {availableModelProfiles.map((profile) => {
+              const isSelected = profile.id === selectedProfile.id;
+
+              return (
+                <button
+                  key={profile.id}
+                  type="button"
+                  role="menuitemradio"
+                  aria-checked={isSelected}
+                  className={cn(
+                    "flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left transition",
+                    menuItemStyles({ selected: isSelected }),
+                  )}
+                  onClick={() => {
+                    if (!isSelected) {
+                      onChange?.(profile.id);
+                    }
+                    setOpen(false);
+                  }}
+                >
+                  <span
+                    className={cn(
+                      "grid size-7 shrink-0 place-items-center rounded-full border transition",
+                      isSelected
+                        ? "border-app-border-strong bg-app-surface-strong text-app-text"
+                        : "border-app-border/80 bg-white text-app-muted",
+                    )}
+                  >
+                    {isSelected ? (
+                      <CheckIcon
+                        className="size-[15px]"
+                        strokeWidth={1.9}
+                        aria-hidden="true"
+                      />
+                    ) : (
+                      <span className="size-1.5 rounded-full bg-current/50" />
+                    )}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate text-[14px] font-medium">
+                    {formatUserFacingModelProfileLabel(profile)}
+                  </span>
+                  {profile.isDefault ? (
+                    <span className={cn(ui.chip, "shrink-0")}>默认</span>
+                  ) : null}
+                </button>
+              );
+            })}
+          </div>
+        </PopoverContent>
+      </div>
+    </Popover>
   );
 }
 
@@ -638,22 +775,12 @@ export function Composer({
     }
 
     return (
-      <label className={cn("grid gap-1", className)}>
-        <span className="text-[11px] font-medium uppercase tracking-[0.12em] text-app-muted">
-          模型
-        </span>
-        <select
-          className={cn(selectStyles({ size: "compact" }), "bg-white/92")}
-          value={currentModelProfileId}
-          onChange={(event) => onSelectedModelProfileIdChange?.(event.target.value)}
-        >
-          {availableModelProfiles.map((profile) => (
-            <option key={profile.id} value={profile.id}>
-              {formatEnabledModelProfileLabel(profile)}
-            </option>
-          ))}
-        </select>
-      </label>
+      <ModelProfileSelector
+        className={className}
+        availableModelProfiles={availableModelProfiles}
+        currentModelProfileId={currentModelProfileId}
+        onChange={onSelectedModelProfileIdChange}
+      />
     );
   }
 
@@ -713,7 +840,7 @@ export function Composer({
                     <PlusIcon className="size-5" aria-hidden="true" />
                   </button>
                 ) : null}
-                {renderModelSelector("min-w-[210px] flex-1 max-w-[320px]")}
+                {renderModelSelector("min-w-0 max-w-full flex-1")}
               </div>
               <button
                 className={cn(

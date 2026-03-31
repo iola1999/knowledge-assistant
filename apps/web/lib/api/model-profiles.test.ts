@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 
 import {
   formatEnabledModelProfileLabel,
+  formatUserFacingModelProfileLabel,
   isVisibleSystemSettingKey,
   modelProfileMutationSchema,
   resolveInitialModelProfileId,
@@ -20,6 +21,26 @@ describe("formatEnabledModelProfileLabel", () => {
   test("falls back to the model name when the display name is empty", () => {
     expect(
       formatEnabledModelProfileLabel({
+        displayName: "   ",
+        modelName: "claude-sonnet-4-5",
+      }),
+    ).toBe("claude-sonnet-4-5");
+  });
+});
+
+describe("formatUserFacingModelProfileLabel", () => {
+  test("shows only the display name for user-facing model pickers", () => {
+    expect(
+      formatUserFacingModelProfileLabel({
+        displayName: "Claude Sonnet 4.5",
+        modelName: "claude-sonnet-4-5",
+      }),
+    ).toBe("Claude Sonnet 4.5");
+  });
+
+  test("falls back to the model name when the display name is empty", () => {
+    expect(
+      formatUserFacingModelProfileLabel({
         displayName: "   ",
         modelName: "claude-sonnet-4-5",
       }),
