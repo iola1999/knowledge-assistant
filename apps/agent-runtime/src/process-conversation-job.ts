@@ -5,11 +5,14 @@ import {
   buildAssistantFailedMessageState,
   buildRunFailedToolMessageState,
   CONVERSATION_STREAM_EVENT,
+  finalizeStreamingAssistantRunState,
   GROUNDED_EVIDENCE_KIND,
   MESSAGE_ROLE,
   MESSAGE_STATUS,
+  readStreamingAssistantRunState,
   STREAMING_ASSISTANT_HEARTBEAT_INTERVAL_MS,
   TOOL_TIMELINE_STATE,
+  buildInitialStreamingAssistantRunState,
   normalizeConversationFailureMessage,
   refreshStreamingAssistantRunState,
   updateStreamingAssistantRunState,
@@ -142,6 +145,8 @@ function buildToolProgressEvent(input: {
 
 async function insertToolMessage(input: {
   conversationId: string;
+  assistantMessageId: string;
+  assistantRunId: string;
   toolName: string;
   state: ToolTimelineState;
   error?: string | null;
@@ -150,6 +155,8 @@ async function insertToolMessage(input: {
   toolUseId?: string | null;
 }) {
   const timeline = buildToolTimelineMessage({
+    assistantMessageId: input.assistantMessageId,
+    assistantRunId: input.assistantRunId,
     toolName: input.toolName,
     state: input.state,
     error: input.error ?? null,
@@ -185,6 +192,38 @@ async function insertToolMessage(input: {
           (message.structuredJson as Record<string, unknown> | null | undefined) ?? null,
       }
     : null;
+}
+
+function buildFailedAssistantStateForRun(input: {
+  error: unknown;
+  runState: Record<string, unknown> | null | undefined;
+}) {
+  const failedAssistantState = buildAssistantFailedMessageState(input.error);
+
+  return {
+    ...failedAssistantState,
+    structuredJson: {
+      ...finalizeStreamingAssistantRunState(input.runState),
+      ...failedAssistantState.structuredJson,
+    },
+  };
+}
+
+function buildRunFailedToolStateForRun(input: {
+  error: unknown;
+  assistantMessageId: string;
+  assistantRunId: string;
+}) {
+  const failedToolState = buildRunFailedToolMessageState(input.error);
+
+  return {
+    ...failedToolState,
+    structuredJson: {
+      ...failedToolState.structuredJson,
+      assistant_message_id: input.assistantMessageId,
+      assistant_run_id: input.assistantRunId,
+    },
+  };
 }
 
 async function updateStreamingAssistantSnapshot(input: {
@@ -362,13 +401,23 @@ export async function processConversationResponseJob(
   if (
     !conversation ||
     !assistantMessage ||
-    assistantMessage.status !== MESSAGE_STATUS.STREAMING
+    assistantMessage.status !== MESSAGE_STATUS.STREAMING ||
+    (readStreamingAssistantRunState(
+      (assistantMessage.structuredJson as Record<string, unknown> | null | undefined) ?? null,
+    )?.run_id ??
+      payload.runId) !== payload.runId
   ) {
     jobLogger.debug(
       {
         conversationFound: Boolean(conversation),
         assistantMessageFound: Boolean(assistantMessage),
         assistantStatus: assistantMessage?.status ?? null,
+        assistantRunId:
+          readStreamingAssistantRunState(
+            (assistantMessage?.structuredJson as Record<string, unknown> | null | undefined) ??
+              null,
+          )?.run_id ?? null,
+        payloadRunId: payload.runId,
       },
       "skipping conversation response job",
     );
@@ -389,6 +438,7 @@ export async function processConversationResponseJob(
       const [currentAssistantMessage] = await db
         .select({
           status: messages.status,
+          structuredJson: messages.structuredJson,
         })
         .from(messages)
         .where(
@@ -398,8 +448,15 @@ export async function processConversationResponseJob(
           ),
         )
         .limit(1);
+      const currentRunId = readStreamingAssistantRunState(
+        (currentAssistantMessage?.structuredJson as Record<string, unknown> | null | undefined) ??
+          null,
+      )?.run_id;
 
-      if (currentAssistantMessage?.status !== MESSAGE_STATUS.STREAMING) {
+      if (
+        currentAssistantMessage?.status !== MESSAGE_STATUS.STREAMING ||
+        (currentRunId && currentRunId !== payload.runId)
+      ) {
         throw new AssistantRunStoppedError(payload.assistantMessageId);
       }
     }
@@ -407,15 +464,19 @@ export async function processConversationResponseJob(
     let streamedAssistantText = "";
     let lastPersistedAssistantText = assistantMessage.contentMarkdown;
     let lastPersistedAt = 0;
-    let currentRunState = refreshStreamingAssistantRunState(
-      (assistantMessage.structuredJson as Record<string, unknown> | null | undefined) ??
-        null,
-    );
+    let currentRunState =
+      readStreamingAssistantRunState(
+        (assistantMessage.structuredJson as Record<string, unknown> | null | undefined) ?? null,
+      ) ??
+      buildInitialStreamingAssistantRunState({
+        runId: payload.runId,
+      });
 
     async function publishConversationEvent(event: ConversationStreamEvent) {
       try {
         return await appendConversationStreamEvent({
           assistantMessageId: payload.assistantMessageId,
+          runId: payload.runId,
           event,
         });
       } catch (streamError) {
@@ -514,6 +575,8 @@ export async function processConversationResponseJob(
       await assertAssistantMessageStillStreaming();
       const inserted = await insertToolMessage({
         conversationId: payload.conversationId,
+        assistantMessageId: payload.assistantMessageId,
+        assistantRunId: payload.runId,
         toolName: input.toolName,
         state: input.state,
         error: input.error ?? null,
@@ -604,7 +667,7 @@ export async function processConversationResponseJob(
         buildAnswerDeltaEvent({
           conversationId: payload.conversationId,
           assistantMessageId: payload.assistantMessageId,
-          contentMarkdown: nextText,
+          contentMarkdown: input.deltaText ? "" : nextText,
           deltaText: input.deltaText ?? null,
         }),
       );
@@ -795,12 +858,13 @@ export async function processConversationResponseJob(
         statusText: "正在生成最终答案...",
       });
       await assertAssistantMessageStillStreaming();
+      let terminalRunState = finalizeStreamingAssistantRunState(currentRunState);
       await db
         .update(messages)
         .set({
           status: MESSAGE_STATUS.COMPLETED,
           contentMarkdown: groundedAnswerResult.groundedAnswer.answer_markdown,
-          structuredJson: null,
+          structuredJson: terminalRunState,
         })
         .where(eq(messages.id, payload.assistantMessageId));
 
@@ -810,13 +874,13 @@ export async function processConversationResponseJob(
         citations: groundedAnswerResult.groundedAnswer.citations,
       });
 
-      await publishConversationEvent({
+      const answerDoneEventId = await publishConversationEvent({
         type: CONVERSATION_STREAM_EVENT.ANSWER_DONE,
         conversation_id: payload.conversationId,
         message_id: payload.assistantMessageId,
         status: MESSAGE_STATUS.COMPLETED,
         content_markdown: groundedAnswerResult.groundedAnswer.answer_markdown,
-        structured: null,
+        structured: terminalRunState,
         citations: citationRows.map((citation) => ({
           id: citation.id,
           anchor_id: citation.anchorId ?? null,
@@ -830,6 +894,16 @@ export async function processConversationResponseJob(
           source_title: citation.sourceTitle ?? null,
         })),
       });
+      if (answerDoneEventId) {
+        terminalRunState = finalizeStreamingAssistantRunState(terminalRunState, {
+          streamEventId: answerDoneEventId,
+        });
+        await updateStreamingAssistantSnapshot({
+          assistantMessageId: payload.assistantMessageId,
+          structuredJson: terminalRunState,
+        });
+      }
+      currentRunState = terminalRunState;
 
       jobLogger.info(
         {
@@ -855,8 +929,22 @@ export async function processConversationResponseJob(
       return;
     }
 
-    const failedAssistantState = buildAssistantFailedMessageState(error);
-    const failedToolState = buildRunFailedToolMessageState(error);
+    let currentRunState =
+      readStreamingAssistantRunState(
+        (assistantMessage.structuredJson as Record<string, unknown> | null | undefined) ?? null,
+      ) ??
+      buildInitialStreamingAssistantRunState({
+        runId: payload.runId,
+      });
+    let failedAssistantState = buildFailedAssistantStateForRun({
+      error,
+      runState: currentRunState,
+    });
+    const failedToolState = buildRunFailedToolStateForRun({
+      error,
+      assistantMessageId: payload.assistantMessageId,
+      assistantRunId: payload.runId,
+    });
 
     const [failedToolMessage] = await db
       .insert(messages)
@@ -881,6 +969,7 @@ export async function processConversationResponseJob(
     if (failedToolMessage) {
       await appendConversationStreamEvent({
         assistantMessageId: payload.assistantMessageId,
+        runId: payload.runId,
         event: buildToolMessageEvent({
           message: {
             id: failedToolMessage.id,
@@ -897,8 +986,9 @@ export async function processConversationResponseJob(
       }).catch(() => null);
     }
 
-    await appendConversationStreamEvent({
+    const runFailedEventId = await appendConversationStreamEvent({
       assistantMessageId: payload.assistantMessageId,
+      runId: payload.runId,
       event: {
         type: CONVERSATION_STREAM_EVENT.RUN_FAILED,
         conversation_id: payload.conversationId,
@@ -910,6 +1000,22 @@ export async function processConversationResponseJob(
         error: failedAssistantState.structuredJson.agent_error,
       },
     }).catch(() => null);
+    if (runFailedEventId) {
+      currentRunState = finalizeStreamingAssistantRunState(currentRunState, {
+        streamEventId: runFailedEventId,
+      });
+      failedAssistantState = {
+        ...failedAssistantState,
+        structuredJson: {
+          ...currentRunState,
+          ...(failedAssistantState.structuredJson ?? {}),
+        },
+      };
+      await db
+        .update(messages)
+        .set(failedAssistantState)
+        .where(eq(messages.id, payload.assistantMessageId));
+    }
 
     jobLogger.error(
       {

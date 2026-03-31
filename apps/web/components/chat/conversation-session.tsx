@@ -454,7 +454,9 @@ export function ConversationSession({
             ? {
                 ...message,
                 status: payload.status,
-                contentMarkdown: payload.content_markdown,
+                contentMarkdown: payload.delta_text
+                  ? `${message.contentMarkdown}${payload.delta_text}`
+                  : payload.content_markdown,
               }
             : message,
         );
@@ -648,7 +650,10 @@ export function ConversationSession({
         method: "POST",
       });
       const body = (await response.json().catch(() => null)) as
-        | { error?: string }
+        | {
+            error?: string;
+            assistantMessage?: ConversationChatMessage;
+          }
         | null;
 
       if (!response.ok) {
@@ -659,6 +664,7 @@ export function ConversationSession({
 
       const nextSnapshot = restartAssistantSessionSnapshotForRetry({
         assistantMessageId: messageId,
+        nextAssistantMessage: body?.assistantMessage ?? null,
         citations: messageCitationsRef.current,
         messages: chatMessagesRef.current,
         timelineMessagesByAssistant: timelineMessagesByAssistantRef.current,

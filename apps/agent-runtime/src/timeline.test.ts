@@ -14,6 +14,8 @@ describe("buildToolTimelineMessage", () => {
   it("builds started messages for tool timeline", () => {
     expect(
       buildToolTimelineMessage({
+        assistantMessageId: "assistant-1",
+        assistantRunId: "run-1",
         toolName: ASSISTANT_MCP_TOOL.SEARCH_WORKSPACE_KNOWLEDGE,
         state: TOOL_TIMELINE_STATE.STARTED,
         toolInput: { query: "总结一下" },
@@ -22,6 +24,8 @@ describe("buildToolTimelineMessage", () => {
     ).toEqual({
       contentMarkdown: `开始调用工具：${ASSISTANT_TOOL.SEARCH_WORKSPACE_KNOWLEDGE}`,
       structuredJson: {
+        assistant_message_id: "assistant-1",
+        assistant_run_id: "run-1",
         timeline_event: TIMELINE_EVENT.TOOL_STARTED,
         tool_name: ASSISTANT_TOOL.SEARCH_WORKSPACE_KNOWLEDGE,
         tool_input: {
@@ -37,6 +41,8 @@ describe("buildToolTimelineMessage", () => {
   it("builds failed messages with error details", () => {
     expect(
       buildToolTimelineMessage({
+        assistantMessageId: "assistant-1",
+        assistantRunId: "run-1",
         toolName: ASSISTANT_TOOL.SEARCH_WEB_GENERAL,
         state: TOOL_TIMELINE_STATE.FAILED,
         error: "provider unavailable",
@@ -46,6 +52,8 @@ describe("buildToolTimelineMessage", () => {
     ).toEqual({
       contentMarkdown: `工具执行失败：${ASSISTANT_TOOL.SEARCH_WEB_GENERAL} · provider unavailable`,
       structuredJson: {
+        assistant_message_id: "assistant-1",
+        assistant_run_id: "run-1",
         timeline_event: TIMELINE_EVENT.TOOL_FAILED,
         tool_name: ASSISTANT_TOOL.SEARCH_WEB_GENERAL,
         error: "provider unavailable",
@@ -62,6 +70,8 @@ describe("buildToolTimelineMessage", () => {
   it("builds completed messages for finished tools", () => {
     expect(
       buildToolTimelineMessage({
+        assistantMessageId: "assistant-1",
+        assistantRunId: "run-1",
         toolName: `${ASSISTANT_COMPAT_TOOL_PREFIX}${ASSISTANT_TOOL.READ_CITATION_ANCHOR}`,
         state: TOOL_TIMELINE_STATE.COMPLETED,
         toolInput: { anchor_id: "anchor-1" },
@@ -83,6 +93,8 @@ describe("buildToolTimelineMessage", () => {
     ).toEqual({
       contentMarkdown: `工具执行完成：${ASSISTANT_TOOL.READ_CITATION_ANCHOR}`,
       structuredJson: {
+        assistant_message_id: "assistant-1",
+        assistant_run_id: "run-1",
         timeline_event: TIMELINE_EVENT.TOOL_FINISHED,
         tool_name: ASSISTANT_TOOL.READ_CITATION_ANCHOR,
         tool_input: {

@@ -103,6 +103,18 @@ describe("POST /api/conversations/[conversationId]/stop", () => {
     mocks.latestStreamingAssistants.push({
       id: "assistant-1",
       contentMarkdown: "已经生成的前半段",
+      structuredJson: {
+        run_id: "run-1",
+        run_started_at: "2026-03-31T10:00:00.000Z",
+        run_last_heartbeat_at: "2026-03-31T10:00:10.000Z",
+        run_lease_expires_at: "2026-03-31T10:00:55.000Z",
+        phase: "drafting",
+        status_text: "助手正在生成回答草稿...",
+        stream_event_id: "1743328800000-0",
+        active_tool_name: null,
+        active_tool_use_id: null,
+        active_task_id: null,
+      },
     });
     mocks.updateReturningQueue.push(
       [
@@ -111,7 +123,9 @@ describe("POST /api/conversations/[conversationId]/stop", () => {
           role: MESSAGE_ROLE.ASSISTANT,
           status: MESSAGE_STATUS.COMPLETED,
           contentMarkdown: "已经生成的前半段",
-          structuredJson: null,
+          structuredJson: {
+            run_id: "run-1",
+          },
         },
       ],
       [],
@@ -143,11 +157,15 @@ describe("POST /api/conversations/[conversationId]/stop", () => {
       expect.arrayContaining([
         expect.objectContaining({
           table: mocks.tables.messages,
-          values: {
+          values: expect.objectContaining({
             contentMarkdown: "已经生成的前半段",
             status: MESSAGE_STATUS.COMPLETED,
-            structuredJson: null,
-          },
+            structuredJson: expect.objectContaining({
+              run_id: "run-1",
+              phase: null,
+              status_text: null,
+            }),
+          }),
         }),
         expect.objectContaining({
           table: mocks.tables.conversations,

@@ -26,6 +26,7 @@ export type ConversationResponseJobPayload = {
   conversationId: string;
   userMessageId: string;
   assistantMessageId: string;
+  runId: string;
   prompt: string;
   draftUploadId?: string | null;
 };
@@ -166,7 +167,7 @@ export async function enqueueConversationResponse(
   const queue = createQueue(QUEUE_NAMES.respond);
 
   return queue.add(QUEUE_NAMES.respond, payload, {
-    jobId: buildQueueJobId(payload.assistantMessageId, "respond"),
+    jobId: buildQueueJobId(payload.assistantMessageId, payload.runId, "respond"),
     removeOnComplete: DEFAULT_QUEUE_JOB_RETENTION_LIMIT,
     removeOnFail: DEFAULT_QUEUE_JOB_RETENTION_LIMIT,
     ...options,

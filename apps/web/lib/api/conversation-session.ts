@@ -168,20 +168,26 @@ export function resolveConversationStreamingAssistantMessageId(input: {
 
 export function restartAssistantMessageForRetry(input: {
   assistantMessageId: string;
+  nextAssistantMessage?: ConversationChatMessage | null;
   citations: ConversationMessageCitation[];
   messages: ConversationChatMessage[];
   now?: Date;
 }) {
   const nextMessages = input.messages.map((message) =>
     message.id === input.assistantMessageId
-      ? {
-          ...message,
-          status: MESSAGE_STATUS.STREAMING,
-          contentMarkdown: "",
-          structuredJson: buildInitialStreamingAssistantRunState({
-            now: input.now,
-          }),
-        }
+      ? (input.nextAssistantMessage
+          ? {
+              ...message,
+              ...input.nextAssistantMessage,
+            }
+          : {
+              ...message,
+              status: MESSAGE_STATUS.STREAMING,
+              contentMarkdown: "",
+              structuredJson: buildInitialStreamingAssistantRunState({
+                now: input.now,
+              }),
+            })
       : message,
   );
 
@@ -195,6 +201,7 @@ export function restartAssistantMessageForRetry(input: {
 
 export function restartAssistantSessionSnapshotForRetry(input: {
   assistantMessageId: string;
+  nextAssistantMessage?: ConversationChatMessage | null;
   citations: ConversationMessageCitation[];
   messages: ConversationChatMessage[];
   now?: Date;
@@ -202,6 +209,7 @@ export function restartAssistantSessionSnapshotForRetry(input: {
 }) {
   const nextState = restartAssistantMessageForRetry({
     assistantMessageId: input.assistantMessageId,
+    nextAssistantMessage: input.nextAssistantMessage ?? null,
     citations: input.citations,
     messages: input.messages,
     now: input.now,

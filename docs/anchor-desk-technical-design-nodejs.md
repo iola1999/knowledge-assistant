@@ -109,6 +109,7 @@ flowchart LR
 - `conversation.respond` 当前支持通过 `agent_runtime_respond_worker_concurrency` 调整 BullMQ worker 并发，便于在同一进程内并行处理多条会话回答。
 - `Agent Runtime` 现在会显式开启 Claude Agent SDK `includePartialMessages`，同时消费 assistant text delta、`tool_progress`、`task_started` / `task_progress` 与 `system/status`，把它们统一收口为会话 live event。
 - `Agent Runtime` 当前会先流式产出 agent draft，再进入 `grounded final answer` 阶段继续流式生成最终答案；前端会通过 phase/status 文案区分“分析中 / 调工具 / 草稿中 / 最终答案生成中”。
+- live conversation stream 已进一步收口为 `assistant_message_id + run_id` 作用域：重试同一条 assistant message 时会生成新的 `run_id`，Redis Streams、BullMQ job、tool timeline 和 SSE fallback 都只消费当前 run，避免旧 run 事件或旧 tool timeline 回灌到新一轮回答。
 - 当本地缺少 `ANTHROPIC_API_KEY` 时，`Agent Runtime` 会直接失败，并通过既有 `run_failed` / assistant failed 链路把错误返回前端。
 - Agent 工具调用事件仍会以 `messages.role = "tool"` 持久化到数据库；但 `/api/conversations/[conversationId]/stream` 现已切到“DB 快照 + Redis Streams live transport”模型，不再以数据库轮询作为主流式通道。同一路 SSE 会推送 `assistant_status` / `tool_progress` / `tool_message` / `answer_delta` / `answer_done` / `run_failed`。
 - 发送新消息后，前端会先本地插入新的 user turn 与 assistant placeholder，然后再由 SSE 接上工具时间线和回答流式更新；如果这是首条消息创建新会话，前端会先切进本地线程，再在后台补上 URL 切换。
@@ -135,6 +136,7 @@ flowchart LR
 
 - 当前主会话链路已切到 token 级 live transport：`agent-runtime` 发布 Redis Streams 会话事件，Web SSE 直接转发 assistant delta / progress / status；数据库退回为快照恢复、授权与终态真相源。
 - 当前“停止生成”是基于数据库状态的协作式收口，不是 provider-side cancel；外部模型请求可能仍在后台跑完，只是不再继续写回当前消息。
+- `grounded final answer` 现在采用 fail-closed 语义：最终答案渲染缺 key、流式调用失败或模型阶段报错时，整轮回答会显式进入 `run_failed` / assistant failed，而不是静默回退为未校验 draft 成功态。
 - 主会话链路的 completed/failed 收尾体验已补到“终态事件先切本地最终态 + 当前会话继续发送/首条消息创建新会话/最新失败回答重试都可本地恢复 streaming”，侧栏与页头的核心 meta 也能跟随提交和终态事件同步本地状态；更完整的失败恢复路径仍需要继续收口。
 - 证据展示已从“标签计数”推进到“标签 + 引用摘录”，但更完整的 evidence dossier、claim-to-evidence 映射和分享页最终态联动仍未完成。
 - 当前正文内联引用仍依赖 final-answer 模型按约定输出 citation token；应用层已补 sources fallback，但当模型忽略 token 语法时，正文角标可能缺失。

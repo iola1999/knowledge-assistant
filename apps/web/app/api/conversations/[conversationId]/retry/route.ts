@@ -1,7 +1,8 @@
 import { and, desc, eq, ne } from "drizzle-orm";
 import {
-  buildInitialStreamingAssistantRunState,
   buildAssistantFailedMessageState,
+  buildInitialStreamingAssistantRunState,
+  finalizeStreamingAssistantRunState,
   MESSAGE_ROLE,
   MESSAGE_STATUS,
 } from "@anchordesk/contracts";
@@ -74,20 +75,30 @@ export async function POST(
     .delete(messageCitations)
     .where(eq(messageCitations.messageId, regeneratableTurn.assistantMessageId));
 
-  await db
+  const nextRunState = buildInitialStreamingAssistantRunState();
+
+  const [assistantMessage] = await db
     .update(messages)
     .set({
       status: MESSAGE_STATUS.STREAMING,
       contentMarkdown: "",
-      structuredJson: buildInitialStreamingAssistantRunState(),
+      structuredJson: nextRunState,
     })
-    .where(eq(messages.id, regeneratableTurn.assistantMessageId));
+    .where(eq(messages.id, regeneratableTurn.assistantMessageId))
+    .returning({
+      id: messages.id,
+      role: messages.role,
+      status: messages.status,
+      contentMarkdown: messages.contentMarkdown,
+      structuredJson: messages.structuredJson,
+    });
 
   try {
     const queueJob = await enqueueConversationResponse({
       conversationId,
       userMessageId: regeneratableTurn.userMessageId,
       assistantMessageId: regeneratableTurn.assistantMessageId,
+      runId: nextRunState.run_id,
       prompt: buildConversationPrompt({
         content: regeneratableTurn.promptContent,
         workspacePrompt: conversation.workspacePrompt,
@@ -107,6 +118,7 @@ export async function POST(
         userId,
         userMessageId: regeneratableTurn.userMessageId,
         assistantMessageId: regeneratableTurn.assistantMessageId,
+        assistantRunId: nextRunState.run_id,
         queueJobId: queueJob.id ?? null,
         contentLength: regeneratableTurn.promptContent.length,
       },
@@ -116,16 +128,24 @@ export async function POST(
     return Response.json(
       {
         assistantMessageId: regeneratableTurn.assistantMessageId,
+        assistantMessage,
         userMessageId: regeneratableTurn.userMessageId,
       },
       { status: 202 },
     );
   } catch (error) {
     const failedAssistantState = buildAssistantFailedMessageState(error);
+    const failedAssistantStateWithRun = {
+      ...failedAssistantState,
+      structuredJson: {
+        ...finalizeStreamingAssistantRunState(nextRunState),
+        ...failedAssistantState.structuredJson,
+      },
+    };
 
     await db
       .update(messages)
-      .set(failedAssistantState)
+      .set(failedAssistantStateWithRun)
       .where(eq(messages.id, regeneratableTurn.assistantMessageId));
 
     requestLogger.error(
@@ -134,6 +154,7 @@ export async function POST(
         userId,
         userMessageId: regeneratableTurn.userMessageId,
         assistantMessageId: regeneratableTurn.assistantMessageId,
+        assistantRunId: nextRunState.run_id,
         errorMessage: failedAssistantState.structuredJson.agent_error,
         error: serializeErrorForLog(error),
       },

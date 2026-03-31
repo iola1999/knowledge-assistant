@@ -379,15 +379,76 @@ describe("restartAssistantMessageForRetry", () => {
       }),
     ).toEqual({
       messages: [
+        expect.objectContaining({
+          id: "assistant-1",
+          role: MESSAGE_ROLE.ASSISTANT,
+          status: MESSAGE_STATUS.STREAMING,
+          contentMarkdown: "",
+          structuredJson: expect.objectContaining({
+            run_id: expect.any(String),
+            run_started_at: "2026-03-30T09:00:00.000Z",
+            run_last_heartbeat_at: "2026-03-30T09:00:00.000Z",
+            run_lease_expires_at: "2026-03-30T09:00:45.000Z",
+            phase: "analyzing",
+            status_text: "助手正在分析问题并准备回答...",
+            stream_event_id: null,
+            active_tool_name: null,
+            active_tool_use_id: null,
+            active_task_id: null,
+          }),
+        }),
+      ],
+      citations: [],
+    });
+  });
+
+  test("uses the server-provided assistant snapshot when retry returns a new run state", () => {
+    expect(
+      restartAssistantMessageForRetry({
+        assistantMessageId: "assistant-1",
+        nextAssistantMessage: {
+          id: "assistant-1",
+          role: MESSAGE_ROLE.ASSISTANT,
+          status: MESSAGE_STATUS.STREAMING,
+          contentMarkdown: "",
+          structuredJson: {
+            run_id: "run-2",
+            run_started_at: "2026-03-30T09:01:00.000Z",
+            run_last_heartbeat_at: "2026-03-30T09:01:00.000Z",
+            run_lease_expires_at: "2026-03-30T09:01:45.000Z",
+            phase: "analyzing",
+            status_text: "助手正在分析问题并准备回答...",
+            stream_event_id: null,
+            active_tool_name: null,
+            active_tool_use_id: null,
+            active_task_id: null,
+          },
+        },
+        citations: [],
+        messages: [
+          {
+            id: "assistant-1",
+            role: MESSAGE_ROLE.ASSISTANT,
+            status: MESSAGE_STATUS.FAILED,
+            contentMarkdown: "失败",
+            structuredJson: {
+              agent_error: "queue offline",
+            },
+          },
+        ],
+      }),
+    ).toEqual({
+      messages: [
         {
           id: "assistant-1",
           role: MESSAGE_ROLE.ASSISTANT,
           status: MESSAGE_STATUS.STREAMING,
           contentMarkdown: "",
           structuredJson: {
-            run_started_at: "2026-03-30T09:00:00.000Z",
-            run_last_heartbeat_at: "2026-03-30T09:00:00.000Z",
-            run_lease_expires_at: "2026-03-30T09:00:45.000Z",
+            run_id: "run-2",
+            run_started_at: "2026-03-30T09:01:00.000Z",
+            run_last_heartbeat_at: "2026-03-30T09:01:00.000Z",
+            run_lease_expires_at: "2026-03-30T09:01:45.000Z",
             phase: "analyzing",
             status_text: "助手正在分析问题并准备回答...",
             stream_event_id: null,
@@ -445,12 +506,13 @@ describe("restartAssistantSessionSnapshotForRetry", () => {
       }),
     ).toEqual({
       messages: [
-        {
+        expect.objectContaining({
           id: "assistant-1",
           role: MESSAGE_ROLE.ASSISTANT,
           status: MESSAGE_STATUS.STREAMING,
           contentMarkdown: "",
-          structuredJson: {
+          structuredJson: expect.objectContaining({
+            run_id: expect.any(String),
             run_started_at: "2026-03-30T09:00:00.000Z",
             run_last_heartbeat_at: "2026-03-30T09:00:00.000Z",
             run_lease_expires_at: "2026-03-30T09:00:45.000Z",
@@ -460,8 +522,8 @@ describe("restartAssistantSessionSnapshotForRetry", () => {
             active_tool_name: null,
             active_tool_use_id: null,
             active_task_id: null,
-          },
-        },
+          }),
+        }),
       ],
       citations: [],
       timelineMessagesByAssistant: {

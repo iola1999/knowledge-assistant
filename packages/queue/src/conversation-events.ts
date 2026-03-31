@@ -81,8 +81,8 @@ function parseConversationStreamRecords(value: unknown): ConversationStreamRecor
   return records;
 }
 
-export function buildConversationStreamKey(assistantMessageId: string) {
-  return `${CONVERSATION_STREAM_KEY_PREFIX}:${assistantMessageId}`;
+export function buildConversationStreamKey(assistantMessageId: string, runId: string) {
+  return `${CONVERSATION_STREAM_KEY_PREFIX}:${assistantMessageId}:${runId}`;
 }
 
 export function createRedisClient() {
@@ -101,10 +101,11 @@ export function getRedisCommandClient() {
 
 export async function appendConversationStreamEvent(input: {
   assistantMessageId: string;
+  runId: string;
   event: ConversationStreamEvent;
 }) {
   const redis = getRedisCommandClient();
-  const key = buildConversationStreamKey(input.assistantMessageId);
+  const key = buildConversationStreamKey(input.assistantMessageId, input.runId);
   const payload = JSON.stringify(input.event);
   const streamId = await redis.xadd(
     key,
@@ -122,6 +123,7 @@ export async function appendConversationStreamEvent(input: {
 
 export async function readConversationStreamEvents(input: {
   assistantMessageId: string;
+  runId: string;
   afterId?: string | null;
   blockMs?: number;
   count?: number;
@@ -140,7 +142,7 @@ export async function readConversationStreamEvents(input: {
 
   args.push(
     "STREAMS",
-    buildConversationStreamKey(input.assistantMessageId),
+    buildConversationStreamKey(input.assistantMessageId, input.runId),
     input.afterId?.trim() || "0-0",
   );
 

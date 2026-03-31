@@ -151,7 +151,18 @@ describe("POST /api/conversations/[conversationId]/messages", () => {
           role: MESSAGE_ROLE.ASSISTANT,
           status: MESSAGE_STATUS.STREAMING,
           contentMarkdown: "",
-          structuredJson: null,
+          structuredJson: {
+            run_id: "run-1",
+            run_started_at: "2026-03-31T10:00:00.000Z",
+            run_last_heartbeat_at: "2026-03-31T10:00:00.000Z",
+            run_lease_expires_at: "2026-03-31T10:00:45.000Z",
+            phase: "analyzing",
+            status_text: "助手正在分析问题并准备回答...",
+            stream_event_id: null,
+            active_tool_name: null,
+            active_tool_use_id: null,
+            active_task_id: null,
+          },
         },
       ],
     );
@@ -181,18 +192,35 @@ describe("POST /api/conversations/[conversationId]/messages", () => {
 
     expect(response.status).toBe(201);
     expect(body.agentError).toBe("queue offline");
-    expect(body.assistantMessage).toEqual({
+    expect(body.assistantMessage).toEqual(expect.objectContaining({
       id: "assistant-message-1",
       role: MESSAGE_ROLE.ASSISTANT,
-      ...buildAssistantFailedMessageState("queue offline"),
-    });
+      status: MESSAGE_STATUS.FAILED,
+      contentMarkdown: "Agent 处理失败：queue offline",
+      structuredJson: expect.objectContaining({
+        agent_error: "queue offline",
+        run_id: expect.any(String),
+      }),
+    }));
     expect(mocks.updates).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           table: mocks.tables.messages,
-          values: buildAssistantFailedMessageState("queue offline"),
+          values: expect.objectContaining({
+            ...buildAssistantFailedMessageState("queue offline"),
+            structuredJson: expect.objectContaining({
+              agent_error: "queue offline",
+              run_id: expect.any(String),
+            }),
+          }),
         }),
       ]),
+    );
+    expect(mocks.enqueueConversationResponse).toHaveBeenCalledWith(
+      expect.objectContaining({
+        assistantMessageId: "assistant-message-1",
+        runId: expect.any(String),
+      }),
     );
   });
 });

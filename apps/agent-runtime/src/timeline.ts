@@ -34,6 +34,8 @@ function normalizeToolTimelineValue(value: unknown) {
 export function buildToolTimelineMessage(input: {
   toolName: string;
   state: ToolTimelineState;
+  assistantMessageId: string;
+  assistantRunId: string;
   error?: string | null;
   toolInput?: unknown;
   toolResponse?: unknown;
@@ -48,6 +50,8 @@ export function buildToolTimelineMessage(input: {
     return {
       contentMarkdown: `开始调用工具：${toolName}`,
       structuredJson: {
+        assistant_message_id: input.assistantMessageId,
+        assistant_run_id: input.assistantRunId,
         timeline_event: TIMELINE_EVENT.TOOL_STARTED,
         tool_name: toolName,
         tool_input: toolInput,
@@ -62,6 +66,8 @@ export function buildToolTimelineMessage(input: {
     return {
       contentMarkdown: `工具执行失败：${toolName}${input.error ? ` · ${input.error}` : ""}`,
       structuredJson: {
+        assistant_message_id: input.assistantMessageId,
+        assistant_run_id: input.assistantRunId,
         timeline_event: TIMELINE_EVENT.TOOL_FAILED,
         tool_name: toolName,
         error: input.error ?? null,
@@ -76,6 +82,8 @@ export function buildToolTimelineMessage(input: {
   return {
     contentMarkdown: `工具执行完成：${toolName}`,
     structuredJson: {
+      assistant_message_id: input.assistantMessageId,
+      assistant_run_id: input.assistantRunId,
       timeline_event: TIMELINE_EVENT.TOOL_FINISHED,
       tool_name: toolName,
       tool_input: toolInput,

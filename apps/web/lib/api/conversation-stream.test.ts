@@ -111,6 +111,7 @@ describe("buildAssistantStatusStreamEvent", () => {
           status: MESSAGE_STATUS.STREAMING,
           contentMarkdown: "",
           structuredJson: {
+            run_id: "run-1",
             run_started_at: "2026-03-31T10:00:00.000Z",
             run_last_heartbeat_at: "2026-03-31T10:00:01.000Z",
             run_lease_expires_at: "2026-03-31T10:00:46.000Z",

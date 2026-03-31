@@ -15,6 +15,7 @@ describe("shouldExpireStreamingAssistantMessage", () => {
           status: MESSAGE_STATUS.STREAMING,
           createdAt: "2026-03-30T10:00:00.000Z",
           structuredJson: {
+            run_id: "run-1",
             run_started_at: "2026-03-30T10:00:00.000Z",
             run_last_heartbeat_at: "2026-03-30T10:00:05.000Z",
             run_lease_expires_at: "2026-03-30T10:00:45.000Z",
@@ -32,6 +33,7 @@ describe("shouldExpireStreamingAssistantMessage", () => {
           status: MESSAGE_STATUS.STREAMING,
           createdAt: "2026-03-30T10:00:00.000Z",
           structuredJson: {
+            run_id: "run-1",
             run_started_at: "2026-03-30T10:00:00.000Z",
             run_last_heartbeat_at: "2026-03-30T10:00:20.000Z",
             run_lease_expires_at: "2026-03-30T10:01:05.000Z",

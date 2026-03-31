@@ -48,6 +48,7 @@
 - `search_workspace_knowledge`、文档阅读授权和 citation 跳转都已切到 library scope；默认召回 workspace 私有库 + 已激活且开启检索的全局订阅库。
 - `/api/conversations/[conversationId]/stream` 现在会先发数据库快照，再转发 Redis Streams live event；前端会实时接收 `assistant_status` / `tool_progress` / `tool_message` / `answer_delta` / `answer_done` / `run_failed`。
 - assistant 正文现已具备 token 级流式：agent draft 和 grounded final answer 都会持续推送增量，而不是每次模型调用完成后整段落库再显示。
+- 当前 live stream 已改为 `assistant_message_id + run_id` 作用域；retry 同一 assistant turn 时会生成新的 `run_id`，旧 run 的 Redis event、BullMQ job 和 tool timeline 不会再回灌到新一轮。
 - 无论当前是否已经进入会话，发送成功后前端都会先本地插入 user message 和 assistant placeholder，再由 SSE 接上后续工具时间线与回答流式更新；首条消息创建新会话时会同时在后台补上 URL 切换。
 - 当前会话在本地提交后，侧栏会话列表也会立即同步最新会话标题、更新时间和选中态，不再只能等下一次服务端刷新。
 - 当前会话页头的标题、最后更新时间、消息数与附件数也会在本地提交后立即更新，不再只能等服务端重新返回当前页。
@@ -195,6 +196,7 @@
 - PDF 阅读器当前仍是基础版，没有 bbox 级高亮。
 - 当前 SSE 主通道已切到 Redis Streams live event；数据库只负责恢复快照、过期收敛与终态真相源，不再承担主 token transport。
 - 当前最终 grounded answer、structured state 和 citations 仍在完成态统一落库；前端已可在终态事件到达时切到本地最终态，但刷新后仍以落库结果为准。
+- grounded final answer 现已改为显式失败语义；当最终 grounding 阶段失败时，不再静默回退为 completed draft。
 - 当前“停止生成”通过把 streaming assistant 收口为 completed 并让 `agent-runtime` 停止后续持久化实现，不是 provider-side cancel。
 - 当前阶段不再提供本地 mock 会话回退；联调应以真实 provider 或明确失败为准，且不能伪造 workspace 证据、citation 或外部来源。
 - 全局资料库当前只支持 super admin 维护、workspace owner 订阅；不含审批流、细粒度 ACL、本地覆盖层或挂载别名。

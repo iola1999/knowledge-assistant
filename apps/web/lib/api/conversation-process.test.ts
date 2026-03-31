@@ -85,6 +85,66 @@ describe("groupAssistantProcessMessages", () => {
       ],
     });
   });
+
+  test("keeps only the latest retry run when tool messages carry assistant run metadata", () => {
+    expect(
+      groupAssistantProcessMessages([
+        {
+          id: "assistant-1",
+          role: MESSAGE_ROLE.ASSISTANT,
+          status: MESSAGE_STATUS.COMPLETED,
+          contentMarkdown: "回答一",
+          createdAt: "2026-03-29T08:00:01.000Z",
+          structuredJson: {
+            run_id: "run-2",
+            run_started_at: "2026-03-29T08:00:00.000Z",
+            run_last_heartbeat_at: "2026-03-29T08:00:10.000Z",
+            run_lease_expires_at: "2026-03-29T08:00:55.000Z",
+          },
+        },
+        {
+          id: "tool-old-run",
+          role: MESSAGE_ROLE.TOOL,
+          status: MESSAGE_STATUS.FAILED,
+          contentMarkdown: "旧 run 工具失败",
+          createdAt: "2026-03-29T08:00:02.000Z",
+          structuredJson: {
+            assistant_message_id: "assistant-1",
+            assistant_run_id: "run-1",
+            timeline_event: TIMELINE_EVENT.RUN_FAILED,
+          },
+        },
+        {
+          id: "tool-new-run",
+          role: MESSAGE_ROLE.TOOL,
+          status: MESSAGE_STATUS.COMPLETED,
+          contentMarkdown: "新 run 工具完成",
+          createdAt: "2026-03-29T08:00:03.000Z",
+          structuredJson: {
+            assistant_message_id: "assistant-1",
+            assistant_run_id: "run-2",
+            timeline_event: TIMELINE_EVENT.TOOL_FINISHED,
+            tool_name: "search_workspace_knowledge",
+          },
+        },
+      ]),
+    ).toEqual({
+      "assistant-1": [
+        {
+          id: "tool-new-run",
+          status: MESSAGE_STATUS.COMPLETED,
+          contentMarkdown: "新 run 工具完成",
+          createdAt: "2026-03-29T08:00:03.000Z",
+          structuredJson: {
+            assistant_message_id: "assistant-1",
+            assistant_run_id: "run-2",
+            timeline_event: TIMELINE_EVENT.TOOL_FINISHED,
+            tool_name: "search_workspace_knowledge",
+          },
+        },
+      ],
+    });
+  });
 });
 
 describe("buildAssistantProcessTimelineEntries", () => {

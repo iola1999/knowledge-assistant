@@ -2,6 +2,7 @@ import { and, asc, eq, isNull, sql } from "drizzle-orm";
 
 import {
   CONVERSATION_STREAM_EVENT,
+  finalizeStreamingAssistantRunState,
   MESSAGE_ROLE,
   MESSAGE_STATUS,
   readStreamingAssistantRunState,
@@ -68,10 +69,25 @@ async function expireStreamingAssistantMessage(input: {
   const runState = readStreamingAssistantRunState(
     input.assistantMessage.structuredJson ?? null,
   );
+  const failedAssistantState = {
+    ...payload.assistant,
+    structuredJson: {
+      ...finalizeStreamingAssistantRunState(input.assistantMessage.structuredJson ?? null),
+      ...payload.assistant.structuredJson,
+    },
+  };
+  const failedToolState = {
+    ...payload.tool,
+    structuredJson: {
+      ...payload.tool.structuredJson,
+      assistant_message_id: input.assistantMessage.id,
+      assistant_run_id: runState?.run_id ?? null,
+    },
+  };
 
   const [assistantMessage] = await db
     .update(messages)
-    .set(payload.assistant)
+    .set(failedAssistantState)
     .where(
       and(
         eq(messages.id, input.assistantMessage.id),
@@ -102,7 +118,7 @@ async function expireStreamingAssistantMessage(input: {
     .values({
       conversationId: input.conversationId,
       role: MESSAGE_ROLE.TOOL,
-      ...payload.tool,
+      ...failedToolState,
     })
     .returning({
       id: messages.id,
@@ -180,6 +196,7 @@ export async function GET(
       let lastAssistantContent = "";
       let lastAssistantStatus = "";
       let terminalEventType: ConversationStreamEvent["type"] | null = null;
+      let currentRunId: string | null = null;
       let streamCursor =
         request.headers.get("last-event-id")?.trim() ||
         new URL(request.url).searchParams.get("cursor")?.trim() ||
@@ -204,7 +221,9 @@ export async function GET(
         }
 
         if (event.type === CONVERSATION_STREAM_EVENT.ANSWER_DELTA) {
-          lastAssistantContent = event.content_markdown;
+          lastAssistantContent = event.delta_text
+            ? `${lastAssistantContent}${event.delta_text}`
+            : event.content_markdown;
           return;
         }
 
@@ -214,41 +233,6 @@ export async function GET(
       }
 
       async function syncFromDatabase() {
-        const toolMessages = await db
-          .select({
-            id: messages.id,
-            status: messages.status,
-            contentMarkdown: messages.contentMarkdown,
-            createdAt: messages.createdAt,
-            structuredJson: messages.structuredJson,
-          })
-          .from(messages)
-          .where(
-            and(
-              eq(messages.conversationId, conversationId),
-              eq(messages.role, MESSAGE_ROLE.TOOL),
-            ),
-          )
-          .orderBy(asc(messages.createdAt));
-
-        for (const message of toolMessages) {
-          if (emittedMessageIds.has(message.id)) {
-            continue;
-          }
-
-          emittedMessageIds.add(message.id);
-          enqueueEvent(
-            buildToolMessageStreamEvent({
-              id: message.id,
-              status: message.status,
-              contentMarkdown: message.contentMarkdown,
-              createdAt: message.createdAt,
-              structuredJson:
-                (message.structuredJson as Record<string, unknown> | null | undefined) ?? null,
-            }),
-          );
-        }
-
         const [assistantMessage] = await db
           .select({
             id: messages.id,
@@ -292,19 +276,23 @@ export async function GET(
               structuredJson: expiredRun.assistantMessage.structuredJson,
               createdAt: expiredRun.assistantMessage.createdAt,
             }
-          : assistantMessage
-            ? {
-                id: assistantMessage.id,
-                status: assistantMessage.status,
-                contentMarkdown: assistantMessage.contentMarkdown,
-                structuredJson:
-                  (assistantMessage.structuredJson as
-                    | Record<string, unknown>
-                    | null
-                    | undefined) ?? null,
-                createdAt: assistantMessage.createdAt,
-              }
-            : null;
+            : assistantMessage
+              ? {
+                  id: assistantMessage.id,
+                  status: assistantMessage.status,
+                  contentMarkdown: assistantMessage.contentMarkdown,
+                  structuredJson:
+                    (assistantMessage.structuredJson as
+                      | Record<string, unknown>
+                      | null
+                      | undefined) ?? null,
+                  createdAt: assistantMessage.createdAt,
+                }
+              : null;
+        const effectiveRunState = readStreamingAssistantRunState(
+          effectiveAssistantMessage?.structuredJson ?? null,
+        );
+        currentRunId = effectiveRunState?.run_id ?? null;
 
         if (expiredRun) {
           requestLogger.warn(
@@ -320,6 +308,47 @@ export async function GET(
         if (expiredRun?.toolMessage && !emittedMessageIds.has(expiredRun.toolMessage.id)) {
           emittedMessageIds.add(expiredRun.toolMessage.id);
           enqueueEvent(buildToolMessageStreamEvent(expiredRun.toolMessage));
+        }
+
+        const toolMessageFilters = [
+          eq(messages.conversationId, conversationId),
+          eq(messages.role, MESSAGE_ROLE.TOOL),
+          sql`${messages.structuredJson}->>'assistant_message_id' = ${streamingAssistantMessageId}`,
+        ];
+        if (effectiveRunState?.run_id) {
+          toolMessageFilters.push(
+            sql`${messages.structuredJson}->>'assistant_run_id' = ${effectiveRunState.run_id}`,
+          );
+        }
+
+        const toolMessages = await db
+          .select({
+            id: messages.id,
+            status: messages.status,
+            contentMarkdown: messages.contentMarkdown,
+            createdAt: messages.createdAt,
+            structuredJson: messages.structuredJson,
+          })
+          .from(messages)
+          .where(and(...toolMessageFilters))
+          .orderBy(asc(messages.createdAt));
+
+        for (const message of toolMessages) {
+          if (emittedMessageIds.has(message.id)) {
+            continue;
+          }
+
+          emittedMessageIds.add(message.id);
+          enqueueEvent(
+            buildToolMessageStreamEvent({
+              id: message.id,
+              status: message.status,
+              contentMarkdown: message.contentMarkdown,
+              createdAt: message.createdAt,
+              structuredJson:
+                (message.structuredJson as Record<string, unknown> | null | undefined) ?? null,
+            }),
+          );
         }
 
         const assistantStatusEvent =
@@ -363,10 +392,7 @@ export async function GET(
         }
 
         if (!streamCursor) {
-          streamCursor =
-            readStreamingAssistantRunState(
-              effectiveAssistantMessage?.structuredJson ?? null,
-            )?.stream_event_id ?? "0-0";
+          streamCursor = effectiveRunState?.stream_event_id ?? "0-0";
         }
 
         const assistantCitations =
@@ -428,8 +454,19 @@ export async function GET(
         }
 
         while (!request.signal.aborted) {
+          if (!currentRunId) {
+            await new Promise((resolve) => setTimeout(resolve, 5000));
+            controller.enqueue(encoder.encode(": keepalive\n\n"));
+
+            if (await syncFromDatabase()) {
+              return;
+            }
+            continue;
+          }
+
           const events = await readConversationStreamEvents({
             assistantMessageId: streamingAssistantMessageId,
+            runId: currentRunId,
             afterId: streamCursor ?? "0-0",
             blockMs: 5000,
             count: 128,

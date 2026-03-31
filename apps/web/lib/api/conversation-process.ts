@@ -2,6 +2,7 @@ import {
   MESSAGE_ROLE,
   MESSAGE_STATUS,
   TIMELINE_EVENT,
+  readStreamingAssistantRunState,
   type MessageRole,
   type MessageStatus,
 } from "@anchordesk/contracts";
@@ -100,7 +101,19 @@ export function groupAssistantProcessMessages(
   messages: ConversationProcessThreadMessage[],
 ) {
   const grouped = new Map<string, AssistantProcessMessage[]>();
+  const latestRunIdByAssistant = new Map<string, string | null>();
   let activeAssistantId: string | null = null;
+
+  for (const message of messages) {
+    if (message.role !== MESSAGE_ROLE.ASSISTANT) {
+      continue;
+    }
+
+    latestRunIdByAssistant.set(
+      message.id,
+      readStreamingAssistantRunState(message.structuredJson ?? null)?.run_id ?? null,
+    );
+  }
 
   for (const message of messages) {
     if (message.role === MESSAGE_ROLE.USER) {
@@ -114,10 +127,35 @@ export function groupAssistantProcessMessages(
     }
 
     if (message.role !== MESSAGE_ROLE.TOOL || !activeAssistantId) {
+      if (message.role !== MESSAGE_ROLE.TOOL) {
+        continue;
+      }
+    }
+
+    const explicitAssistantMessageId = readStructuredString(
+      message.structuredJson ?? null,
+      "assistant_message_id",
+    );
+    const explicitAssistantRunId = readStructuredString(
+      message.structuredJson ?? null,
+      "assistant_run_id",
+    );
+    const targetAssistantId = explicitAssistantMessageId ?? activeAssistantId;
+
+    if (!targetAssistantId) {
       continue;
     }
 
-    const currentGroup = grouped.get(activeAssistantId) ?? [];
+    const latestAssistantRunId = latestRunIdByAssistant.get(targetAssistantId) ?? null;
+    if (
+      explicitAssistantMessageId &&
+      latestAssistantRunId &&
+      explicitAssistantRunId !== latestAssistantRunId
+    ) {
+      continue;
+    }
+
+    const currentGroup = grouped.get(targetAssistantId) ?? [];
     currentGroup.push({
       id: message.id,
       status: message.status,
@@ -125,7 +163,7 @@ export function groupAssistantProcessMessages(
       createdAt: normalizeCreatedAt(message.createdAt),
       structuredJson: message.structuredJson ?? null,
     });
-    grouped.set(activeAssistantId, currentGroup);
+    grouped.set(targetAssistantId, currentGroup);
   }
 
   return Object.fromEntries(grouped);

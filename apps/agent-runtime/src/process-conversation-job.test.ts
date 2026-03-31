@@ -169,6 +169,7 @@ describe("processConversationResponseJob", () => {
     await processConversationResponseJob({
       assistantMessageId: "assistant-1",
       conversationId: "conversation-1",
+      runId: "run-1",
       prompt: "总结一下",
       userMessageId: "user-1",
     });
@@ -193,7 +194,12 @@ describe("processConversationResponseJob", () => {
         conversationId: "conversation-1",
         status: MESSAGE_STATUS.STREAMING,
         contentMarkdown: "",
-        structuredJson: null,
+        structuredJson: {
+          run_id: "run-1",
+          run_started_at: "2026-03-31T10:00:00.000Z",
+          run_last_heartbeat_at: "2026-03-31T10:00:00.000Z",
+          run_lease_expires_at: "2026-03-31T10:00:45.000Z",
+        },
       },
     ];
     mocks.insertReturningQueue.push(
@@ -282,6 +288,7 @@ describe("processConversationResponseJob", () => {
     await processConversationResponseJob({
       assistantMessageId: "assistant-1",
       conversationId: "conversation-1",
+      runId: "run-1",
       prompt: "总结一下",
       userMessageId: "user-1",
     });
@@ -297,6 +304,8 @@ describe("processConversationResponseJob", () => {
             role: "tool",
             status: "streaming",
             structuredJson: {
+              assistant_message_id: "assistant-1",
+              assistant_run_id: "run-1",
               timeline_event: "tool_started",
               tool_name: "search_workspace_knowledge",
               tool_input: {
@@ -315,6 +324,8 @@ describe("processConversationResponseJob", () => {
             role: "tool",
             status: "completed",
             structuredJson: {
+              assistant_message_id: "assistant-1",
+              assistant_run_id: "run-1",
               timeline_event: "tool_finished",
               tool_name: "search_workspace_knowledge",
               tool_input: {
@@ -345,11 +356,15 @@ describe("processConversationResponseJob", () => {
         }),
         expect.objectContaining({
           table: mocks.tables.messages,
-          values: {
+          values: expect.objectContaining({
             contentMarkdown: "最终回答",
             status: MESSAGE_STATUS.COMPLETED,
-            structuredJson: null,
-          },
+            structuredJson: expect.objectContaining({
+              run_id: "run-1",
+              phase: null,
+              status_text: null,
+            }),
+          }),
         }),
         expect.objectContaining({
           table: mocks.tables.conversations,
@@ -360,6 +375,17 @@ describe("processConversationResponseJob", () => {
           }),
         }),
       ]),
+    );
+    expect(mocks.appendConversationStreamEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        assistantMessageId: "assistant-1",
+        runId: "run-1",
+        event: expect.objectContaining({
+          type: "answer_delta",
+          content_markdown: "",
+          delta_text: "第一段",
+        }),
+      }),
     );
   });
 
@@ -378,7 +404,12 @@ describe("processConversationResponseJob", () => {
         conversationId: "conversation-1",
         status: MESSAGE_STATUS.STREAMING,
         contentMarkdown: "",
-        structuredJson: null,
+        structuredJson: {
+          run_id: "run-1",
+          run_started_at: "2026-03-31T10:00:00.000Z",
+          run_last_heartbeat_at: "2026-03-31T10:00:00.000Z",
+          run_lease_expires_at: "2026-03-31T10:00:45.000Z",
+        },
       },
     ];
     mocks.runAgentResponse.mockRejectedValue(new Error("queue offline"));
@@ -386,6 +417,7 @@ describe("processConversationResponseJob", () => {
     await processConversationResponseJob({
       assistantMessageId: "assistant-1",
       conversationId: "conversation-1",
+      runId: "run-1",
       prompt: "总结一下",
       userMessageId: "user-1",
     });
@@ -399,6 +431,11 @@ describe("processConversationResponseJob", () => {
             conversationId: "conversation-1",
             role: "tool",
             ...buildRunFailedToolMessageState("queue offline"),
+            structuredJson: {
+              ...buildRunFailedToolMessageState("queue offline").structuredJson,
+              assistant_message_id: "assistant-1",
+              assistant_run_id: "run-1",
+            },
           },
         },
       ]),
@@ -407,7 +444,13 @@ describe("processConversationResponseJob", () => {
       expect.arrayContaining([
         expect.objectContaining({
           table: mocks.tables.messages,
-          values: buildAssistantFailedMessageState("queue offline"),
+          values: expect.objectContaining({
+            ...buildAssistantFailedMessageState("queue offline"),
+            structuredJson: expect.objectContaining({
+              agent_error: "queue offline",
+              run_id: "run-1",
+            }),
+          }),
         }),
       ]),
     );
@@ -428,7 +471,12 @@ describe("processConversationResponseJob", () => {
         conversationId: "conversation-1",
         status: MESSAGE_STATUS.STREAMING,
         contentMarkdown: "",
-        structuredJson: null,
+        structuredJson: {
+          run_id: "run-1",
+          run_started_at: "2026-03-31T10:00:00.000Z",
+          run_last_heartbeat_at: "2026-03-31T10:00:00.000Z",
+          run_lease_expires_at: "2026-03-31T10:00:45.000Z",
+        },
       },
     ];
     mocks.insertReturningQueue.push([
@@ -491,6 +539,7 @@ describe("processConversationResponseJob", () => {
     await processConversationResponseJob({
       assistantMessageId: "assistant-1",
       conversationId: "conversation-1",
+      runId: "run-1",
       prompt: "总结一下",
       userMessageId: "user-1",
     });
@@ -533,7 +582,12 @@ describe("processConversationResponseJob", () => {
           conversationId: "conversation-1",
           status: MESSAGE_STATUS.STREAMING,
           contentMarkdown: "",
-          structuredJson: null,
+          structuredJson: {
+            run_id: "run-1",
+            run_started_at: "2026-03-31T10:00:00.000Z",
+            run_last_heartbeat_at: "2026-03-31T10:00:00.000Z",
+            run_lease_expires_at: "2026-03-31T10:00:45.000Z",
+          },
         },
       ],
       [
@@ -542,7 +596,12 @@ describe("processConversationResponseJob", () => {
           conversationId: "conversation-1",
           status: MESSAGE_STATUS.STREAMING,
           contentMarkdown: "",
-          structuredJson: null,
+          structuredJson: {
+            run_id: "run-1",
+            run_started_at: "2026-03-31T10:00:00.000Z",
+            run_last_heartbeat_at: "2026-03-31T10:00:00.000Z",
+            run_lease_expires_at: "2026-03-31T10:00:45.000Z",
+          },
         },
       ],
       [
@@ -551,7 +610,12 @@ describe("processConversationResponseJob", () => {
           conversationId: "conversation-1",
           status: MESSAGE_STATUS.COMPLETED,
           contentMarkdown: "手动停止后的内容",
-          structuredJson: null,
+          structuredJson: {
+            run_id: "run-1",
+            run_started_at: "2026-03-31T10:00:00.000Z",
+            run_last_heartbeat_at: "2026-03-31T10:00:00.000Z",
+            run_lease_expires_at: "2026-03-31T10:00:45.000Z",
+          },
         },
       ],
     ];
@@ -566,6 +630,7 @@ describe("processConversationResponseJob", () => {
     await processConversationResponseJob({
       assistantMessageId: "assistant-1",
       conversationId: "conversation-1",
+      runId: "run-1",
       prompt: "总结一下",
       userMessageId: "user-1",
     });
@@ -588,5 +653,71 @@ describe("processConversationResponseJob", () => {
       ]),
     );
     expect(mocks.inserts).toEqual([]);
+  });
+
+  it("fails the run when grounded final answer rendering throws", async () => {
+    mocks.queryResults.conversations = [
+      {
+        id: "conversation-1",
+        workspaceId: "workspace-1",
+        agentSessionId: null,
+        agentWorkdir: null,
+      },
+    ];
+    mocks.queryResults.messages = [
+      {
+        id: "assistant-1",
+        conversationId: "conversation-1",
+        status: MESSAGE_STATUS.STREAMING,
+        contentMarkdown: "",
+        structuredJson: {
+          run_id: "run-1",
+          run_started_at: "2026-03-31T10:00:00.000Z",
+          run_last_heartbeat_at: "2026-03-31T10:00:00.000Z",
+          run_lease_expires_at: "2026-03-31T10:00:45.000Z",
+        },
+      },
+    ];
+    mocks.runAgentResponse.mockResolvedValue({
+      citations: [],
+      ok: true as const,
+      sessionId: "session-1",
+      text: "草稿回答",
+      workdir: "/tmp/agent-session",
+    });
+    mocks.renderGroundedAnswer.mockRejectedValue(new Error("grounded renderer offline"));
+
+    await processConversationResponseJob({
+      assistantMessageId: "assistant-1",
+      conversationId: "conversation-1",
+      runId: "run-1",
+      prompt: "总结一下",
+      userMessageId: "user-1",
+    });
+
+    expect(mocks.updates).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          table: mocks.tables.messages,
+          values: expect.objectContaining({
+            status: MESSAGE_STATUS.FAILED,
+            structuredJson: expect.objectContaining({
+              agent_error: "grounded renderer offline",
+              run_id: "run-1",
+            }),
+          }),
+        }),
+      ]),
+    );
+    expect(mocks.appendConversationStreamEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        assistantMessageId: "assistant-1",
+        runId: "run-1",
+        event: expect.objectContaining({
+          type: "run_failed",
+          error: "grounded renderer offline",
+        }),
+      }),
+    );
   });
 });

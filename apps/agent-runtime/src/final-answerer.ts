@@ -16,9 +16,7 @@ import {
 } from "./grounded-answer";
 
 export type FinalAnswerRenderMode =
-  | "model_streamed"
-  | "model_stream_error_fallback"
-  | "missing_api_key_fallback";
+  | "model_streamed";
 
 export type RenderGroundedAnswerResult = {
   groundedAnswer: GroundedAnswer;
@@ -74,17 +72,7 @@ export async function renderGroundedAnswer(input: {
   }) => Promise<void> | void;
 } = {}): Promise<RenderGroundedAnswerResult> {
   if (!getConfiguredAnthropicApiKey()) {
-    return {
-      groundedAnswer: normalizeGroundedAnswer({
-        draftText: input.draftText,
-        evidence: input.evidence,
-      }),
-      meta: {
-        mode: "missing_api_key_fallback",
-        parsedCitationReferenceCount: 0,
-        parsedOutputPresent: false,
-      },
-    };
+    throw new Error("Anthropic API key is not configured.");
   }
 
   let streamedText = "";
@@ -130,17 +118,11 @@ export async function renderGroundedAnswer(input: {
         parsedOutputPresent: streamedText.trim().length > 0,
       },
     };
-  } catch {
-    return {
-      groundedAnswer: normalizeGroundedAnswer({
-        draftText: input.draftText,
-        evidence: input.evidence,
-      }),
-      meta: {
-        mode: "model_stream_error_fallback",
-        parsedCitationReferenceCount: 0,
-        parsedOutputPresent: false,
-      },
-    };
+  } catch (error) {
+    throw new Error(
+      error instanceof Error && error.message.trim()
+        ? error.message
+        : "Grounded final answer render failed.",
+    );
   }
 }

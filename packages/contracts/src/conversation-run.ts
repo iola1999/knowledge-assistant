@@ -8,6 +8,7 @@ export const STREAMING_ASSISTANT_HEARTBEAT_INTERVAL_MS = 10_000;
 export const STREAMING_ASSISTANT_LEASE_TIMEOUT_MS = 45_000;
 
 export type StreamingAssistantRunState = {
+  run_id: string;
   run_started_at: string;
   run_last_heartbeat_at: string;
   run_lease_expires_at: string;
@@ -32,6 +33,18 @@ function asValidDate(value: unknown) {
   return Number.isFinite(parsed.getTime()) ? parsed : null;
 }
 
+function buildStreamingAssistantRunId() {
+  if (
+    typeof globalThis.crypto === "object" &&
+    globalThis.crypto &&
+    typeof globalThis.crypto.randomUUID === "function"
+  ) {
+    return globalThis.crypto.randomUUID();
+  }
+
+  return `run-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 export function readStreamingAssistantRunState(
   structuredJson: Record<string, unknown> | null | undefined,
 ): StreamingAssistantRunState | null {
@@ -39,11 +52,15 @@ export function readStreamingAssistantRunState(
     return null;
   }
 
+  const runId =
+    typeof structuredJson.run_id === "string" && structuredJson.run_id.trim()
+      ? structuredJson.run_id.trim()
+      : null;
   const startedAt = asValidDate(structuredJson.run_started_at);
   const lastHeartbeatAt = asValidDate(structuredJson.run_last_heartbeat_at);
   const leaseExpiresAt = asValidDate(structuredJson.run_lease_expires_at);
 
-  if (!startedAt || !lastHeartbeatAt || !leaseExpiresAt) {
+  if (!runId || !startedAt || !lastHeartbeatAt || !leaseExpiresAt) {
     return null;
   }
 
@@ -74,6 +91,7 @@ export function readStreamingAssistantRunState(
       : null;
 
   return {
+    run_id: runId,
     run_started_at: startedAt.toISOString(),
     run_last_heartbeat_at: lastHeartbeatAt.toISOString(),
     run_lease_expires_at: leaseExpiresAt.toISOString(),
@@ -88,6 +106,7 @@ export function readStreamingAssistantRunState(
 
 export function buildStreamingAssistantRunState(input: {
   now?: Date;
+  runId?: string | null;
   startedAt?: Date | string;
   phase?: AssistantStreamPhase | null;
   statusText?: string | null;
@@ -100,6 +119,7 @@ export function buildStreamingAssistantRunState(input: {
   const startedAt = asValidDate(input.startedAt) ?? now;
 
   return {
+    run_id: input.runId?.trim() || buildStreamingAssistantRunId(),
     run_started_at: startedAt.toISOString(),
     run_last_heartbeat_at: now.toISOString(),
     run_lease_expires_at: new Date(
@@ -122,6 +142,7 @@ export function refreshStreamingAssistantRunState(
 
   return buildStreamingAssistantRunState({
     now,
+    runId: existing?.run_id ?? null,
     startedAt: existing?.run_started_at ?? now,
     phase: existing?.phase ?? null,
     statusText: existing?.status_text ?? null,
@@ -151,6 +172,7 @@ export function updateStreamingAssistantRunState(
 
   return buildStreamingAssistantRunState({
     now: patch.now ?? new Date(),
+    runId: existing.run_id,
     startedAt: existing.run_started_at,
     phase: patch.phase === undefined ? existing.phase ?? null : patch.phase,
     statusText:
@@ -176,14 +198,40 @@ export function updateStreamingAssistantRunState(
 
 export function buildInitialStreamingAssistantRunState(input: {
   now?: Date;
+  runId?: string | null;
   startedAt?: Date | string;
   statusText?: string | null;
 } = {}) {
   return buildStreamingAssistantRunState({
     now: input.now,
+    runId: input.runId ?? null,
     startedAt: input.startedAt,
     phase: ASSISTANT_STREAM_PHASE.ANALYZING,
     statusText: input.statusText ?? "助手正在分析问题并准备回答...",
+  });
+}
+
+export function finalizeStreamingAssistantRunState(
+  structuredJson: Record<string, unknown> | null | undefined,
+  input: {
+    now?: Date;
+    streamEventId?: string | null;
+  } = {},
+) {
+  const now = input.now ?? new Date();
+  const existing = refreshStreamingAssistantRunState(structuredJson, now);
+
+  return buildStreamingAssistantRunState({
+    now,
+    runId: existing.run_id,
+    startedAt: existing.run_started_at,
+    phase: null,
+    statusText: null,
+    streamEventId:
+      input.streamEventId === undefined ? existing.stream_event_id ?? null : input.streamEventId,
+    activeToolName: null,
+    activeToolUseId: null,
+    activeTaskId: null,
   });
 }
 

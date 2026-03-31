@@ -46,9 +46,20 @@ const mocks = vi.hoisted(() => {
     })),
     update: vi.fn((table: unknown) => ({
       set: vi.fn((values: unknown) => ({
-        where: vi.fn(async () => {
+        where: vi.fn(() => {
           updates.push({ table, values });
-          return [];
+          return {
+            returning: vi.fn(async () => [
+              {
+                id: "assistant-message-1",
+                role: MESSAGE_ROLE.ASSISTANT,
+                status: MESSAGE_STATUS.STREAMING,
+                contentMarkdown: "",
+                structuredJson: (values as { structuredJson?: Record<string, unknown> })
+                  .structuredJson,
+              },
+            ]),
+          };
         }),
       })),
     })),
@@ -171,9 +182,28 @@ describe("POST /api/conversations/[conversationId]/retry", () => {
       expect.arrayContaining([
         expect.objectContaining({
           table: mocks.tables.messages,
-          values: buildAssistantFailedMessageState("queue offline"),
+          values: expect.objectContaining({
+            ...buildAssistantFailedMessageState("queue offline"),
+            structuredJson: expect.objectContaining({
+              agent_error: "queue offline",
+              run_id: expect.any(String),
+            }),
+          }),
         }),
       ]),
+    );
+    const retryStreamingUpdate = mocks.updates.find(
+      (entry) =>
+        entry.table === mocks.tables.messages &&
+        (entry.values as Record<string, unknown>).status === MESSAGE_STATUS.STREAMING,
+    );
+    expect(retryStreamingUpdate).toBeDefined();
+    expect(mocks.enqueueConversationResponse).toHaveBeenCalledWith(
+      expect.objectContaining({
+        assistantMessageId: "assistant-message-1",
+        runId: (retryStreamingUpdate?.values as { structuredJson?: { run_id?: string } }).structuredJson
+          ?.run_id,
+      }),
     );
   });
 });

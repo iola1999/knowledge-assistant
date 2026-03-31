@@ -1,6 +1,10 @@
 import { and, desc, eq } from "drizzle-orm";
 
-import { MESSAGE_ROLE, MESSAGE_STATUS } from "@anchordesk/contracts";
+import {
+  finalizeStreamingAssistantRunState,
+  MESSAGE_ROLE,
+  MESSAGE_STATUS,
+} from "@anchordesk/contracts";
 import { conversations, getDb, messages } from "@anchordesk/db";
 
 import { auth } from "@/auth";
@@ -38,6 +42,7 @@ export async function POST(
     .select({
       id: messages.id,
       contentMarkdown: messages.contentMarkdown,
+      structuredJson: messages.structuredJson,
     })
     .from(messages)
     .where(
@@ -58,12 +63,15 @@ export async function POST(
   }
 
   const stoppedContent = streamingAssistant.contentMarkdown.trim() || "已停止生成";
+  const finalizedRunState = finalizeStreamingAssistantRunState(
+    (streamingAssistant.structuredJson as Record<string, unknown> | null | undefined) ?? null,
+  );
   const [assistantMessage] = await db
     .update(messages)
     .set({
       status: MESSAGE_STATUS.COMPLETED,
       contentMarkdown: stoppedContent,
-      structuredJson: null,
+      structuredJson: finalizedRunState,
     })
     .where(
       and(

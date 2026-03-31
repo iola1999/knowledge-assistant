@@ -1,7 +1,8 @@
 import { and, desc, eq } from "drizzle-orm";
 import {
-  buildInitialStreamingAssistantRunState,
   buildAssistantFailedMessageState,
+  buildInitialStreamingAssistantRunState,
+  finalizeStreamingAssistantRunState,
   MESSAGE_ROLE,
   MESSAGE_STATUS,
 } from "@anchordesk/contracts";
@@ -118,6 +119,8 @@ export async function POST(
       .where(eq(conversations.id, conversationId));
   }
 
+  const initialRunState = buildInitialStreamingAssistantRunState();
+
   const [assistantMessage] = await db
     .insert(messages)
     .values({
@@ -125,7 +128,7 @@ export async function POST(
       role: MESSAGE_ROLE.ASSISTANT,
       status: MESSAGE_STATUS.STREAMING,
       contentMarkdown: "",
-      structuredJson: buildInitialStreamingAssistantRunState(),
+      structuredJson: initialRunState,
     })
     .returning();
 
@@ -151,6 +154,7 @@ export async function POST(
       conversationId,
       userMessageId: userMessage.id,
       assistantMessageId: assistantMessage.id,
+      runId: initialRunState.run_id,
       draftUploadId,
       prompt: buildConversationPrompt({
         content,
@@ -164,6 +168,7 @@ export async function POST(
         userId,
         userMessageId: userMessage.id,
         assistantMessageId: assistantMessage.id,
+        assistantRunId: initialRunState.run_id,
         queueJobId: queueJob.id ?? null,
         contentLength: content.length,
         hasDraftUploadId: Boolean(draftUploadId),
@@ -181,10 +186,17 @@ export async function POST(
     );
   } catch (error) {
     const failedAssistantState = buildAssistantFailedMessageState(error);
+    const failedAssistantStateWithRun = {
+      ...failedAssistantState,
+      structuredJson: {
+        ...finalizeStreamingAssistantRunState(initialRunState),
+        ...failedAssistantState.structuredJson,
+      },
+    };
 
     await db
       .update(messages)
-      .set(failedAssistantState)
+      .set(failedAssistantStateWithRun)
       .where(eq(messages.id, assistantMessage.id));
 
     requestLogger.error(
@@ -193,6 +205,7 @@ export async function POST(
         userId,
         userMessageId: userMessage.id,
         assistantMessageId: assistantMessage.id,
+        assistantRunId: initialRunState.run_id,
         contentLength: content.length,
         hasDraftUploadId: Boolean(draftUploadId),
         errorMessage: failedAssistantState.structuredJson.agent_error,
@@ -207,7 +220,7 @@ export async function POST(
         userMessage,
         assistantMessage: {
           ...assistantMessage,
-          ...failedAssistantState,
+          ...failedAssistantStateWithRun,
         },
       },
       { status: 201 },
