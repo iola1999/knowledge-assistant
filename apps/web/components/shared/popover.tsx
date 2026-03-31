@@ -104,6 +104,7 @@ export function Popover({
     onOpenChange: setOpen,
     placement,
     strategy: "fixed",
+    transform: false,
     middleware: buildFloatingMiddleware({
       sideOffset,
       collisionPadding,
