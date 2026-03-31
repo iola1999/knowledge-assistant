@@ -210,6 +210,28 @@ export function SourceIcon({
   );
 }
 
+export function GlobeIcon({
+  className,
+  strokeWidth = 1.6,
+  ...props
+}: IconProps) {
+  return (
+    <IconBase
+      className={cn("size-4", className)}
+      stroke="currentColor"
+      strokeWidth={strokeWidth}
+      {...props}
+    >
+      <circle cx="10" cy="10" r="6.25" />
+      <path
+        d="M3.75 10h12.5M10 3.75c1.8 1.72 2.75 3.86 2.75 6.25S11.8 14.53 10 16.25C8.2 14.53 7.25 12.39 7.25 10S8.2 5.47 10 3.75Z"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </IconBase>
+  );
+}
+
 export function ExportIcon({
   className,
   strokeWidth = 1.6,
