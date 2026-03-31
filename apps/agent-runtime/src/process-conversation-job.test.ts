@@ -3,6 +3,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   buildAssistantFailedMessageState,
   buildRunFailedToolMessageState,
+  CONVERSATION_STREAM_EVENT,
   MESSAGE_STATUS,
 } from "@anchordesk/contracts";
 
@@ -145,6 +146,15 @@ beforeEach(() => {
   mocks.loggerChild.warn.mockReset();
   mocks.loggerChild.error.mockReset();
 });
+
+function readAnswerDeltaEvents() {
+  return mocks.appendConversationStreamEvent.mock.calls
+    .map(([input]) => input.event)
+    .filter(
+      (event): event is { type: typeof CONVERSATION_STREAM_EVENT.ANSWER_DELTA } =>
+        event?.type === CONVERSATION_STREAM_EVENT.ANSWER_DELTA,
+    );
+}
 
 describe("processConversationResponseJob", () => {
   it("skips jobs whose assistant placeholder is no longer streaming", async () => {
@@ -386,6 +396,191 @@ describe("processConversationResponseJob", () => {
           delta_text: "第一段",
         }),
       }),
+    );
+  });
+
+  it("derives flushed delta text from the persisted snapshot when small chunks are buffered", async () => {
+    mocks.queryResults.conversations = [
+      {
+        id: "conversation-1",
+        workspaceId: "workspace-1",
+        agentSessionId: null,
+        agentWorkdir: null,
+      },
+    ];
+    mocks.queryResults.messages = [
+      {
+        id: "assistant-1",
+        conversationId: "conversation-1",
+        status: MESSAGE_STATUS.STREAMING,
+        contentMarkdown: "",
+        structuredJson: {
+          run_id: "run-1",
+          run_started_at: "2026-03-31T10:00:00.000Z",
+          run_last_heartbeat_at: "2026-03-31T10:00:00.000Z",
+          run_lease_expires_at: "2026-03-31T10:00:45.000Z",
+        },
+      },
+    ];
+
+    let now = 1_000;
+    const dateNowSpy = vi.spyOn(Date, "now").mockImplementation(() => now);
+
+    mocks.runAgentResponse.mockImplementation(async (_input, hooks) => {
+      now = 1_000;
+      await hooks?.onAssistantDelta?.({
+        textDelta: "第",
+        fullText: "第",
+      });
+      now = 1_050;
+      await hooks?.onAssistantDelta?.({
+        textDelta: "一",
+        fullText: "第一",
+      });
+      now = 1_100;
+      await hooks?.onAssistantDelta?.({
+        textDelta: "段",
+        fullText: "第一段",
+      });
+      now = 1_200;
+      await hooks?.onAssistantDelta?.({
+        textDelta: "。",
+        fullText: "第一段。",
+      });
+
+      return {
+        citations: [],
+        ok: true as const,
+        sessionId: "session-1",
+        text: "最终回答",
+        workdir: "/tmp/agent-session",
+      };
+    });
+    mocks.renderGroundedAnswer.mockImplementation(async (_input, hooks) => {
+      now = 2_000;
+      await hooks?.onTextDelta?.({
+        textDelta: "最终回答",
+        fullText: "最终回答",
+        displayText: "最终回答",
+      });
+      return {
+        groundedAnswer: {
+          answer_markdown: "最终回答",
+          citations: [],
+        },
+        meta: {
+          mode: "model_streamed",
+          parsedCitationReferenceCount: 0,
+          parsedOutputPresent: true,
+        },
+      };
+    });
+
+    try {
+      await processConversationResponseJob({
+        assistantMessageId: "assistant-1",
+        conversationId: "conversation-1",
+        runId: "run-1",
+        prompt: "总结一下",
+        userMessageId: "user-1",
+      });
+    } finally {
+      dateNowSpy.mockRestore();
+    }
+
+    expect(readAnswerDeltaEvents()).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          content_markdown: "",
+          delta_text: "第",
+        }),
+        expect.objectContaining({
+          content_markdown: "",
+          delta_text: "一段。",
+        }),
+      ]),
+    );
+  });
+
+  it("emits normalized final-answer deltas from display text instead of raw citation tokens", async () => {
+    mocks.queryResults.conversations = [
+      {
+        id: "conversation-1",
+        workspaceId: "workspace-1",
+        agentSessionId: null,
+        agentWorkdir: null,
+      },
+    ];
+    mocks.queryResults.messages = [
+      {
+        id: "assistant-1",
+        conversationId: "conversation-1",
+        status: MESSAGE_STATUS.STREAMING,
+        contentMarkdown: "",
+        structuredJson: {
+          run_id: "run-1",
+          run_started_at: "2026-03-31T10:00:00.000Z",
+          run_last_heartbeat_at: "2026-03-31T10:00:00.000Z",
+          run_lease_expires_at: "2026-03-31T10:00:45.000Z",
+        },
+      },
+    ];
+
+    let now = 1_000;
+    const dateNowSpy = vi.spyOn(Date, "now").mockImplementation(() => now);
+
+    mocks.runAgentResponse.mockResolvedValue({
+      citations: [],
+      ok: true as const,
+      sessionId: "session-1",
+      text: "最终回答[[cite:1]]",
+      workdir: "/tmp/agent-session",
+    });
+    mocks.renderGroundedAnswer.mockImplementation(async (_input, hooks) => {
+      now = 1_000;
+      await hooks?.onTextDelta?.({
+        textDelta: "最终回答",
+        fullText: "最终回答",
+        displayText: "最终回答",
+      });
+      now = 1_200;
+      await hooks?.onTextDelta?.({
+        textDelta: "[[cite:1]]",
+        fullText: "最终回答[[cite:1]]",
+        displayText: "最终回答[^1]",
+      });
+      return {
+        groundedAnswer: {
+          answer_markdown: "最终回答[^1]",
+          citations: [],
+        },
+        meta: {
+          mode: "model_streamed",
+          parsedCitationReferenceCount: 1,
+          parsedOutputPresent: true,
+        },
+      };
+    });
+
+    try {
+      await processConversationResponseJob({
+        assistantMessageId: "assistant-1",
+        conversationId: "conversation-1",
+        runId: "run-1",
+        prompt: "总结一下",
+        userMessageId: "user-1",
+      });
+    } finally {
+      dateNowSpy.mockRestore();
+    }
+
+    expect(readAnswerDeltaEvents()).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          content_markdown: "",
+          delta_text: "[^1]",
+        }),
+      ]),
     );
   });
 

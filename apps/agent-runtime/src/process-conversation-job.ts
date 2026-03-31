@@ -96,6 +96,14 @@ function buildAnswerDeltaEvent(input: {
   };
 }
 
+function deriveAnswerDeltaText(previousText: string, nextText: string) {
+  if (!nextText.startsWith(previousText)) {
+    return null;
+  }
+
+  return nextText.slice(previousText.length);
+}
+
 function buildToolMessageEvent(input: {
   message: {
     id: string;
@@ -639,7 +647,6 @@ export async function processConversationResponseJob(
       nextText: string,
       input: {
         force?: boolean;
-        deltaText?: string | null;
         phase?: "analyzing" | "tool" | "drafting" | "finalizing";
         statusText?: string | null;
       } = {},
@@ -662,13 +669,14 @@ export async function processConversationResponseJob(
         return;
       }
 
+      const deltaText = deriveAnswerDeltaText(lastPersistedAssistantText, nextText);
       await assertAssistantMessageStillStreaming();
       const eventId = await publishConversationEvent(
         buildAnswerDeltaEvent({
           conversationId: payload.conversationId,
           assistantMessageId: payload.assistantMessageId,
-          contentMarkdown: input.deltaText ? "" : nextText,
-          deltaText: input.deltaText ?? null,
+          contentMarkdown: deltaText === null ? nextText : "",
+          deltaText,
         }),
       );
       await persistAssistantRunState({
@@ -803,10 +811,9 @@ export async function processConversationResponseJob(
               clearActiveTool: true,
             });
           },
-          onAssistantDelta: async ({ textDelta, fullText }) => {
+          onAssistantDelta: async ({ fullText }) => {
             streamedAssistantText = fullText;
             await persistAssistantDelta(fullText, {
-              deltaText: textDelta,
               phase: ASSISTANT_STREAM_PHASE.DRAFTING,
               statusText: "助手正在生成回答草稿...",
             });
@@ -841,10 +848,9 @@ export async function processConversationResponseJob(
           evidence: Array.isArray(agentResponse.citations) ? agentResponse.citations : [],
         },
         {
-          onTextDelta: async ({ textDelta, displayText }) => {
+          onTextDelta: async ({ displayText }) => {
             finalAnswerPreviewText = displayText;
             await persistAssistantDelta(displayText, {
-              deltaText: textDelta,
               phase: ASSISTANT_STREAM_PHASE.FINALIZING,
               statusText: "正在生成最终答案...",
             });
