@@ -4,6 +4,11 @@ import { useEffect, useRef, useState } from "react";
 
 import { ShareIcon } from "@/components/icons";
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/shared/popover";
+import {
   buildCopyShareNotice,
   buildEnableShareNotice,
   SHARE_NOTICE_AUTO_DISMISS_MS,
@@ -34,7 +39,6 @@ export function ConversationSharePopover({
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
   const loadControllerRef = useRef<AbortController | null>(null);
   const noticeTimerRef = useRef<number | null>(null);
 
@@ -71,32 +75,6 @@ export function ConversationSharePopover({
       }
     };
   }, [notice]);
-
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
-
-    function handlePointerDown(event: PointerEvent) {
-      if (!containerRef.current?.contains(event.target as Node)) {
-        setOpen(false);
-      }
-    }
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        setOpen(false);
-      }
-    }
-
-    document.addEventListener("pointerdown", handlePointerDown);
-    document.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      document.removeEventListener("pointerdown", handlePointerDown);
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [open]);
 
   async function loadShare({ reset = false }: { reset?: boolean } = {}) {
     loadControllerRef.current?.abort();
@@ -149,8 +127,7 @@ export function ConversationSharePopover({
     }
   }
 
-  function handleToggleOpen() {
-    const nextOpen = !open;
+  function handleOpenChange(nextOpen: boolean) {
     setOpen(nextOpen);
     setNotice(null);
 
@@ -269,35 +246,35 @@ export function ConversationSharePopover({
     : null;
 
   return (
-    <div ref={containerRef} className="relative">
-      <button
-        aria-controls={panelId}
-        aria-expanded={open}
-        aria-haspopup="dialog"
-        className={cn(
-          buttonStyles({ size: "sm" }),
-          "gap-2 rounded-[18px] px-3.5 shadow-sm hover:bg-[#25211c] min-[720px]:gap-2.5 min-[720px]:px-4",
-        )}
-        disabled={isSubmitting}
-        onClick={() => {
-          void handleToggleOpen();
-        }}
-        type="button"
-      >
-        <ShareIcon aria-hidden="true" className="size-[18px]" strokeWidth={1.85} />
-        分享
-      </button>
-
-      {open ? (
-        <div
-          id={panelId}
-          role="dialog"
-          aria-label="会话分享"
+    <Popover
+      open={open}
+      onOpenChange={handleOpenChange}
+      placement="bottom-end"
+      sideOffset={10}
+      collisionPadding={12}
+    >
+      <PopoverTrigger asChild>
+        <button
+          aria-controls={panelId}
+          aria-expanded={open}
+          aria-haspopup="dialog"
           className={cn(
-            ui.popover,
-            "absolute right-0 top-[calc(100%+10px)] z-20 w-[min(320px,calc(100vw-24px))] overflow-hidden",
+            buttonStyles({ size: "sm" }),
+            "gap-2 rounded-[18px] px-3.5 shadow-sm hover:bg-[#25211c] min-[720px]:gap-2.5 min-[720px]:px-4",
           )}
+          disabled={isSubmitting}
+          type="button"
         >
+          <ShareIcon aria-hidden="true" className="size-[18px]" strokeWidth={1.85} />
+          分享
+        </button>
+      </PopoverTrigger>
+
+      <PopoverContent
+        id={panelId}
+        aria-label="会话分享"
+        className="z-20 w-[min(320px,calc(100vw-24px))] overflow-hidden"
+      >
           {/* Header */}
           <div className="flex items-center justify-between gap-3 px-3 pb-1 pt-2.5">
             <div className="grid gap-0.5">
@@ -447,8 +424,7 @@ export function ConversationSharePopover({
               ) : null}
             </div>
           )}
-        </div>
-      ) : null}
-    </div>
+      </PopoverContent>
+    </Popover>
   );
 }

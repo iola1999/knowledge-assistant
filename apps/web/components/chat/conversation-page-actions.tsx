@@ -2,7 +2,7 @@
 
 import { CONVERSATION_STATUS, type ConversationStatus } from "@anchordesk/contracts";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 
 import {
   MoreHorizontalIcon,
@@ -11,6 +11,11 @@ import {
 import { cn, menuItemStyles, ui } from "@/lib/ui";
 import { ConversationSharePopover } from "@/components/chat/conversation-share-popover";
 import { ActionDialog } from "@/components/shared/action-dialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/shared/popover";
 import { formatConversationMetaTimestamp } from "@/lib/api/conversations";
 
 function resolveConversationStatusLabel(status: ConversationStatus) {
@@ -39,7 +44,6 @@ export function ConversationPageActions({
   attachmentCount: number;
 }) {
   const router = useRouter();
-  const containerRef = useRef<HTMLDivElement | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -47,36 +51,6 @@ export function ConversationPageActions({
   const [isPending, startTransition] = useTransition();
   const isBusy = isSubmitting || isPending;
   const menuId = `conversation-actions-${conversationId}`;
-
-  useEffect(() => {
-    if (!isMenuOpen) {
-      return;
-    }
-
-    function handlePointerDown(event: PointerEvent) {
-      if (!(event.target instanceof Node)) {
-        return;
-      }
-
-      if (!containerRef.current?.contains(event.target)) {
-        setIsMenuOpen(false);
-      }
-    }
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        setIsMenuOpen(false);
-      }
-    }
-
-    document.addEventListener("pointerdown", handlePointerDown);
-    document.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      document.removeEventListener("pointerdown", handlePointerDown);
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [isMenuOpen]);
 
   async function handleDelete() {
     setStatus(null);
@@ -108,34 +82,35 @@ export function ConversationPageActions({
 
   return (
     <>
-      <div ref={containerRef} className="relative flex flex-nowrap items-center justify-end gap-1.5 min-[720px]:gap-2">
-        <button
-          aria-controls={menuId}
-          aria-expanded={isMenuOpen}
-          aria-haspopup="dialog"
-          className="inline-flex size-9 items-center justify-center rounded-xl bg-transparent text-app-muted-strong transition-[background-color,color,transform] duration-200 [transition-timing-function:var(--ease-out-quart)] hover:-translate-y-px hover:bg-app-surface-soft hover:text-app-text focus:outline-none focus:ring-4 focus:ring-app-accent/10 disabled:cursor-not-allowed disabled:opacity-60"
-          disabled={isBusy}
-          onClick={() => {
-            setIsMenuOpen((current) => !current);
-          }}
-          type="button"
+      <div className="relative flex flex-nowrap items-center justify-end gap-1.5 min-[720px]:gap-2">
+        <Popover
+          open={isMenuOpen}
+          onOpenChange={setIsMenuOpen}
+          placement="bottom-end"
+          sideOffset={10}
+          collisionPadding={12}
         >
-          <MoreHorizontalIcon className="size-[18px]" aria-hidden="true" />
-        </button>
-        <ConversationSharePopover
-          conversationId={conversationId}
-          onOpen={() => setIsMenuOpen(false)}
-        />
+          <PopoverTrigger asChild>
+            <button
+              aria-controls={menuId}
+              aria-expanded={isMenuOpen}
+              aria-haspopup="dialog"
+              className="inline-flex size-9 items-center justify-center rounded-xl bg-transparent text-app-muted-strong transition-[background-color,color,transform] duration-200 [transition-timing-function:var(--ease-out-quart)] hover:-translate-y-px hover:bg-app-surface-soft hover:text-app-text focus:outline-none focus:ring-4 focus:ring-app-accent/10 disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={isBusy}
+              onClick={() => {
+                setStatus(null);
+              }}
+              type="button"
+            >
+              <MoreHorizontalIcon className="size-[18px]" aria-hidden="true" />
+            </button>
+          </PopoverTrigger>
 
-        {isMenuOpen ? (
-          <div
+          <PopoverContent
             id={menuId}
             role="dialog"
             aria-label="当前会话信息与更多操作"
-            className={cn(
-              ui.popover,
-              "animate-soft-enter absolute right-0 top-[calc(100%+10px)] z-20 w-[min(320px,calc(100vw-24px))] overflow-hidden",
-            )}
+            className="animate-soft-enter z-20 w-[min(320px,calc(100vw-24px))] overflow-hidden"
           >
             {/* Header */}
             <div className="px-3 pb-1 pt-2.5">
@@ -203,8 +178,13 @@ export function ConversationPageActions({
               </button>
               {status ? <p className="px-3 pb-1 text-sm leading-6 text-red-600">{status}</p> : null}
             </div>
-          </div>
-        ) : null}
+          </PopoverContent>
+        </Popover>
+
+        <ConversationSharePopover
+          conversationId={conversationId}
+          onOpen={() => setIsMenuOpen(false)}
+        />
       </div>
 
       <ActionDialog

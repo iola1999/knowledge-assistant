@@ -1,9 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useId, useRef, useState } from "react";
+import { useId, useState } from "react";
 
 import { ChevronDownIcon } from "@/components/icons";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/shared/popover";
 import { breadcrumbSwitcherTriggerStyles, cn, menuItemStyles, ui } from "@/lib/ui";
 
 type WorkspaceListItem = {
@@ -23,34 +28,7 @@ export function WorkspaceBreadcrumbSwitcher({
   activeView = "chat",
 }: WorkspaceBreadcrumbSwitcherProps) {
   const [open, setOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
   const menuId = useId();
-
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
-
-    function handlePointerDown(event: PointerEvent) {
-      if (!containerRef.current?.contains(event.target as Node)) {
-        setOpen(false);
-      }
-    }
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        setOpen(false);
-      }
-    }
-
-    document.addEventListener("pointerdown", handlePointerDown);
-    document.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      document.removeEventListener("pointerdown", handlePointerDown);
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [open]);
 
   const getWorkspaceHref = (workspaceId: string) =>
     activeView === "settings"
@@ -60,37 +38,41 @@ export function WorkspaceBreadcrumbSwitcher({
       : `/workspaces/${workspaceId}`;
 
   return (
-    <div ref={containerRef} className="relative min-w-0 max-w-full overflow-visible">
-      <button
-        type="button"
-        aria-controls={menuId}
-        aria-expanded={open}
-        aria-haspopup="menu"
-        onClick={() => setOpen((value) => !value)}
-        className={cn(breadcrumbSwitcherTriggerStyles({ open }), "min-w-0")}
-      >
-        <span
-          title={workspace.title}
-          className="max-w-[min(24vw,116px)] truncate min-[720px]:max-w-[min(16vw,180px)] xl:max-w-[220px]"
-        >
-          {workspace.title}
-        </span>
-        <ChevronDownIcon
-          className={cn(
-            "size-3.5 text-app-muted transition-transform duration-200 [transition-timing-function:var(--ease-out-quart)]",
-            open && "rotate-180",
-          )}
-        />
-      </button>
+    <Popover
+      open={open}
+      onOpenChange={setOpen}
+      placement="bottom-start"
+      sideOffset={8}
+      collisionPadding={10}
+    >
+      <div className="min-w-0 max-w-full overflow-visible">
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            aria-controls={menuId}
+            aria-expanded={open}
+            aria-haspopup="menu"
+            className={cn(breadcrumbSwitcherTriggerStyles({ open }), "min-w-0")}
+          >
+            <span
+              title={workspace.title}
+              className="max-w-[min(24vw,116px)] truncate min-[720px]:max-w-[min(16vw,180px)] xl:max-w-[220px]"
+            >
+              {workspace.title}
+            </span>
+            <ChevronDownIcon
+              className={cn(
+                "size-3.5 text-app-muted transition-transform duration-200 [transition-timing-function:var(--ease-out-quart)]",
+                open && "rotate-180",
+              )}
+            />
+          </button>
+        </PopoverTrigger>
 
-      {open ? (
-        <div
+        <PopoverContent
           id={menuId}
           role="menu"
-          className={cn(
-            ui.menu,
-            "animate-soft-enter absolute left-0 top-[calc(100%+8px)] z-40 grid w-[min(260px,calc(100vw-20px))] gap-1",
-          )}
+          className="animate-soft-enter z-40 grid w-[min(260px,calc(100vw-20px))] gap-1"
         >
           {workspaces.map((workspaceItem) => (
             <Link
@@ -106,8 +88,8 @@ export function WorkspaceBreadcrumbSwitcher({
               <span className="block min-w-0 flex-1 truncate">{workspaceItem.title}</span>
             </Link>
           ))}
-        </div>
-      ) : null}
-    </div>
+        </PopoverContent>
+      </div>
+    </Popover>
   );
 }

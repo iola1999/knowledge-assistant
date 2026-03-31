@@ -1,13 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import {
   CONVERSATION_STATUS,
   type ConversationStatus,
 } from "@anchordesk/contracts";
 
 import { ChevronDownIcon } from "@/components/icons";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/shared/popover";
 import {
   breadcrumbSwitcherTriggerStyles,
   cn,
@@ -36,7 +41,6 @@ export function ConversationBreadcrumbSwitcher({
   conversations,
 }: ConversationBreadcrumbSwitcherProps) {
   const [open, setOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
   const menuId = useId();
   const visibleConversations = useMemo(() => {
     const seen = new Set<string>();
@@ -58,32 +62,6 @@ export function ConversationBreadcrumbSwitcher({
     });
   }, [conversations, currentConversation.id]);
 
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
-
-    function handlePointerDown(event: PointerEvent) {
-      if (!containerRef.current?.contains(event.target as Node)) {
-        setOpen(false);
-      }
-    }
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        setOpen(false);
-      }
-    }
-
-    document.addEventListener("pointerdown", handlePointerDown);
-    document.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      document.removeEventListener("pointerdown", handlePointerDown);
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [open]);
-
   return (
     <>
       <span
@@ -94,40 +72,41 @@ export function ConversationBreadcrumbSwitcher({
         {currentConversation.title}
       </span>
 
-      <div
-        ref={containerRef}
-        className="relative min-w-0 max-w-full overflow-visible min-[720px]:hidden"
+      <Popover
+        open={open}
+        onOpenChange={setOpen}
+        placement="bottom-start"
+        sideOffset={8}
+        collisionPadding={10}
       >
-        <button
-          type="button"
-          aria-controls={menuId}
-          aria-expanded={open}
-          aria-haspopup="menu"
-          onClick={() => setOpen((value) => !value)}
-          className={cn(breadcrumbSwitcherTriggerStyles({ open }), "min-w-0")}
-        >
-          <span
-            title={currentConversation.title}
-            className="max-w-[min(38vw,168px)] truncate font-medium text-app-text"
-          >
-            {currentConversation.title}
-          </span>
-          <ChevronDownIcon
-            className={cn(
-              "size-3.5 text-app-muted transition-transform duration-200 [transition-timing-function:var(--ease-out-quart)]",
-              open && "rotate-180",
-            )}
-          />
-        </button>
+        <div className="min-w-0 max-w-full overflow-visible min-[720px]:hidden">
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              aria-controls={menuId}
+              aria-expanded={open}
+              aria-haspopup="menu"
+              className={cn(breadcrumbSwitcherTriggerStyles({ open }), "min-w-0")}
+            >
+              <span
+                title={currentConversation.title}
+                className="max-w-[min(38vw,168px)] truncate font-medium text-app-text"
+              >
+                {currentConversation.title}
+              </span>
+              <ChevronDownIcon
+                className={cn(
+                  "size-3.5 text-app-muted transition-transform duration-200 [transition-timing-function:var(--ease-out-quart)]",
+                  open && "rotate-180",
+                )}
+              />
+            </button>
+          </PopoverTrigger>
 
-        {open ? (
-          <div
+          <PopoverContent
             id={menuId}
             role="menu"
-            className={cn(
-              ui.menu,
-              "animate-soft-enter absolute left-0 top-[calc(100%+8px)] z-40 grid w-[min(280px,calc(100vw-20px))] gap-1",
-            )}
+            className="animate-soft-enter z-40 grid w-[min(280px,calc(100vw-20px))] gap-1"
           >
             {visibleConversations.map((conversation) => (
               <Link
@@ -145,9 +124,9 @@ export function ConversationBreadcrumbSwitcher({
                 <span className="block min-w-0 flex-1 truncate">{conversation.title}</span>
               </Link>
             ))}
-          </div>
-        ) : null}
-      </div>
+          </PopoverContent>
+        </div>
+      </Popover>
     </>
   );
 }

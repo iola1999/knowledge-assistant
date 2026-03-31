@@ -1,23 +1,13 @@
 "use client";
 
-import { createElement, useState } from "react";
-import {
-  autoUpdate,
-  flip,
-  FloatingPortal,
-  offset,
-  safePolygon,
-  shift,
-  size,
-  useDismiss,
-  useFocus,
-  useFloating,
-  useHover,
-  useInteractions,
-  useRole,
-} from "@floating-ui/react";
+import { createElement } from "react";
 import { XMarkdown, type ComponentProps as XMarkdownComponentProps } from "@ant-design/x-markdown/es";
 
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/shared/hover-card";
 import { GlobeIcon, SourceIcon } from "@/components/icons";
 import { CitationPreviewExcerpt } from "@/components/shared/citation-preview-excerpt";
 import { KnowledgeSourceBadge } from "@/components/shared/knowledge-source-badge";
@@ -152,87 +142,41 @@ function InlineCitationMarker({
     );
   }
 
-  const [open, setOpen] = useState(false);
-  const { refs, floatingStyles, context } = useFloating({
-    open,
-    onOpenChange: setOpen,
-    placement: "bottom",
-    strategy: "fixed",
-    middleware: [
-      offset(10),
-      flip({ padding: 12 }),
-      shift({ padding: 12 }),
-      size({
-        padding: 12,
-        apply({ availableHeight, elements }) {
-          elements.floating.style.maxHeight = `${Math.max(
-            0,
-            Math.min(availableHeight, 320),
-          )}px`;
-        },
-      }),
-    ],
-    whileElementsMounted: autoUpdate,
-  });
-  const hover = useHover(context, {
-    move: false,
-    handleClose: safePolygon(),
-  });
-  const focus = useFocus(context);
-  const dismiss = useDismiss(context);
-  const role = useRole(context, { role: "dialog" });
-  const { getReferenceProps, getFloatingProps } = useInteractions([
-    hover,
-    focus,
-    dismiss,
-    role,
-  ]);
-
   return (
-    <>
-      <button
-        ref={refs.setReference}
-        type="button"
-        className="inline-flex appearance-none border-0 bg-transparent p-0 align-baseline"
-        aria-expanded={open}
-        aria-haspopup="dialog"
-        {...getReferenceProps()}
-      >
-        <InlineCitationGroup citations={citations} />
-      </button>
-      <FloatingPortal>
-        {open ? (
-          <div
-            ref={refs.setFloating}
-            style={floatingStyles}
-            className="z-30 grid w-[min(360px,calc(100vw-24px))] grid-rows-[auto_auto_minmax(0,1fr)] overflow-hidden rounded-2xl border border-app-border bg-white/98 p-1.5 text-left shadow-card backdrop-blur-md"
-            {...getFloatingProps()}
-          >
-            <span className="flex items-center justify-between px-3 pt-2.5 pb-1">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-app-accent">
-                来源
-              </span>
-              <span className="text-[12px] text-app-muted">{citations.length} 个来源</span>
+    <HoverCard placement="bottom" sideOffset={10} collisionPadding={12} maxHeight={320}>
+      <HoverCardTrigger asChild>
+        <button
+          type="button"
+          className="inline-flex appearance-none border-0 bg-transparent p-0 align-baseline"
+          aria-haspopup="dialog"
+        >
+          <InlineCitationGroup citations={citations} />
+        </button>
+      </HoverCardTrigger>
+      <HoverCardContent className="z-30 grid w-[min(360px,calc(100vw-24px))] grid-rows-[auto_auto_minmax(0,1fr)] overflow-hidden p-1.5 text-left">
+        <span className="flex items-center justify-between px-3 pt-2.5 pb-1">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-app-accent">
+            来源
+          </span>
+          <span className="text-[12px] text-app-muted">{citations.length} 个来源</span>
+        </span>
+        <span className="mx-2 my-1.5 block h-px bg-app-border/70" />
+        <span className="block min-h-0 overflow-y-auto">
+          {citations.map((citation, position) => (
+            <span key={citation.id} className="block">
+              <InlineCitationPreviewEntry
+                citation={citation}
+                sourceLinksEnabled={sourceLinksEnabled}
+                workspaceId={workspaceId}
+              />
+              {position < citations.length - 1 ? (
+                <span className="mx-3 block h-px bg-app-border/60" />
+              ) : null}
             </span>
-            <span className="mx-2 my-1.5 block h-px bg-app-border/70" />
-            <span className="block min-h-0 overflow-y-auto">
-              {citations.map((citation, position) => (
-                <span key={citation.id} className="block">
-                  <InlineCitationPreviewEntry
-                    citation={citation}
-                    sourceLinksEnabled={sourceLinksEnabled}
-                    workspaceId={workspaceId}
-                  />
-                  {position < citations.length - 1 ? (
-                    <span className="mx-3 block h-px bg-app-border/60" />
-                  ) : null}
-                </span>
-              ))}
-            </span>
-          </div>
-        ) : null}
-      </FloatingPortal>
-    </>
+          ))}
+        </span>
+      </HoverCardContent>
+    </HoverCard>
   );
 }
 
