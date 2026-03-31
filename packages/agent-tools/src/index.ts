@@ -55,7 +55,8 @@ export const assistantToolDefinitions = [
   },
   {
     name: ASSISTANT_TOOL.SEARCH_WORKSPACE_KNOWLEDGE,
-    description: "Search documents inside a workspace knowledge base",
+    description:
+      "Search documents inside a workspace knowledge base first when local files may contain the answer",
     inputShape: searchWorkspaceKnowledgeInputSchema.shape,
     execute: async (args: unknown) => searchWorkspaceKnowledgeHandler(args),
   },
@@ -67,13 +68,15 @@ export const assistantToolDefinitions = [
   },
   {
     name: ASSISTANT_TOOL.SEARCH_STATUTES,
-    description: "Search statutes and official legal texts when the task requires legal references",
+    description:
+      "Search external statutes and official legal texts after local workspace knowledge or conversation attachments are insufficient, or when the task needs official statute references beyond local materials",
     inputShape: searchStatutesInputSchema.shape,
     execute: async (args: unknown) => searchStatutesHandler(args),
   },
   {
     name: ASSISTANT_TOOL.SEARCH_WEB_GENERAL,
-    description: "Search the public web for general context",
+    description:
+      "Search the public web for general context after local workspace knowledge and conversation attachments are insufficient",
     inputShape: searchWebGeneralInputSchema.shape,
     execute: async (args: unknown) => searchWebGeneralHandler(args),
   },

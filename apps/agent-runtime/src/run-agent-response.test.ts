@@ -49,6 +49,8 @@ describe("buildAgentSystemPrompt", () => {
       "This workspace currently has indexed local knowledge available",
     );
     expect(prompt).toContain("try search_workspace_knowledge early");
+    expect(prompt).toContain("do not jump straight to search_statutes or search_web_general");
+    expect(prompt).toContain("Use search_statutes after local search");
     expect(prompt).toContain("Still consider the other tools");
   });
 
@@ -67,6 +69,12 @@ describe("buildAgentSystemPrompt", () => {
 
     expect(prompt).toContain(
       "Prefer conversation attachments and workspace knowledge before web tools whenever local materials may be relevant.",
+    );
+    expect(prompt).toContain(
+      "Use search_statutes only when the user explicitly asks for laws, regulations, or statute-level references and local workspace materials or attachments do not already cover the needed legal text.",
+    );
+    expect(prompt).toContain(
+      "If retrieval tools fail, are unavailable, or return no usable evidence, do not present unsupported factual claims as verified from sources.",
     );
     expect(prompt).not.toContain(
       "This workspace currently has indexed local knowledge available",

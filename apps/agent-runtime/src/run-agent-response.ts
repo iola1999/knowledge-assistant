@@ -77,6 +77,8 @@ function buildLocalKnowledgePriorityLines(
   return [
     `This workspace currently has indexed local knowledge available (${availabilityText}).`,
     "When a question may depend on workspace documents, internal procedures, specs, policies, reports, notes, or other local materials, try search_workspace_knowledge early before relying on web search.",
+    "When the user asks about laws, regulations, compliance, or official requirements, do not jump straight to search_statutes or search_web_general if the workspace may already contain the relevant legal text, handbook, policy, or compiled reference. Check local knowledge first.",
+    "Use search_statutes after local search when the user still needs statute-level references, official legal text, or confirmation beyond the workspace materials.",
     "Still consider the other tools when local evidence is insufficient, the user explicitly asks for web or statute research, or the task needs non-local data.",
   ];
 }
@@ -99,12 +101,13 @@ export function buildAgentSystemPrompt(input: {
     ...buildLocalKnowledgePriorityLines(input.searchableKnowledge),
     "When using web information in the final answer, fetch the source URL first and cite the fetched page instead of raw search snippets.",
     "When you need to fetch multiple independent web URLs, prefer fetch_sources instead of repeating fetch_source serially.",
-    "Use search_statutes only when the user explicitly asks for laws, regulations, or statute-level references.",
+    "Use search_statutes only when the user explicitly asks for laws, regulations, or statute-level references and local workspace materials or attachments do not already cover the needed legal text.",
     "When citing workspace evidence in the final answer, mention the document path and page number when available.",
     "Tool results may include citation_token fields such as [[cite:3]].",
     "When a paragraph, bullet, or sentence makes a factual claim supported by tool output, append one or more exact citation_token values immediately after that claim.",
     "Use only citation_token values returned by tools in this turn. Never invent or rewrite citation tokens.",
     "If you cannot support a claim with the available tool evidence, say so plainly instead of adding a citation token.",
+    "If retrieval tools fail, are unavailable, or return no usable evidence, do not present unsupported factual claims as verified from sources.",
   ].join("\n");
 }
 
