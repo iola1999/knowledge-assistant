@@ -29,6 +29,8 @@ import {
   knowledgeLibraries,
   messageCitations,
   messages,
+  resolveDefaultUsableModelProfile,
+  resolveUsableModelProfileById,
   resolveWorkspaceLibraryScope,
 } from "@anchordesk/db";
 import { serializeErrorForLog } from "@anchordesk/logging";
@@ -719,11 +721,16 @@ export async function processConversationResponseJob(
     heartbeatTimer.unref?.();
 
     try {
+      const modelProfile = payload.modelProfileId
+        ? await resolveUsableModelProfileById(payload.modelProfileId)
+        : await resolveDefaultUsableModelProfile();
+
       const agentResponse = await runAgentResponse(
         {
           prompt: payload.prompt,
           workspaceId: conversation.workspaceId,
           conversationId: payload.conversationId,
+          modelProfile,
           agentSessionId: conversation.agentSessionId,
           agentWorkdir: conversation.agentWorkdir,
         },
@@ -846,6 +853,7 @@ export async function processConversationResponseJob(
           prompt: payload.prompt,
           draftText: agentResponse.text,
           evidence: Array.isArray(agentResponse.citations) ? agentResponse.citations : [],
+          modelProfile,
         },
         {
           onTextDelta: async ({ displayText }) => {
@@ -913,6 +921,8 @@ export async function processConversationResponseJob(
 
       jobLogger.info(
         {
+          modelName: modelProfile.modelName,
+          modelProfileId: modelProfile.id,
           workspaceId: conversation.workspaceId,
           sessionId: agentResponse.sessionId ?? null,
           citationCount: groundedAnswerResult.groundedAnswer.citations.length,
@@ -1025,6 +1035,7 @@ export async function processConversationResponseJob(
 
     jobLogger.error(
       {
+        modelProfileId: payload.modelProfileId ?? null,
         workspaceId: conversation.workspaceId,
         errorMessage: failedAssistantState.structuredJson.agent_error,
         error: serializeErrorForLog(error),

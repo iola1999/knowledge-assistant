@@ -9,6 +9,10 @@ import {
 } from "@/components/chat/composer";
 import { WorkspaceConversationPanel } from "@/components/chat/workspace-conversation-panel";
 import { appendSubmittedConversationTurn } from "@/lib/api/conversation-session";
+import {
+  resolveInitialModelProfileId,
+  type EnabledModelProfileOption,
+} from "@/lib/api/model-profiles";
 import { ui } from "@/lib/ui";
 
 type PendingConversationState = {
@@ -20,16 +24,26 @@ type PendingConversationState = {
 export function WorkspaceEmptyConversationStage({
   workspaceId,
   workspaceTitle,
+  availableModelProfiles,
+  defaultModelProfileId,
   onSubmittedTurn,
   onAssistantTerminalEvent,
 }: {
   workspaceId: string;
   workspaceTitle: string;
+  availableModelProfiles: EnabledModelProfileOption[];
+  defaultModelProfileId?: string | null;
   onSubmittedTurn?: (turn: ComposerSubmittedTurn) => void;
   onAssistantTerminalEvent?: (conversationId: string) => void;
 }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
+  const [selectedModelProfileId, setSelectedModelProfileId] = useState<string | null>(() =>
+    resolveInitialModelProfileId({
+      availableModelProfiles,
+      defaultModelProfileId,
+    }),
+  );
   const [pendingConversation, setPendingConversation] =
     useState<PendingConversationState | null>(null);
 
@@ -59,8 +73,11 @@ export function WorkspaceEmptyConversationStage({
         initialMessages={pendingConversation.messages}
         initialCitations={[]}
         initialAttachments={pendingConversation.attachments}
+        availableModelProfiles={availableModelProfiles}
+        selectedModelProfileId={selectedModelProfileId}
         scrollToBottomOnMount
         onAssistantTerminalEvent={onAssistantTerminalEvent}
+        onSelectedModelProfileIdChange={setSelectedModelProfileId}
       />
     );
   }
@@ -83,8 +100,11 @@ export function WorkspaceEmptyConversationStage({
           submitLabel="开始对话"
           className="mx-auto w-full max-w-[920px] text-left"
           textareaClassName="bg-transparent"
+          availableModelProfiles={availableModelProfiles}
           initialAttachments={[]}
+          onSelectedModelProfileIdChange={setSelectedModelProfileId}
           onSubmitted={handleSubmitted}
+          selectedModelProfileId={selectedModelProfileId}
         />
       </div>
     </div>

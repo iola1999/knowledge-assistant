@@ -16,8 +16,8 @@ import {
   type GroundedEvidence,
 } from "@anchordesk/contracts";
 import {
-  buildClaudeAgentEnv,
-  getConfiguredAnthropicApiKey,
+  buildClaudeAgentEnvFromModelProfile,
+  type ModelProfileRecord,
 } from "@anchordesk/db";
 import {
   extractAssistantRuntimeSignal,
@@ -335,6 +335,7 @@ export type RunAgentResponseInput = {
   prompt: string;
   workspaceId: string;
   conversationId: string;
+  modelProfile: ModelProfileRecord;
   agentSessionId?: string | null;
   agentWorkdir?: string | null;
 };
@@ -389,28 +390,35 @@ export async function runAgentResponse(
     requestedWorkdir || path.join(getAgentWorkdirRoot(), conversationId.replace(/[^a-zA-Z0-9-_]/g, "_"));
   const requestLogger = logger.child({
     conversationId,
+    modelName: input.modelProfile.modelName,
+    modelProfileId: input.modelProfile.id,
     workspaceId,
     workdir,
   });
 
   await fs.mkdir(workdir, { recursive: true });
 
-  if (!getConfiguredAnthropicApiKey()) {
+  const agentEnv = buildClaudeAgentEnvFromModelProfile(input.modelProfile);
+  const runtimeLogContext = buildClaudeAgentRuntimeLogContext(agentEnv);
+
+  if (!agentEnv.ANTHROPIC_API_KEY) {
     requestLogger.error(
       {
         conversationId,
+        modelName: input.modelProfile.modelName,
+        modelProfileId: input.modelProfile.id,
         workspaceId,
         workdir,
-        ...buildClaudeAgentRuntimeLogContext(),
+        ...runtimeLogContext,
       },
       "anthropic api key missing for Claude Agent SDK query",
     );
     throw new Error("Anthropic API key is not configured.");
   }
 
-  const assistantServer = createAssistantMcpServer();
-  const agentEnv = buildClaudeAgentEnv();
-  const runtimeLogContext = buildClaudeAgentRuntimeLogContext(agentEnv);
+  const assistantServer = createAssistantMcpServer({
+    modelProfile: input.modelProfile,
+  });
   let finalResult = "";
   let streamedDraft = "";
   let sessionId = input.agentSessionId ?? null;
@@ -427,6 +435,8 @@ export async function runAgentResponse(
   requestLogger.info(
     {
       conversationId,
+      modelName: input.modelProfile.modelName,
+      modelProfileId: input.modelProfile.id,
       workspaceId,
       workdir,
       requestedSessionId: input.agentSessionId ?? null,
@@ -447,12 +457,15 @@ export async function runAgentResponse(
         allowedTools: getAllowedTools(),
         cwd: workdir,
         env: agentEnv,
+        model: input.modelProfile.modelName,
         debug: isClaudeAgentSdkDebugEnabled(agentEnv),
         stderr: (data) => {
           for (const line of splitClaudeAgentStderr(data)) {
             requestLogger.debug(
               {
                 conversationId,
+                modelName: input.modelProfile.modelName,
+                modelProfileId: input.modelProfile.id,
                 workspaceId,
                 workdir,
                 line,
@@ -607,6 +620,8 @@ export async function runAgentResponse(
     requestLogger.info(
       {
         sessionId,
+        modelName: input.modelProfile.modelName,
+        modelProfileId: input.modelProfile.id,
         finalResultLength: finalResult.length,
         streamedDraftLength: streamedDraft.length,
         workspaceEvidenceCount: citationMap.size,
@@ -623,6 +638,8 @@ export async function runAgentResponse(
     requestLogger.error(
       {
         conversationId,
+        modelName: input.modelProfile.modelName,
+        modelProfileId: input.modelProfile.id,
         workspaceId,
         workdir,
         sessionId,
@@ -641,6 +658,8 @@ export async function runAgentResponse(
   requestLogger.info(
     {
       sessionId,
+      modelName: input.modelProfile.modelName,
+      modelProfileId: input.modelProfile.id,
       citationCount: citationMap.size,
       inlineCitationMarkerCount,
       hasInlineCitationMarkers: inlineCitationMarkerCount > 0,

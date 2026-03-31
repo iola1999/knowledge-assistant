@@ -3,7 +3,12 @@ import { randomUUID } from "node:crypto";
 import express from "express";
 import { Worker } from "bullmq";
 
-import { buildClaudeAgentEnv, initRuntimeSettings } from "@anchordesk/db";
+import {
+  buildClaudeAgentEnv,
+  initRuntimeSettings,
+  resolveDefaultUsableModelProfile,
+  resolveUsableModelProfileById,
+} from "@anchordesk/db";
 import { serializeErrorForLog } from "@anchordesk/logging";
 import { QUEUE_NAMES, getRedisConnection } from "@anchordesk/queue";
 
@@ -49,6 +54,7 @@ async function main() {
     const prompt = String(req.body?.prompt ?? "").trim();
     const workspaceId = String(req.body?.workspaceId ?? "").trim();
     const conversationId = String(req.body?.conversationId ?? "").trim();
+    const modelProfileId = String(req.body?.modelProfileId ?? "").trim() || undefined;
     const agentSessionId = String(req.body?.agentSessionId ?? "").trim() || undefined;
     const requestedWorkdir = String(req.body?.agentWorkdir ?? "").trim() || undefined;
     const startedAt = Date.now();
@@ -59,6 +65,7 @@ async function main() {
       requestLogger.warn(
         {
           conversationId: conversationId || null,
+          modelProfileId: modelProfileId ?? null,
           workspaceId: workspaceId || null,
           promptLength: prompt.length,
           hasAgentSessionId: Boolean(agentSessionId),
@@ -75,6 +82,7 @@ async function main() {
     requestLogger.info(
       {
         conversationId,
+        modelProfileId: modelProfileId ?? null,
         workspaceId,
         promptLength: prompt.length,
         hasAgentSessionId: Boolean(agentSessionId),
@@ -84,10 +92,14 @@ async function main() {
     );
 
     try {
+      const modelProfile = modelProfileId
+        ? await resolveUsableModelProfileById(modelProfileId)
+        : await resolveDefaultUsableModelProfile();
       const result = await runAgentResponse({
         prompt,
         workspaceId,
         conversationId,
+        modelProfile,
         agentSessionId,
         agentWorkdir: requestedWorkdir,
       });
@@ -95,6 +107,7 @@ async function main() {
       requestLogger.info(
         {
           conversationId,
+          modelProfileId: modelProfile.id,
           workspaceId,
           sessionId: result.sessionId ?? null,
           citationCount: Array.isArray(result.citations) ? result.citations.length : 0,
@@ -111,6 +124,7 @@ async function main() {
       requestLogger.error(
         {
           conversationId,
+          modelProfileId: modelProfileId ?? null,
           workspaceId,
           durationMs: Date.now() - startedAt,
           error: serializeErrorForLog(error),

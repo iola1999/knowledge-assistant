@@ -42,12 +42,14 @@ describe("buildWorkspaceUserPanelState", () => {
     expect(state.actions.map((action) => action.key)).toEqual([
       "account",
       "global-libraries",
+      "model-management",
       "system-settings",
       "logout",
     ]);
     expect(state.accountActions.map((action) => action.key)).toEqual(["account"]);
     expect(state.adminActions.map((action) => action.key)).toEqual([
       "global-libraries",
+      "model-management",
       "system-settings",
     ]);
     expect(state.logoutAction?.key).toBe("logout");

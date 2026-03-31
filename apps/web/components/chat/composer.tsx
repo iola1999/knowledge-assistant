@@ -23,9 +23,13 @@ import {
   resolveComposerSubmitStatus,
 } from "@/lib/api/composer";
 import { computeFileSha256 } from "@/lib/api/file-digests";
+import {
+  formatEnabledModelProfileLabel,
+  type EnabledModelProfileOption,
+} from "@/lib/api/model-profiles";
 import { SUPPORTED_UPLOAD_ACCEPT } from "@/lib/api/upload-policy";
 import { conversationDensityClassNames } from "@/lib/conversation-density";
-import { buttonStyles, cn, ui } from "@/lib/ui";
+import { buttonStyles, cn, selectStyles, ui } from "@/lib/ui";
 import type { ConversationChatMessage } from "@/lib/api/conversation-session";
 
 export type ComposerAttachment = {
@@ -45,6 +49,7 @@ export type ComposerSubmittedTurn = {
   assistantMessage: ConversationChatMessage;
   attachments: ComposerAttachment[];
   conversationId: string;
+  modelProfileId: string | null;
   userMessage: ConversationChatMessage;
 };
 
@@ -60,9 +65,12 @@ type ComposerProps = {
   helperText?: string;
   className?: string;
   textareaClassName?: string;
+  availableModelProfiles?: EnabledModelProfileOption[];
+  selectedModelProfileId?: string | null;
   initialAttachments?: ComposerAttachment[];
   isStreaming?: boolean;
   onStop?: () => Promise<void> | void;
+  onSelectedModelProfileIdChange?: (modelProfileId: string) => void;
   onSubmitted?: (turn: ComposerSubmittedTurn) => void;
 };
 
@@ -99,9 +107,12 @@ export function Composer({
   helperText,
   className,
   textareaClassName,
+  availableModelProfiles = [],
+  selectedModelProfileId,
   initialAttachments = [],
   isStreaming = false,
   onStop,
+  onSelectedModelProfileIdChange,
   onSubmitted,
 }: ComposerProps) {
   const heading = resolveComposerHeading({ title, description });
@@ -133,6 +144,10 @@ export function Composer({
       hasNoReadyAttachments);
   const stageTextareaSizing = resolveComposerStageTextareaSizing(rows);
   const canStopStreaming = isStreaming && typeof onStop === "function";
+  const currentModelProfileId =
+    selectedModelProfileId ?? availableModelProfiles[0]?.id ?? null;
+  const hasModelSelector =
+    availableModelProfiles.length > 0 && currentModelProfileId !== null;
   const primaryAction = resolveComposerPrimaryAction({
     content,
     hasPendingAttachments,
@@ -511,7 +526,9 @@ export function Composer({
       const createResponse = await fetch(`/api/workspaces/${workspaceId}/conversations`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({}),
+        body: JSON.stringify({
+          modelProfileId: currentModelProfileId ?? undefined,
+        }),
       });
       const createBody = (await createResponse.json().catch(() => null)) as
         | { error?: string; conversation?: { id: string } }
@@ -530,6 +547,7 @@ export function Composer({
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         content: prompt,
+        modelProfileId: currentModelProfileId ?? undefined,
         draftUploadId:
           !conversationId && attachments.length > 0 ? draftUploadIdRef.current : undefined,
       }),
@@ -555,6 +573,7 @@ export function Composer({
         onSubmitted({
           ...submittedTurn,
           attachments,
+          modelProfileId: currentModelProfileId ?? null,
         });
       } else {
         startTransition(() => {
@@ -613,6 +632,31 @@ export function Composer({
     }
   }
 
+  function renderModelSelector(className?: string) {
+    if (!hasModelSelector || !currentModelProfileId) {
+      return null;
+    }
+
+    return (
+      <label className={cn("grid gap-1", className)}>
+        <span className="text-[11px] font-medium uppercase tracking-[0.12em] text-app-muted">
+          模型
+        </span>
+        <select
+          className={cn(selectStyles({ size: "compact" }), "bg-white/92")}
+          value={currentModelProfileId}
+          onChange={(event) => onSelectedModelProfileIdChange?.(event.target.value)}
+        >
+          {availableModelProfiles.map((profile) => (
+            <option key={profile.id} value={profile.id}>
+              {formatEnabledModelProfileLabel(profile)}
+            </option>
+          ))}
+        </select>
+      </label>
+    );
+  }
+
   return (
     <form
       onSubmit={onSubmit}
@@ -655,7 +699,7 @@ export function Composer({
               )}
             />
             <div className="flex items-center justify-between gap-2.5 pt-0.5">
-              <div className="flex min-h-9 items-center gap-2">
+              <div className="flex min-h-9 min-w-0 flex-1 flex-wrap items-center gap-2">
                 {workspaceId ? (
                   <button
                     type="button"
@@ -668,9 +712,8 @@ export function Composer({
                   >
                     <PlusIcon className="size-5" aria-hidden="true" />
                   </button>
-                ) : (
-                  <div className="size-9 shrink-0" aria-hidden="true" />
-                )}
+                ) : null}
+                {renderModelSelector("min-w-[210px] flex-1 max-w-[320px]")}
               </div>
               <button
                 className={cn(
@@ -748,6 +791,7 @@ export function Composer({
         </div>
       ) : (
         <>
+          {renderModelSelector("max-w-[320px]")}
           <textarea
             ref={textareaRef}
             required

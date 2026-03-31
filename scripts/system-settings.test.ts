@@ -11,7 +11,6 @@ describe("buildSystemSettingSeedRows", () => {
   it("prefers explicit environment values and falls back to defaults", () => {
     const rows = buildSystemSettingSeedRows({
       REDIS_URL: "redis://custom:6379",
-      ANTHROPIC_API_KEY: "secret-key",
       BRAVE_SEARCH_API_KEY: "brave-secret",
     });
 
@@ -20,18 +19,6 @@ describe("buildSystemSettingSeedRows", () => {
       valueText: "redis://custom:6379",
       isSecret: false,
       summary: "BullMQ 与会话 allowlist 使用的 Redis 地址。",
-    });
-    expect(rows.find((row) => row.settingKey === "anthropic_api_key")).toMatchObject({
-      settingKey: "anthropic_api_key",
-      valueText: "secret-key",
-      isSecret: true,
-      summary: "Agent 规划与最终答案使用的 Anthropic 密钥。",
-    });
-    expect(rows.find((row) => row.settingKey === "anthropic_base_url")).toMatchObject({
-      settingKey: "anthropic_base_url",
-      valueText: "https://api.anthropic.com",
-      isSecret: false,
-      summary: "Anthropic API 的基础地址覆盖值。",
     });
     expect(rows.find((row) => row.settingKey === "brave_search_api_key")).toMatchObject({
       settingKey: "brave_search_api_key",
@@ -42,9 +29,11 @@ describe("buildSystemSettingSeedRows", () => {
       settingKey: "qdrant_collection",
       valueText: "knowledge_chunks",
     });
-    expect(rows.find((row) => row.settingKey === "anthropic_model")).toMatchObject({
-      settingKey: "anthropic_model",
-      valueText: "claude-sonnet-4-5",
+    expect(
+      rows.find((row) => row.settingKey === "anthropic_final_answer_max_tokens"),
+    ).toMatchObject({
+      settingKey: "anthropic_final_answer_max_tokens",
+      valueText: "1400",
     });
     expect(rows.find((row) => row.settingKey === "web_search_search_lang")).toMatchObject({
       settingKey: "web_search_search_lang",
@@ -84,13 +73,13 @@ describe("system settings env resolution", () => {
           valueText: "custom-bucket",
         },
         {
-          settingKey: "anthropic_api_key",
-          valueText: "top-secret",
+          settingKey: "anthropic_final_answer_max_tokens",
+          valueText: "1600",
         },
       ]),
     ).toEqual({
       S3_BUCKET: "custom-bucket",
-      ANTHROPIC_API_KEY: "top-secret",
+      ANTHROPIC_FINAL_ANSWER_MAX_TOKENS: "1600",
     });
   });
 
@@ -116,7 +105,6 @@ describe("system settings env resolution", () => {
     ).toMatchObject({
       REDIS_URL: "redis://from-env:6379",
       QDRANT_URL: "http://from-db:6333",
-      ANTHROPIC_BASE_URL: "https://api.anthropic.com",
       S3_ENDPOINT: "http://localhost:9000",
     });
   });

@@ -3,28 +3,40 @@ import { and, inArray } from "drizzle-orm";
 
 import { DEFAULT_SEARCH_WORKSPACE_KNOWLEDGE_TOP_K } from "@anchordesk/contracts";
 import {
-  buildAnthropicClientConfig,
+  buildAnthropicClientConfigFromModelProfile,
   citationAnchors,
   getDb,
+  resolveDefaultUsableModelProfile,
   resolveWorkspaceLibraryScope,
+  type ModelProfileRecord,
 } from "@anchordesk/db";
 import { searchWorkspaceKnowledge } from "@anchordesk/retrieval";
 
 import type { ReportEvidenceAnchor } from "./report-generation";
 import { uniqueStrings } from "./tool-output";
 
-let anthropicClient: Anthropic | null = null;
-
-export function getReportModel() {
-  return process.env.ANTHROPIC_MODEL ?? "claude-sonnet-4-5";
-}
-
-export function getAnthropicClient() {
-  if (!anthropicClient) {
-    anthropicClient = new Anthropic(buildAnthropicClientConfig());
+export async function resolveReportModelProfile(
+  modelProfile?: ModelProfileRecord | null,
+) {
+  if (modelProfile) {
+    return modelProfile;
   }
 
-  return anthropicClient;
+  return resolveDefaultUsableModelProfile();
+}
+
+export async function getReportModelRuntime(
+  modelProfile?: ModelProfileRecord | null,
+) {
+  const resolvedModelProfile = await resolveReportModelProfile(modelProfile);
+
+  return {
+    client: new Anthropic(
+      buildAnthropicClientConfigFromModelProfile(resolvedModelProfile),
+    ),
+    model: resolvedModelProfile.modelName,
+    modelProfile: resolvedModelProfile,
+  };
 }
 
 export async function resolveEvidenceAnchors(input: {

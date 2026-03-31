@@ -71,6 +71,13 @@
       "when": 1774892897289,
       "tag": "0009_first-super-admin",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1774981257431,
+      "tag": "0010_lyrical_puff_adder",
+      "breakpoints": true
     }
   ]
 }

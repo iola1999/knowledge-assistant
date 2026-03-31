@@ -27,6 +27,8 @@ const mocks = vi.hoisted(() => {
   const updates: Array<{ table: unknown; values: unknown }> = [];
   const runAgentResponse = vi.fn();
   const renderGroundedAnswer = vi.fn();
+  const resolveDefaultUsableModelProfile = vi.fn();
+  const resolveUsableModelProfileById = vi.fn();
   const appendConversationStreamEvent = vi.fn(async () => "1743490000000-0");
   const loggerChild = {
     debug: vi.fn(),
@@ -86,6 +88,8 @@ const mocks = vi.hoisted(() => {
     loggerChild,
     queryResults,
     renderGroundedAnswer,
+    resolveDefaultUsableModelProfile,
+    resolveUsableModelProfileById,
     runAgentResponse,
     tables,
     updates,
@@ -100,6 +104,8 @@ vi.mock("@anchordesk/db", () => ({
   messageCitations: mocks.tables.messageCitations,
   messages: mocks.tables.messages,
   knowledgeLibraries: Symbol("knowledgeLibraries"),
+  resolveDefaultUsableModelProfile: mocks.resolveDefaultUsableModelProfile,
+  resolveUsableModelProfileById: mocks.resolveUsableModelProfileById,
   resolveWorkspaceLibraryScope: async () => ({
     accessibleLibraryIds: [],
   }),
@@ -139,6 +145,28 @@ beforeEach(() => {
   mocks.updates.length = 0;
   mocks.runAgentResponse.mockReset();
   mocks.renderGroundedAnswer.mockReset();
+  mocks.resolveDefaultUsableModelProfile.mockReset();
+  mocks.resolveUsableModelProfileById.mockReset();
+  mocks.resolveDefaultUsableModelProfile.mockResolvedValue({
+    id: "model-profile-1",
+    apiType: "anthropic",
+    displayName: "Sonnet 4.5",
+    modelName: "claude-sonnet-4-5",
+    baseUrl: "https://api.anthropic.com",
+    apiKey: "sk-test",
+    enabled: true,
+    isDefault: true,
+  });
+  mocks.resolveUsableModelProfileById.mockResolvedValue({
+    id: "model-profile-1",
+    apiType: "anthropic",
+    displayName: "Sonnet 4.5",
+    modelName: "claude-sonnet-4-5",
+    baseUrl: "https://api.anthropic.com",
+    apiKey: "sk-test",
+    enabled: true,
+    isDefault: true,
+  });
   mocks.appendConversationStreamEvent.mockReset();
   mocks.appendConversationStreamEvent.mockImplementation(async () => "1743490000000-0");
   mocks.loggerChild.debug.mockReset();
@@ -148,12 +176,22 @@ beforeEach(() => {
 });
 
 function readAnswerDeltaEvents() {
-  return mocks.appendConversationStreamEvent.mock.calls
-    .map(([input]) => input.event)
-    .filter(
-      (event): event is { type: typeof CONVERSATION_STREAM_EVENT.ANSWER_DELTA } =>
-        event?.type === CONVERSATION_STREAM_EVENT.ANSWER_DELTA,
-    );
+  const events = (
+    mocks.appendConversationStreamEvent.mock.calls as unknown as Array<
+      [{ event?: unknown }]
+    >
+  ).map(([input]) => input.event);
+
+  return events.filter(
+    (
+      event,
+    ): event is { type: typeof CONVERSATION_STREAM_EVENT.ANSWER_DELTA } =>
+      event !== null &&
+      event !== undefined &&
+      typeof event === "object" &&
+      "type" in event &&
+      event.type === CONVERSATION_STREAM_EVENT.ANSWER_DELTA,
+  );
 }
 
 describe("processConversationResponseJob", () => {
@@ -298,12 +336,32 @@ describe("processConversationResponseJob", () => {
     await processConversationResponseJob({
       assistantMessageId: "assistant-1",
       conversationId: "conversation-1",
+      modelProfileId: "model-profile-1",
       runId: "run-1",
       prompt: "总结一下",
       userMessageId: "user-1",
     });
 
     expect(mocks.runAgentResponse).toHaveBeenCalledTimes(1);
+    expect(mocks.runAgentResponse).toHaveBeenCalledWith(
+      expect.objectContaining({
+        conversationId: "conversation-1",
+        modelProfile: expect.objectContaining({
+          id: "model-profile-1",
+          modelName: "claude-sonnet-4-5",
+        }),
+      }),
+      expect.any(Object),
+    );
+    expect(mocks.renderGroundedAnswer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        modelProfile: expect.objectContaining({
+          id: "model-profile-1",
+          modelName: "claude-sonnet-4-5",
+        }),
+      }),
+      expect.any(Object),
+    );
     expect(mocks.inserts).toEqual(
       expect.arrayContaining([
         expect.objectContaining({

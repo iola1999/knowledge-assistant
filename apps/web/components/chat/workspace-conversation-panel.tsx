@@ -10,6 +10,7 @@ import {
   type ComposerSubmittedTurn,
 } from "@/components/chat/composer";
 import { ConversationSession } from "@/components/chat/conversation-session";
+import { type EnabledModelProfileOption } from "@/lib/api/model-profiles";
 import { type AssistantProcessMessage } from "@/lib/api/conversation-process";
 import { conversationDensityClassNames } from "@/lib/conversation-density";
 import {
@@ -62,9 +63,12 @@ export function WorkspaceConversationPanel({
   initialTimelineMessagesByAssistant,
   initialCitations,
   initialAttachments,
+  availableModelProfiles,
+  selectedModelProfileId,
   scrollToBottomOnMount = false,
   onSubmittedTurn,
   onAssistantTerminalEvent,
+  onSelectedModelProfileIdChange,
 }: {
   conversationId: string;
   workspaceId: string;
@@ -72,9 +76,12 @@ export function WorkspaceConversationPanel({
   initialTimelineMessagesByAssistant?: TimelineMessagesByAssistant;
   initialCitations?: ConversationMessageCitation[];
   initialAttachments: ComposerAttachment[];
+  availableModelProfiles: EnabledModelProfileOption[];
+  selectedModelProfileId?: string | null;
   scrollToBottomOnMount?: boolean;
   onSubmittedTurn?: (turn: ComposerSubmittedTurn) => void;
   onAssistantTerminalEvent?: (conversationId: string) => void;
+  onSelectedModelProfileIdChange?: (modelProfileId: string) => void;
 }) {
   const [messages, setMessages] = useState(initialMessages);
   const [timelineMessagesByAssistant, setTimelineMessagesByAssistant] = useState(
@@ -209,10 +216,13 @@ export function WorkspaceConversationPanel({
           submitLabel="继续"
           className="border-transparent bg-transparent p-0 shadow-none backdrop-blur-0"
           textareaClassName="bg-transparent"
+          availableModelProfiles={availableModelProfiles}
           initialAttachments={initialAttachments}
           isStreaming={activeAssistantStatus === MESSAGE_STATUS.STREAMING}
           onStop={handleStopStreamingAssistant}
+          onSelectedModelProfileIdChange={onSelectedModelProfileIdChange}
           onSubmitted={handleSubmitted}
+          selectedModelProfileId={selectedModelProfileId}
         />
       </div>
     </div>

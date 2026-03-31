@@ -178,7 +178,9 @@ bootstrap env-only（不进入 `system_settings`）：
 - `DATABASE_URL`
 - `AUTH_SECRET`
 
-其余所有 provider / 基础设施参数（Redis、S3、Qdrant、Anthropic、DashScope 等）均存储在 `system_settings`，可通过 `/settings` 管理。变更后需重启相关进程。
+其余大部分 provider / 基础设施参数（Redis、S3、Qdrant、web search、embedding、DashScope 等）均存储在 `system_settings`，可通过 `/settings` 这个“系统参数”页管理。变更后需重启相关进程。
+
+Claude-compatible 对话模型不再放在 `system_settings`；它们存储在 `llm_model_profiles`，由 `/admin/models` 维护，并通过 `conversations.model_profile_id` 按会话持久化当前选择。主对话、grounded final answer 与报告生成统一按请求解析该模型配置。
 
 `upgrade` 服务在首次运行时将 `.env.production` 中的值写入 `system_settings`（`INSERT ... ON CONFLICT DO NOTHING`），后续运行不会覆盖已有值。
 

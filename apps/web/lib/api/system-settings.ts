@@ -1,5 +1,9 @@
 import { z } from "zod";
 
+import { isVisibleSystemSettingKey } from "@/lib/api/model-profiles";
+
+export { isVisibleSystemSettingKey } from "@/lib/api/model-profiles";
+
 export type SystemSettingRow = {
   settingKey: string;
   valueText: string | null;
@@ -47,7 +51,7 @@ const SECTION_DEFINITIONS = [
   {
     id: "model",
     title: "模型与检索策略",
-    description: "Anthropic、联网搜索、embedding、DashScope、rerank 等模型侧配置。",
+    description: "联网搜索、embedding、DashScope、rerank 等模型侧运行参数。",
     match: (settingKey: string) =>
       settingKey.startsWith("anthropic_") ||
       settingKey.startsWith("web_search_") ||
@@ -88,10 +92,6 @@ const KNOWN_SETTING_ORDER = [
   "s3_access_key_id",
   "s3_secret_access_key",
   "s3_force_path_style",
-  "anthropic_api_key",
-  "anthropic_base_url",
-  "anthropic_model",
-  "anthropic_final_answer_model",
   "anthropic_final_answer_max_tokens",
   "embedding_provider",
   "embedding_api_url",
@@ -183,7 +183,9 @@ export function parseSystemSettingBoolean(
 export function buildSystemSettingSections(rows: SystemSettingRow[]) {
   const itemsBySection = new Map<string, SystemSettingField[]>();
 
-  for (const row of [...rows].sort((left, right) =>
+  for (const row of rows
+    .filter((item) => isVisibleSystemSettingKey(item.settingKey))
+    .sort((left, right) =>
     compareSettingKeys(left.settingKey, right.settingKey),
   )) {
     const section = getSectionDefinition(row.settingKey);

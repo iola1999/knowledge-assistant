@@ -12,6 +12,8 @@ import {
   DEFAULT_RETRIEVAL_RUN_TOP_K,
   DEFAULT_RUN_STATUS,
   DEFAULT_WORKSPACE_LIBRARY_SUBSCRIPTION_STATUS,
+  MODEL_PROFILE_API_TYPE,
+  type ModelProfileApiType,
   type AppUpgradeStatus,
   type DocumentStatus,
   type DocumentType,
@@ -94,6 +96,31 @@ export const systemSettings = pgTable("system_settings", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+export const llmModelProfiles = pgTable(
+  "llm_model_profiles",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    apiType: varchar("api_type", { length: 32 })
+      .$type<ModelProfileApiType>()
+      .notNull()
+      .default(MODEL_PROFILE_API_TYPE.ANTHROPIC),
+    displayName: varchar("display_name", { length: 120 }).notNull(),
+    modelName: varchar("model_name", { length: 160 }).notNull(),
+    baseUrl: text("base_url").notNull(),
+    apiKey: text("api_key").notNull(),
+    enabled: boolean("enabled").notNull().default(true),
+    isDefault: boolean("is_default").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("llm_model_profiles_single_default_uid")
+      .on(table.isDefault)
+      .where(sql`${table.isDefault} = true`),
+    index("llm_model_profiles_enabled_default_idx").on(table.enabled, table.isDefault),
+  ],
+);
 
 export const appUpgrades = pgTable("app_upgrades", {
   upgradeKey: varchar("upgrade_key", { length: 160 }).primaryKey(),
@@ -477,13 +504,19 @@ export const conversations = pgTable(
       .$type<ConversationStatus>()
       .notNull()
       .default(DEFAULT_CONVERSATION_STATUS),
+    modelProfileId: uuid("model_profile_id").references(() => llmModelProfiles.id, {
+      onDelete: "set null",
+    }),
     agentSessionId: text("agent_session_id"),
     agentWorkdir: text("agent_workdir"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     archivedAt: timestamp("archived_at", { withTimezone: true }),
   },
-  (table) => [index("conversations_workspace_idx").on(table.workspaceId)],
+  (table) => [
+    index("conversations_workspace_idx").on(table.workspaceId),
+    index("conversations_model_profile_idx").on(table.modelProfileId),
+  ],
 );
 
 export const conversationAttachments = pgTable(

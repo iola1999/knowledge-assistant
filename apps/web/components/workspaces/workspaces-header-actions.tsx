@@ -6,12 +6,16 @@ import { signOut, useSession } from "next-auth/react";
 import { useEffect, useId, useRef, useState } from "react";
 
 import {
+  AnswerIcon,
   ChevronDownIcon,
   LibraryIcon,
   SlidersIcon,
 } from "@/components/icons";
 import { WorkspaceUserMenuContent } from "@/components/workspaces/workspace-user-menu-content";
-import { buildWorkspaceUserPanelState } from "@/lib/workspace-user-panel";
+import {
+  buildWorkspaceUserPanelState,
+  type WorkspaceUserPanelAction,
+} from "@/lib/workspace-user-panel";
 import { buttonStyles, cn, menuItemStyles, ui } from "@/lib/ui";
 
 type WorkspacesHeaderActionsProps = {
@@ -118,7 +122,7 @@ export function WorkspacesHeaderActions({
                     )}
                   >
                     <span className="grid size-7 shrink-0 place-items-center rounded-lg text-app-muted-strong">
-                      {action.key === "global-libraries" ? <LibraryIcon /> : <SlidersIcon />}
+                      {resolveAdminActionIcon(action.key)}
                     </span>
                     <span className="min-w-0 flex-1 truncate text-[14px] font-medium">
                       {action.label}
@@ -205,4 +209,16 @@ function headerMenuTriggerStyles(open: boolean) {
     "gap-2 border-app-border/80 bg-white/78 pl-1.5 pr-2.5 shadow-soft backdrop-blur-sm hover:border-app-border-strong hover:bg-white",
     open && "border-app-border-strong bg-white text-app-text",
   );
+}
+
+function resolveAdminActionIcon(key: WorkspaceUserPanelAction["key"]) {
+  if (key === "global-libraries") {
+    return <LibraryIcon />;
+  }
+
+  if (key === "model-management") {
+    return <AnswerIcon />;
+  }
+
+  return <SlidersIcon />;
 }

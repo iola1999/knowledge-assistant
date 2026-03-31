@@ -4,6 +4,7 @@ import { getDb, systemSettings } from "@anchordesk/db";
 
 import { auth } from "@/auth";
 import {
+  isVisibleSystemSettingKey,
   normalizeSystemSettingUpdates,
   systemSettingsUpdateSchema,
 } from "@/lib/api/system-settings";
@@ -13,7 +14,7 @@ export const runtime = "nodejs";
 
 async function listSystemSettings() {
   const db = getDb();
-  return await db
+  const rows = await db
     .select({
       settingKey: systemSettings.settingKey,
       valueText: systemSettings.valueText,
@@ -23,6 +24,8 @@ async function listSystemSettings() {
     })
     .from(systemSettings)
     .orderBy(asc(systemSettings.settingKey));
+
+  return rows.filter((row) => isVisibleSystemSettingKey(row.settingKey));
 }
 
 function unauthorizedResponse() {

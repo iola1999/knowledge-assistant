@@ -6,8 +6,8 @@ import {
   type GroundedEvidence,
 } from "@anchordesk/contracts";
 import {
-  buildAnthropicClientConfig,
-  getConfiguredAnthropicApiKey,
+  buildAnthropicClientConfigFromModelProfile,
+  type ModelProfileRecord,
 } from "@anchordesk/db";
 
 import {
@@ -27,14 +27,6 @@ export type RenderGroundedAnswerResult = {
   };
 };
 
-function getModel() {
-  return (
-    process.env.ANTHROPIC_FINAL_ANSWER_MODEL ??
-    process.env.ANTHROPIC_MODEL ??
-    "claude-sonnet-4-5"
-  );
-}
-
 function getMaxTokens() {
   const n = Number(process.env.ANTHROPIC_FINAL_ANSWER_MAX_TOKENS ?? "1400");
   return Number.isFinite(n) ? n : 1400;
@@ -50,20 +42,11 @@ const FINAL_ANSWER_SYSTEM_PROMPT = [
   "Keep the answer concise, professional, and explicit about uncertainty.",
 ].join("\n");
 
-let anthropicClient: Anthropic | null = null;
-
-function getAnthropicClient() {
-  if (!anthropicClient) {
-    anthropicClient = new Anthropic(buildAnthropicClientConfig());
-  }
-
-  return anthropicClient;
-}
-
 export async function renderGroundedAnswer(input: {
   prompt: string;
   draftText: string;
   evidence: GroundedEvidence[];
+  modelProfile: ModelProfileRecord;
 }, hooks: {
   onTextDelta?: (input: {
     textDelta: string;
@@ -71,15 +54,18 @@ export async function renderGroundedAnswer(input: {
     displayText: string;
   }) => Promise<void> | void;
 } = {}): Promise<RenderGroundedAnswerResult> {
-  if (!getConfiguredAnthropicApiKey()) {
+  const clientConfig = buildAnthropicClientConfigFromModelProfile(input.modelProfile);
+
+  if (!clientConfig.apiKey) {
     throw new Error("Anthropic API key is not configured.");
   }
 
+  const anthropicClient = new Anthropic(clientConfig);
   let streamedText = "";
 
   try {
-    const stream = await getAnthropicClient().messages.create({
-      model: getModel(),
+    const stream = await anthropicClient.messages.create({
+      model: input.modelProfile.modelName,
       max_tokens: getMaxTokens(),
       system: FINAL_ANSWER_SYSTEM_PROMPT,
       messages: [
