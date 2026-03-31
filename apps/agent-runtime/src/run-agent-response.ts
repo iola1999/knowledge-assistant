@@ -19,6 +19,7 @@ import {
 import {
   buildClaudeAgentEnv,
   getConfiguredAnthropicApiKey,
+  type WorkspaceSearchableKnowledgeSummary,
 } from "@anchordesk/db";
 import {
   extractAssistantRuntimeSignal,
@@ -51,7 +52,41 @@ export function getAllowedTools() {
   return [...ASSISTANT_ALLOWED_TOOL_NAMES];
 }
 
-function buildAgentSystemPrompt(input: { workspaceId: string; conversationId: string }) {
+function buildLocalKnowledgePriorityLines(
+  summary?: WorkspaceSearchableKnowledgeSummary | null,
+) {
+  if (!summary?.hasReadySearchableKnowledge) {
+    return [];
+  }
+
+  const availabilityParts: string[] = [];
+
+  if (summary.readyPrivateDocumentCount > 0) {
+    availabilityParts.push(`${summary.readyPrivateDocumentCount} ready private document(s)`);
+  }
+
+  if (summary.readyGlobalDocumentCount > 0) {
+    availabilityParts.push(
+      `${summary.readyGlobalDocumentCount} ready document(s) from ${summary.searchableGlobalLibraryCount} searchable subscribed global librar${summary.searchableGlobalLibraryCount === 1 ? "y" : "ies"}`,
+    );
+  }
+
+  const availabilityText =
+    availabilityParts.join("; ") ||
+    `${summary.totalReadyDocumentCount} ready local document(s)`;
+
+  return [
+    `This workspace currently has indexed local knowledge available (${availabilityText}).`,
+    "When a question may depend on workspace documents, internal procedures, specs, policies, reports, notes, or other local materials, try search_workspace_knowledge early before relying on web search.",
+    "Still consider the other tools when local evidence is insufficient, the user explicitly asks for web or statute research, or the task needs non-local data.",
+  ];
+}
+
+export function buildAgentSystemPrompt(input: {
+  workspaceId: string;
+  conversationId: string;
+  searchableKnowledge?: WorkspaceSearchableKnowledgeSummary | null;
+}) {
   return [
     "You are a grounded workspace assistant operating inside a single workspace.",
     `Current workspace_id: ${input.workspaceId}.`,
@@ -61,7 +96,8 @@ function buildAgentSystemPrompt(input: { workspaceId: string; conversationId: st
     "Do not invent facts, sources, anchor IDs, or directory paths.",
     "If the workspace knowledge base does not support the answer, say so plainly.",
     "If the user mentions files uploaded in this chat or temporary attachments, search conversation attachments before the workspace knowledge base.",
-    "Prefer workspace knowledge first. Use web tools when local evidence is insufficient.",
+    "Prefer conversation attachments and workspace knowledge before web tools whenever local materials may be relevant. Use web tools when local evidence is insufficient.",
+    ...buildLocalKnowledgePriorityLines(input.searchableKnowledge),
     "When using web information in the final answer, fetch the source URL first and cite the fetched page instead of raw search snippets.",
     "When you need to fetch multiple independent web URLs, prefer fetch_sources instead of repeating fetch_source serially.",
     "Use search_statutes only when the user explicitly asks for laws, regulations, or statute-level references.",
@@ -366,6 +402,7 @@ export type RunAgentResponseInput = {
   conversationId: string;
   agentSessionId?: string | null;
   agentWorkdir?: string | null;
+  searchableKnowledge?: WorkspaceSearchableKnowledgeSummary | null;
 };
 
 export type RunAgentResponseHooks = {
@@ -495,7 +532,11 @@ export async function runAgentResponse(
         systemPrompt: {
           type: "preset",
           preset: "claude_code",
-          append: buildAgentSystemPrompt({ workspaceId, conversationId }),
+          append: buildAgentSystemPrompt({
+            workspaceId,
+            conversationId,
+            searchableKnowledge: input.searchableKnowledge ?? null,
+          }),
         },
         hooks: {
           PreToolUse: [

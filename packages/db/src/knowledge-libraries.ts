@@ -1,6 +1,7 @@
 import { and, eq, inArray, ne } from "drizzle-orm";
 
 import {
+  DOCUMENT_STATUS,
   KNOWLEDGE_LIBRARY_STATUS,
   KNOWLEDGE_LIBRARY_TYPE,
   KNOWLEDGE_SOURCE_SCOPE,
@@ -27,6 +28,14 @@ export type WorkspaceLibraryScopeSummary = {
   accessibleLibraryIds: string[];
   subscribedLibraryIds: string[];
   searchableLibraryIds: string[];
+};
+
+export type WorkspaceSearchableKnowledgeSummary = {
+  hasReadySearchableKnowledge: boolean;
+  totalReadyDocumentCount: number;
+  readyPrivateDocumentCount: number;
+  readyGlobalDocumentCount: number;
+  searchableGlobalLibraryCount: number;
 };
 
 export type WorkspaceLibraryScopeInput = {
@@ -171,6 +180,35 @@ export function computeWorkspaceLibraryScope(
   };
 }
 
+export function computeWorkspaceSearchableKnowledgeSummary(input: {
+  privateLibraryId: string | null;
+  searchableLibraryIds: string[];
+  readyDocumentLibraryIds: Array<string | null | undefined>;
+}): WorkspaceSearchableKnowledgeSummary {
+  const searchableLibraryIds = dedupeStrings(input.searchableLibraryIds);
+  const searchableLibrarySet = new Set(searchableLibraryIds);
+  const readyDocumentLibraryIds = input.readyDocumentLibraryIds
+    .filter((libraryId): libraryId is string => Boolean(libraryId?.trim()))
+    .filter((libraryId) => searchableLibrarySet.has(libraryId));
+  const privateLibraryId = input.privateLibraryId?.trim() || null;
+  const readyPrivateDocumentCount = privateLibraryId
+    ? readyDocumentLibraryIds.filter((libraryId) => libraryId === privateLibraryId).length
+    : 0;
+  const readyGlobalDocumentCount = readyDocumentLibraryIds.length - readyPrivateDocumentCount;
+  const searchableGlobalLibraryCount = searchableLibraryIds.filter(
+    (libraryId) => libraryId !== privateLibraryId,
+  ).length;
+  const totalReadyDocumentCount = readyDocumentLibraryIds.length;
+
+  return {
+    hasReadySearchableKnowledge: totalReadyDocumentCount > 0,
+    totalReadyDocumentCount,
+    readyPrivateDocumentCount,
+    readyGlobalDocumentCount,
+    searchableGlobalLibraryCount,
+  };
+}
+
 export async function ensureWorkspacePrivateLibrary(
   workspaceId: string,
   db: DbLike = getDb(),
@@ -263,6 +301,39 @@ export async function resolveWorkspaceLibraryScope(
     workspaceId,
     libraries,
     subscriptions,
+  });
+}
+
+export async function summarizeWorkspaceSearchableKnowledge(
+  workspaceId: string,
+  db: DbLike = getDb(),
+) {
+  const scope = await resolveWorkspaceLibraryScope(workspaceId, db);
+
+  if (scope.searchableLibraryIds.length === 0) {
+    return computeWorkspaceSearchableKnowledgeSummary({
+      privateLibraryId: scope.privateLibraryId,
+      searchableLibraryIds: scope.searchableLibraryIds,
+      readyDocumentLibraryIds: [],
+    });
+  }
+
+  const readyDocuments = await db
+    .select({
+      libraryId: documents.libraryId,
+    })
+    .from(documents)
+    .where(
+      and(
+        inArray(documents.libraryId, scope.searchableLibraryIds),
+        eq(documents.status, DOCUMENT_STATUS.READY),
+      ),
+    );
+
+  return computeWorkspaceSearchableKnowledgeSummary({
+    privateLibraryId: scope.privateLibraryId,
+    searchableLibraryIds: scope.searchableLibraryIds,
+    readyDocumentLibraryIds: readyDocuments.map((document) => document.libraryId),
   });
 }
 

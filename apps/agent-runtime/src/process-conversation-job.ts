@@ -31,6 +31,7 @@ import {
   messageCitations,
   messages,
   resolveWorkspaceLibraryScope,
+  summarizeWorkspaceSearchableKnowledge,
 } from "@anchordesk/db";
 import { serializeErrorForLog } from "@anchordesk/logging";
 import {
@@ -704,6 +705,22 @@ export async function processConversationResponseJob(
 
     await persistAssistantHeartbeat();
 
+    let searchableKnowledge = null;
+    try {
+      searchableKnowledge = await summarizeWorkspaceSearchableKnowledge(
+        conversation.workspaceId,
+        db,
+      );
+    } catch (knowledgeSummaryError) {
+      jobLogger.warn(
+        {
+          workspaceId: conversation.workspaceId,
+          error: serializeErrorForLog(knowledgeSummaryError),
+        },
+        "failed to summarize workspace searchable knowledge before agent run",
+      );
+    }
+
     const heartbeatTimer = setInterval(() => {
       void persistAssistantHeartbeat().catch((heartbeatError) => {
         if (heartbeatError instanceof AssistantRunStoppedError) {
@@ -729,6 +746,7 @@ export async function processConversationResponseJob(
           conversationId: payload.conversationId,
           agentSessionId: conversation.agentSessionId,
           agentWorkdir: conversation.agentWorkdir,
+          searchableKnowledge,
         },
         {
           onAssistantStatus: async ({

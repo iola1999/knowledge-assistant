@@ -26,6 +26,13 @@ const mocks = vi.hoisted(() => {
   const insertReturningQueue: Array<Array<Record<string, unknown>>> = [];
   const updates: Array<{ table: unknown; values: unknown }> = [];
   const runAgentResponse = vi.fn();
+  const summarizeWorkspaceSearchableKnowledge = vi.fn(async () => ({
+    hasReadySearchableKnowledge: false,
+    totalReadyDocumentCount: 0,
+    readyPrivateDocumentCount: 0,
+    readyGlobalDocumentCount: 0,
+    searchableGlobalLibraryCount: 0,
+  }));
   const appendConversationStreamEvent = vi.fn(async () => "1743490000000-0");
   const loggerChild = {
     debug: vi.fn(),
@@ -85,6 +92,7 @@ const mocks = vi.hoisted(() => {
     loggerChild,
     queryResults,
     runAgentResponse,
+    summarizeWorkspaceSearchableKnowledge,
     tables,
     updates,
   };
@@ -101,6 +109,7 @@ vi.mock("@anchordesk/db", () => ({
   resolveWorkspaceLibraryScope: async () => ({
     accessibleLibraryIds: [],
   }),
+  summarizeWorkspaceSearchableKnowledge: mocks.summarizeWorkspaceSearchableKnowledge,
 }));
 
 vi.mock("./run-agent-response", () => ({
@@ -132,6 +141,14 @@ beforeEach(() => {
   mocks.insertReturningQueue.length = 0;
   mocks.updates.length = 0;
   mocks.runAgentResponse.mockReset();
+  mocks.summarizeWorkspaceSearchableKnowledge.mockReset();
+  mocks.summarizeWorkspaceSearchableKnowledge.mockResolvedValue({
+    hasReadySearchableKnowledge: false,
+    totalReadyDocumentCount: 0,
+    readyPrivateDocumentCount: 0,
+    readyGlobalDocumentCount: 0,
+    searchableGlobalLibraryCount: 0,
+  });
   mocks.appendConversationStreamEvent.mockReset();
   mocks.appendConversationStreamEvent.mockImplementation(async () => "1743490000000-0");
   mocks.loggerChild.debug.mockReset();
@@ -295,6 +312,18 @@ describe("processConversationResponseJob", () => {
     });
 
     expect(mocks.runAgentResponse).toHaveBeenCalledTimes(1);
+    expect(mocks.runAgentResponse).toHaveBeenCalledWith(
+      expect.objectContaining({
+        searchableKnowledge: {
+          hasReadySearchableKnowledge: false,
+          totalReadyDocumentCount: 0,
+          readyPrivateDocumentCount: 0,
+          readyGlobalDocumentCount: 0,
+          searchableGlobalLibraryCount: 0,
+        },
+      }),
+      expect.any(Object),
+    );
     expect(mocks.inserts).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -387,6 +416,70 @@ describe("processConversationResponseJob", () => {
           delta_text: "第一段",
         }),
       }),
+    );
+  });
+
+  it("passes ready local-knowledge availability into the agent input", async () => {
+    mocks.queryResults.conversations = [
+      {
+        id: "conversation-1",
+        workspaceId: "workspace-1",
+        agentSessionId: null,
+        agentWorkdir: null,
+      },
+    ];
+    mocks.queryResults.messages = [
+      {
+        id: "assistant-1",
+        conversationId: "conversation-1",
+        status: MESSAGE_STATUS.STREAMING,
+        contentMarkdown: "",
+        structuredJson: {
+          run_id: "run-1",
+          run_started_at: "2026-03-31T10:00:00.000Z",
+          run_last_heartbeat_at: "2026-03-31T10:00:00.000Z",
+          run_lease_expires_at: "2026-03-31T10:00:45.000Z",
+        },
+      },
+    ];
+    mocks.summarizeWorkspaceSearchableKnowledge.mockResolvedValue({
+      hasReadySearchableKnowledge: true,
+      totalReadyDocumentCount: 5,
+      readyPrivateDocumentCount: 3,
+      readyGlobalDocumentCount: 2,
+      searchableGlobalLibraryCount: 1,
+    });
+    mocks.runAgentResponse.mockResolvedValue({
+      citations: [],
+      ok: true as const,
+      sessionId: "session-1",
+      text: "最终回答",
+      workdir: "/tmp/agent-session",
+    });
+
+    await processConversationResponseJob({
+      assistantMessageId: "assistant-1",
+      conversationId: "conversation-1",
+      runId: "run-1",
+      prompt: "总结一下",
+      userMessageId: "user-1",
+    });
+
+    expect(mocks.summarizeWorkspaceSearchableKnowledge).toHaveBeenCalledWith(
+      "workspace-1",
+      mocks.db,
+    );
+    expect(mocks.runAgentResponse).toHaveBeenCalledWith(
+      expect.objectContaining({
+        searchableKnowledge: {
+          hasReadySearchableKnowledge: true,
+          totalReadyDocumentCount: 5,
+          readyPrivateDocumentCount: 3,
+          readyGlobalDocumentCount: 2,
+          searchableGlobalLibraryCount: 1,
+        },
+      }),
+      expect.any(Object),
     );
   });
 

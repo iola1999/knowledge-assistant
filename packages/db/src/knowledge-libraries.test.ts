@@ -1,6 +1,9 @@
 import { describe, expect, test } from "vitest";
 
-import { computeWorkspaceLibraryScope } from "./knowledge-libraries";
+import {
+  computeWorkspaceLibraryScope,
+  computeWorkspaceSearchableKnowledgeSummary,
+} from "./knowledge-libraries";
 
 describe("computeWorkspaceLibraryScope", () => {
   test("includes the workspace private library and active searchable global subscriptions", () => {
@@ -129,6 +132,50 @@ describe("computeWorkspaceLibraryScope", () => {
       accessibleLibraryIds: ["library-private", "library-global-hidden"],
       subscribedLibraryIds: ["library-global-hidden"],
       searchableLibraryIds: ["library-private"],
+    });
+  });
+});
+
+describe("computeWorkspaceSearchableKnowledgeSummary", () => {
+  test("counts ready private and searchable global documents separately", () => {
+    expect(
+      computeWorkspaceSearchableKnowledgeSummary({
+        privateLibraryId: "library-private",
+        searchableLibraryIds: [
+          "library-private",
+          "library-global-product",
+          "library-global-ops",
+        ],
+        readyDocumentLibraryIds: [
+          "library-private",
+          "library-private",
+          "library-global-product",
+          "library-global-ops",
+          "library-hidden",
+        ],
+      }),
+    ).toEqual({
+      hasReadySearchableKnowledge: true,
+      totalReadyDocumentCount: 4,
+      readyPrivateDocumentCount: 2,
+      readyGlobalDocumentCount: 2,
+      searchableGlobalLibraryCount: 2,
+    });
+  });
+
+  test("ignores non-searchable or missing libraries and reports empty searchable knowledge", () => {
+    expect(
+      computeWorkspaceSearchableKnowledgeSummary({
+        privateLibraryId: "library-private",
+        searchableLibraryIds: ["library-private"],
+        readyDocumentLibraryIds: ["library-global-product", null, undefined],
+      }),
+    ).toEqual({
+      hasReadySearchableKnowledge: false,
+      totalReadyDocumentCount: 0,
+      readyPrivateDocumentCount: 0,
+      readyGlobalDocumentCount: 0,
+      searchableGlobalLibraryCount: 0,
     });
   });
 });

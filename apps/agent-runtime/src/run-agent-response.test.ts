@@ -10,6 +10,7 @@ import {
 import { getConfiguredAnthropicApiKey } from "@anchordesk/db";
 
 import {
+  buildAgentSystemPrompt,
   getAllowedTools,
   parseToolPayload,
   runAgentResponse,
@@ -35,6 +36,49 @@ afterEach(async () => {
 describe("getAllowedTools", () => {
   test("always returns the full tool set", () => {
     expect(getAllowedTools()).toEqual([...ASSISTANT_ALLOWED_TOOL_NAMES]);
+  });
+});
+
+describe("buildAgentSystemPrompt", () => {
+  test("strengthens local retrieval guidance when searchable knowledge is available", () => {
+    const prompt = buildAgentSystemPrompt({
+      workspaceId: "workspace-1",
+      conversationId: "conversation-1",
+      searchableKnowledge: {
+        hasReadySearchableKnowledge: true,
+        totalReadyDocumentCount: 6,
+        readyPrivateDocumentCount: 4,
+        readyGlobalDocumentCount: 2,
+        searchableGlobalLibraryCount: 1,
+      },
+    });
+
+    expect(prompt).toContain(
+      "This workspace currently has indexed local knowledge available",
+    );
+    expect(prompt).toContain("try search_workspace_knowledge early");
+    expect(prompt).toContain("Still consider the other tools");
+  });
+
+  test("keeps the general tool-order guidance even when no searchable knowledge is ready", () => {
+    const prompt = buildAgentSystemPrompt({
+      workspaceId: "workspace-1",
+      conversationId: "conversation-1",
+      searchableKnowledge: {
+        hasReadySearchableKnowledge: false,
+        totalReadyDocumentCount: 0,
+        readyPrivateDocumentCount: 0,
+        readyGlobalDocumentCount: 0,
+        searchableGlobalLibraryCount: 0,
+      },
+    });
+
+    expect(prompt).toContain(
+      "Prefer conversation attachments and workspace knowledge before web tools whenever local materials may be relevant.",
+    );
+    expect(prompt).not.toContain(
+      "This workspace currently has indexed local knowledge available",
+    );
   });
 });
 
