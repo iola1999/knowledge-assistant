@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 
 import {
@@ -16,10 +15,12 @@ import {
   AnswerIcon,
   CopyIcon,
   ExportIcon,
+  GlobeIcon,
   RegenerateIcon,
   SourceIcon,
 } from "@/components/icons";
 import { ConversationTimeline } from "@/components/chat/conversation-timeline";
+import { CitationPreviewExcerpt } from "@/components/shared/citation-preview-excerpt";
 import { KnowledgeSourceBadge } from "@/components/shared/knowledge-source-badge";
 import { LinkifiedText } from "@/components/shared/linkified-text";
 import { MarkdownContent } from "@/components/shared/markdown-content";
@@ -46,6 +47,7 @@ import {
   restartAssistantSessionSnapshotForRetry,
 } from "@/lib/api/conversation-session";
 import { conversationDensityClassNames } from "@/lib/conversation-density";
+import { buildCitationLinkTarget, buildCitationPreviewModel } from "@/lib/citation-display";
 import { chipButtonStyles, cn, tabButtonStyles, textSelectionStyles, ui } from "@/lib/ui";
 
 type ChatMessage = ConversationChatMessage;
@@ -212,33 +214,34 @@ function CitationCardContent({
   citation: MessageCitation;
   index: number;
 }) {
+  const preview = buildCitationPreviewModel(citation);
+
   return (
     <>
-      <span className="text-[11px] uppercase tracking-[0.12em] text-app-muted">
-        资料 {index + 1}
+      <span className="flex flex-wrap items-center justify-between gap-2">
+        <span className="text-[11px] uppercase tracking-[0.12em] text-app-muted">
+          资料 {index + 1}
+        </span>
+        {preview.isWeb ? (
+          <span className="inline-flex items-center gap-1.5 text-[12px] text-app-muted-strong">
+            <span className="inline-flex size-5 items-center justify-center rounded-full border border-app-border bg-app-surface-soft text-app-muted-strong">
+              <GlobeIcon className="size-3.5" />
+            </span>
+            <span className="truncate">{preview.meta ?? preview.badgeLabel}</span>
+          </span>
+        ) : (
+          <CitationSourceBadge citation={citation} />
+        )}
       </span>
-      <CitationSourceBadge citation={citation} />
       <span
         className={cn(
           textSelectionStyles.content,
-          "text-[13px] leading-5 text-app-text",
+          "text-[14px] font-medium leading-6 text-app-text",
         )}
       >
-        {citation.label}
+        {preview.title}
       </span>
-      {citation.sourceUrl ? (
-        <span className="truncate text-[11px] text-app-accent">{citation.sourceUrl}</span>
-      ) : null}
-      {citation.quoteText.trim() ? (
-        <span
-          className={cn(
-            textSelectionStyles.content,
-            "line-clamp-4 text-[12px] leading-5 text-app-muted-strong",
-          )}
-        >
-          {citation.quoteText}
-        </span>
-      ) : null}
+      <CitationPreviewExcerpt preview={preview} />
     </>
   );
 }
@@ -795,30 +798,19 @@ export function ConversationSession({
                   {selectedView === "sources" ? (
                     <div className={conversationDensityClassNames.sourcesList}>
                       {citations.map((citation, index) => {
-                        if (
-                          sourceLinksEnabled &&
-                          workspaceId &&
-                          citation.documentId &&
-                          citation.anchorId
-                        ) {
-                          return (
-                            <Link
-                              key={citation.id}
-                              href={`/workspaces/${workspaceId}/documents/${citation.documentId}?anchorId=${citation.anchorId}`}
-                              className={conversationDensityClassNames.sourceCard}
-                            >
-                              <CitationCardContent citation={citation} index={index} />
-                            </Link>
-                          );
-                        }
+                        const target = buildCitationLinkTarget({
+                          citation,
+                          sourceLinksEnabled,
+                          workspaceId,
+                        });
 
-                        if (sourceLinksEnabled && citation.sourceUrl) {
+                        if (target) {
                           return (
                             <a
                               key={citation.id}
-                              href={citation.sourceUrl}
+                              href={target.href}
                               target="_blank"
-                              rel="noreferrer"
+                              rel="noopener noreferrer"
                               className={conversationDensityClassNames.sourceCard}
                             >
                               <CitationCardContent citation={citation} index={index} />

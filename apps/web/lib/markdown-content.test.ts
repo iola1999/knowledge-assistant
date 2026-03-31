@@ -12,6 +12,20 @@ describe("MarkdownContent", () => {
   let root: Root;
 
   beforeEach(() => {
+    if (!("ResizeObserver" in window)) {
+      class ResizeObserverMock {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      }
+
+      Object.defineProperty(window, "ResizeObserver", {
+        configurable: true,
+        writable: true,
+        value: ResizeObserverMock,
+      });
+    }
+
     container = document.createElement("div");
     document.body.append(container);
     root = createRoot(container);
@@ -52,5 +66,92 @@ describe("MarkdownContent", () => {
     expect(link?.getAttribute("href")).toBe("https://example.com/docs");
     expect(link?.getAttribute("target")).toBe("_blank");
     expect(link?.getAttribute("rel")).toBe("noopener noreferrer");
+  });
+
+  test("renders grouped inline citations with a compact badge and cleaned preview text", () => {
+    act(() => {
+      root.render(
+        createElement(MarkdownContent, {
+          content: "结论[^1][^2]",
+          citations: [
+            {
+              id: "citation-1",
+              messageId: "assistant-1",
+              label: "终于有人说清全屋定制的板材了！ · www.bilibili.com",
+              quoteText:
+                "* [首页](//www.bilibili.com) * [番剧](//www.bilibili.com/anime/)\n终于有人说清全屋定制的板材了！\n这条视频用通俗易懂的方式解释颗粒板、欧松板和免漆板的差异。",
+              sourceScope: "web",
+              sourceUrl: "https://www.bilibili.com/video/BV1NaXzBJEsu/",
+              sourceDomain: "www.bilibili.com",
+              sourceTitle: "终于有人说清全屋定制的板材了！ - 哔哩哔哩",
+            },
+            {
+              id: "citation-2",
+              messageId: "assistant-1",
+              label: "第二条来源 · www.bilibili.com",
+              quoteText: "第二条来源的摘要。",
+              sourceScope: "web",
+              sourceUrl: "https://www.bilibili.com/video/BV2NaXzBJEsu/",
+              sourceDomain: "www.bilibili.com",
+              sourceTitle: "第二条来源",
+            },
+          ],
+        }),
+      );
+    });
+
+    const trigger = container.querySelector("button");
+
+    act(() => {
+      trigger?.focus();
+    });
+
+    expect(container.textContent).toContain("bilibili");
+    expect(container.textContent).toContain("+1");
+    expect(document.body.textContent).toContain("终于有人说清全屋定制的板材了！ - 哔哩哔哩");
+    expect(document.body.textContent).toContain(
+      "这条视频用通俗易懂的方式解释颗粒板、欧松板和免漆板的差异。",
+    );
+    expect(document.body.textContent).not.toContain("番剧");
+  });
+
+  test("renders compact markdown previews for document citations and opens them in a new tab", () => {
+    act(() => {
+      root.render(
+        createElement(MarkdownContent, {
+          content: "部署建议[^1]",
+          workspaceId: "workspace-1",
+          citations: [
+            {
+              id: "citation-1",
+              messageId: "assistant-1",
+              label: "资料库/项目A/部署清单.md · 第2节",
+              quoteText:
+                "## 发布前检查\n- 回归验证完成\n- 灰度环境通过\n[部署手册](https://example.com/runbook)",
+              sourceScope: "workspace_private",
+              documentId: "document-1",
+              anchorId: "anchor-9",
+            },
+          ],
+        }),
+      );
+    });
+
+    const trigger = container.querySelector("button");
+
+    act(() => {
+      trigger?.focus();
+    });
+
+    const link = document.body.querySelector(
+      'a[href="/workspaces/workspace-1/documents/document-1?anchorId=anchor-9"]',
+    );
+    const excerpt = document.body.querySelector(".citation-preview-markdown");
+
+    expect(link?.getAttribute("target")).toBe("_blank");
+    expect(link?.getAttribute("rel")).toBe("noopener noreferrer");
+    expect(excerpt?.querySelectorAll("ul li")).toHaveLength(2);
+    expect(excerpt?.querySelector("a")).toBeNull();
+    expect(excerpt?.textContent).toContain("部署手册");
   });
 });

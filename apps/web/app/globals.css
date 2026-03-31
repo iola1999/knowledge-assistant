@@ -218,6 +218,41 @@
     font-size: 0.72em;
     vertical-align: top;
   }
+
+  .citation-preview-markdown {
+    --font-size: 13px;
+    --margin-block: 0 0 0.45rem 0;
+    --padding-ul-ol: 0 0 0 0.2rem;
+    --margin-ul-ol: 0 0 0.55rem 1rem;
+    --margin-li: 0.1rem 0;
+    --hr-margin: 0.6rem 0;
+    --table-margin: 0 0 0.7rem 0;
+    --margin-pre: 0 0 0.6rem 0;
+    --padding-code: 0.6rem 0.7rem;
+    --td-th-padding: 6px 8px;
+    --border-radius-middle: 12px;
+    --border-radius-small: 8px;
+  }
+
+  .citation-preview-markdown h1,
+  .citation-preview-markdown h2,
+  .citation-preview-markdown h3,
+  .citation-preview-markdown h4 {
+    font-size: 0.95rem;
+    line-height: 1.55;
+  }
+
+  .citation-preview-markdown p,
+  .citation-preview-markdown li,
+  .citation-preview-markdown blockquote {
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  .citation-preview-markdown pre code:not([class$="-highlightCode-code"] pre code) {
+    font-size: 12px;
+    line-height: 1.65;
+  }
 }
 
 @layer utilities {

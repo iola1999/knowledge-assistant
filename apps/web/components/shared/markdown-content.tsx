@@ -1,100 +1,95 @@
 "use client";
 
-import { createElement } from "react";
+import { createElement, useState } from "react";
+import {
+  autoUpdate,
+  flip,
+  FloatingPortal,
+  offset,
+  safePolygon,
+  shift,
+  size,
+  useDismiss,
+  useFocus,
+  useFloating,
+  useHover,
+  useInteractions,
+  useRole,
+} from "@floating-ui/react";
 import { XMarkdown, type ComponentProps as XMarkdownComponentProps } from "@ant-design/x-markdown/es";
 
+import { GlobeIcon, SourceIcon } from "@/components/icons";
+import { CitationPreviewExcerpt } from "@/components/shared/citation-preview-excerpt";
 import { KnowledgeSourceBadge } from "@/components/shared/knowledge-source-badge";
 import { type ConversationMessageCitation } from "@/lib/api/conversation-session";
-import { renderInlineCitationMarkers } from "@/lib/inline-citations";
+import {
+  buildCitationBadgeSummary,
+  buildCitationLinkTarget,
+  buildCitationPreviewModel,
+} from "@/lib/citation-display";
+import {
+  parseInlineCitationIndices,
+  renderInlineCitationMarkers,
+} from "@/lib/inline-citations";
 
 import { cn, textSelectionStyles } from "../../lib/ui";
 
-function resolveCitationTarget(input: {
+function InlineCitationPreviewEntry({
+  citation,
+  sourceLinksEnabled,
+  workspaceId,
+}: {
   citation: ConversationMessageCitation;
   sourceLinksEnabled: boolean;
   workspaceId?: string | null;
 }) {
-  if (!input.sourceLinksEnabled) {
-    return null;
-  }
-
-  if (input.workspaceId && input.citation.documentId && input.citation.anchorId) {
-    return {
-      href: `/workspaces/${input.workspaceId}/documents/${input.citation.documentId}?anchorId=${input.citation.anchorId}`,
-      external: false,
-    };
-  }
-
-  if (input.citation.sourceUrl) {
-    return {
-      href: input.citation.sourceUrl,
-      external: true,
-    };
-  }
-
-  return null;
-}
-
-function InlineCitationMarker({
-  citation,
-  index,
-  sourceLinksEnabled,
-  workspaceId,
-}: {
-  citation: ConversationMessageCitation | null;
-  index: number;
-  sourceLinksEnabled: boolean;
-  workspaceId?: string | null;
-}) {
-  if (!citation) {
-    return (
-      <sup className="mx-0.5 inline-flex align-super text-[10px] font-semibold text-app-muted">
-        [{index}]
-      </sup>
-    );
-  }
-
-  const target = resolveCitationTarget({
+  const target = buildCitationLinkTarget({
     citation,
     sourceLinksEnabled,
     workspaceId,
   });
-  const marker = (
+  const preview = buildCitationPreviewModel(citation);
+  const body = (
     <span
       className={cn(
-        "mx-0.5 inline-flex min-w-5 items-center justify-center rounded-full border border-app-border bg-app-surface-strong/78 px-1.5 py-0.5 align-super text-[10px] font-semibold leading-none text-app-muted-strong transition hover:border-app-border-strong hover:text-app-text",
-        target ? "cursor-pointer" : "cursor-default",
-      )}
-    >
-      {index}
-    </span>
-  );
-  const previewCard = (
-    <span
-      className={cn(
-        "pointer-events-none absolute left-1/2 top-[calc(100%+8px)] z-20 hidden w-[min(320px,calc(100vw-32px))] -translate-x-1/2 rounded-2xl border border-app-border bg-white/98 p-3 text-left shadow-card backdrop-blur-md group-hover:block group-focus-within:block",
+        textSelectionStyles.content,
+        "grid gap-2 rounded-xl px-3 py-2.5 text-left transition",
+        target ? "hover:bg-app-surface-soft/82" : "",
       )}
     >
       <span className="flex flex-wrap items-center gap-2">
-        <span className="text-[11px] uppercase tracking-[0.12em] text-app-muted">
-          资料 {index}
+        <span
+          className={cn(
+            "inline-flex size-6 items-center justify-center rounded-full border",
+            preview.isWeb
+              ? "border-app-border bg-app-surface-soft text-app-muted-strong"
+              : "border-app-border bg-white text-app-muted-strong",
+          )}
+        >
+          {preview.isWeb ? (
+            <GlobeIcon className="size-3.5" />
+          ) : (
+            <SourceIcon className="size-3.5" />
+          )}
         </span>
-        <KnowledgeSourceBadge
-          sourceScope={citation.sourceScope}
-          libraryTitle={citation.libraryTitle}
-        />
+
+        {preview.isWeb ? (
+          <span className="min-w-0 truncate text-[12px] font-medium text-app-muted-strong">
+            {preview.meta ?? preview.badgeLabel}
+          </span>
+        ) : (
+          <KnowledgeSourceBadge
+            sourceScope={citation.sourceScope}
+            libraryTitle={citation.libraryTitle}
+          />
+        )}
       </span>
-      <span className="mt-2 block text-[13px] leading-5 text-app-text">{citation.label}</span>
-      {citation.sourceUrl ? (
-        <span className="mt-1 block truncate text-[11px] text-app-accent">
-          {citation.sourceUrl}
-        </span>
-      ) : null}
-      {citation.quoteText.trim() ? (
-        <span className="mt-2 block text-[12px] leading-5 text-app-muted-strong">
-          {citation.quoteText}
-        </span>
-      ) : null}
+
+      <span className="text-[15px] font-semibold leading-6 text-app-text">
+        {preview.title}
+      </span>
+
+      <CitationPreviewExcerpt preview={preview} />
     </span>
   );
 
@@ -102,21 +97,142 @@ function InlineCitationMarker({
     return (
       <a
         href={target.href}
-        target={target.external ? "_blank" : undefined}
-        rel={target.external ? "noreferrer" : undefined}
-        className="group relative inline-flex no-underline"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="block no-underline"
       >
-        {marker}
-        {previewCard}
+        {body}
       </a>
     );
   }
 
+  return body;
+}
+
+function InlineCitationGroup({
+  citations,
+}: {
+  citations: ConversationMessageCitation[];
+}) {
+  const summary = buildCitationBadgeSummary(citations);
+
   return (
-    <span className="group relative inline-flex" tabIndex={0}>
-      {marker}
-      {previewCard}
+    <span
+      className={cn(
+        "mx-0.5 inline-flex max-w-[14rem] items-center gap-1 rounded-full border border-app-border bg-white/92 px-2 py-1 align-super text-[11px] font-medium leading-none text-app-muted-strong shadow-soft transition hover:border-app-border-strong hover:bg-white hover:text-app-text",
+      )}
+      title={summary.label}
+    >
+      <span className="truncate">{summary.label}</span>
+      {summary.extraCount > 0 ? (
+        <span className="rounded-full bg-app-surface-soft px-1.5 py-[1px] text-[10px] text-app-muted">
+          +{summary.extraCount}
+        </span>
+      ) : null}
     </span>
+  );
+}
+
+function InlineCitationMarker({
+  citations,
+  indices,
+  sourceLinksEnabled,
+  workspaceId,
+}: {
+  citations: ConversationMessageCitation[];
+  indices: number[];
+  sourceLinksEnabled: boolean;
+  workspaceId?: string | null;
+}) {
+  if (citations.length === 0) {
+    return (
+      <sup className="mx-0.5 inline-flex align-super text-[10px] font-semibold text-app-muted">
+        [{indices[0] ?? 0}]
+      </sup>
+    );
+  }
+
+  const [open, setOpen] = useState(false);
+  const { refs, floatingStyles, context } = useFloating({
+    open,
+    onOpenChange: setOpen,
+    placement: "bottom",
+    strategy: "fixed",
+    middleware: [
+      offset(10),
+      flip({ padding: 12 }),
+      shift({ padding: 12 }),
+      size({
+        padding: 12,
+        apply({ availableHeight, elements }) {
+          elements.floating.style.maxHeight = `${Math.max(
+            0,
+            Math.min(availableHeight, 320),
+          )}px`;
+        },
+      }),
+    ],
+    whileElementsMounted: autoUpdate,
+  });
+  const hover = useHover(context, {
+    move: false,
+    handleClose: safePolygon(),
+  });
+  const focus = useFocus(context);
+  const dismiss = useDismiss(context);
+  const role = useRole(context, { role: "dialog" });
+  const { getReferenceProps, getFloatingProps } = useInteractions([
+    hover,
+    focus,
+    dismiss,
+    role,
+  ]);
+
+  return (
+    <>
+      <button
+        ref={refs.setReference}
+        type="button"
+        className="inline-flex appearance-none border-0 bg-transparent p-0 align-baseline"
+        aria-expanded={open}
+        aria-haspopup="dialog"
+        {...getReferenceProps()}
+      >
+        <InlineCitationGroup citations={citations} />
+      </button>
+      <FloatingPortal>
+        {open ? (
+          <div
+            ref={refs.setFloating}
+            style={floatingStyles}
+            className="z-30 grid w-[min(360px,calc(100vw-24px))] grid-rows-[auto_auto_minmax(0,1fr)] overflow-hidden rounded-2xl border border-app-border bg-white/98 p-1.5 text-left shadow-card backdrop-blur-md"
+            {...getFloatingProps()}
+          >
+            <span className="flex items-center justify-between px-3 pt-2.5 pb-1">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-app-accent">
+                来源
+              </span>
+              <span className="text-[12px] text-app-muted">{citations.length} 个来源</span>
+            </span>
+            <span className="mx-2 my-1.5 block h-px bg-app-border/70" />
+            <span className="block min-h-0 overflow-y-auto">
+              {citations.map((citation, position) => (
+                <span key={citation.id} className="block">
+                  <InlineCitationPreviewEntry
+                    citation={citation}
+                    sourceLinksEnabled={sourceLinksEnabled}
+                    workspaceId={workspaceId}
+                  />
+                  {position < citations.length - 1 ? (
+                    <span className="mx-3 block h-px bg-app-border/60" />
+                  ) : null}
+                </span>
+              ))}
+            </span>
+          </div>
+        ) : null}
+      </FloatingPortal>
+    </>
   );
 }
 
@@ -141,27 +257,25 @@ export function MarkdownContent({
     className: cn("x-markdown-light app-markdown", textSelectionStyles.content, className),
     openLinksInNewTab: true,
     dompurifyConfig: {
-      ADD_TAGS: ["citation-marker"],
-      ADD_ATTR: ["data-citation-index"],
+      ADD_TAGS: ["citation-group"],
+      ADD_ATTR: ["data-citation-indices"],
     },
     components: {
-      "citation-marker": (props: XMarkdownComponentProps) => {
-        const rawIndex =
-          typeof props["data-citation-index"] === "string"
-            ? props["data-citation-index"]
+      "citation-group": (props: XMarkdownComponentProps) => {
+        const rawIndices =
+          typeof props["data-citation-indices"] === "string"
+            ? props["data-citation-indices"]
             : props.domNode &&
                 "attribs" in props.domNode &&
-                typeof props.domNode.attribs?.["data-citation-index"] === "string"
-              ? props.domNode.attribs["data-citation-index"]
+                typeof props.domNode.attribs?.["data-citation-indices"] === "string"
+              ? props.domNode.attribs["data-citation-indices"]
               : "";
-        const index = Number(rawIndex);
+        const indices = parseInlineCitationIndices(rawIndices);
 
         return (
           <InlineCitationMarker
-            citation={
-              Number.isInteger(index) && index > 0 ? citations[index - 1] ?? null : null
-            }
-            index={Number.isInteger(index) && index > 0 ? index : 0}
+            citations={indices.map((index) => citations[index - 1]).filter(Boolean)}
+            indices={indices}
             sourceLinksEnabled={sourceLinksEnabled}
             workspaceId={workspaceId}
           />
