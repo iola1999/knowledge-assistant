@@ -226,6 +226,7 @@ def extract_pdf_page_texts(data: bytes):
                 "width": float(page.mediabox.width) if page.mediabox else None,
                 "height": float(page.mediabox.height) if page.mediabox else None,
                 "text": (page.extract_text() or "").strip(),
+                "has_image": len(page.images) > 0,
             }
         )
 
@@ -234,19 +235,48 @@ def extract_pdf_page_texts(data: bytes):
 
 def parse_pdf_document(data: bytes):
     page_texts = extract_pdf_page_texts(data)
-    result = build_document_from_page_texts(page_texts, source_mode="native")
+    ocr_page_numbers = [
+        page["page_no"]
+        for page in page_texts
+        if not (page.get("text") or "").strip() and page.get("has_image") is True
+    ]
 
-    if result["parse_score_bp"] > 0 and result["blocks"]:
-        return result
+    if not ocr_page_numbers:
+        result = build_document_from_page_texts(page_texts, source_mode="native")
+        if result["parse_score_bp"] > 0 and result["blocks"]:
+            return result
+
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "pdf_no_extractable_content",
+                "message": "No extractable PDF text found and no image pages were eligible for OCR.",
+                "ocr_provider": None,
+                "recoverable": True,
+            },
+        )
 
     provider = get_ocr_provider()
     try:
-        ocr_page_texts = provider.extract_pdf_pages(data)
+        ocr_page_texts = provider.extract_pdf_pages(data, page_numbers=ocr_page_numbers)
     except OCRProviderError as error:
         raise HTTPException(status_code=422, detail=error.to_detail()) from error
 
+    ocr_page_text_by_page_no = {
+        page["page_no"]: (page.get("text") or "").strip() for page in ocr_page_texts
+    }
+    merged_page_texts = [
+        {
+            "page_no": page["page_no"],
+            "width": page.get("width"),
+            "height": page.get("height"),
+            "text": ocr_page_text_by_page_no.get(page["page_no"], page.get("text") or ""),
+        }
+        for page in page_texts
+    ]
+
     ocr_result = build_document_from_page_texts(
-        ocr_page_texts,
+        merged_page_texts,
         source_mode="ocr",
         ocr_provider=provider.name,
     )

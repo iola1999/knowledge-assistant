@@ -1,7 +1,7 @@
 # 实施跟踪
 
-版本：v0.11
-日期：2026-04-01
+版本：v0.12
+日期：2026-04-02
 
 > 本文件是项目的执行跟踪文档。
 >
@@ -78,7 +78,7 @@
 - 管理员侧已补齐 `/settings/libraries` 全局资料库 CRUD、上传、目录整理、任务重试与下载入口；workspace owner 可在工作空间设置页直接订阅、暂停或移除全局资料库。
 - workspace 资料库页会在根层挂出已订阅全局资料库；切入后使用只读挂载视图，workspace 侧不能修改共享资料目录和文件。
 - 会话级临时资料走独立的 `attachments/presign -> conversation_attachments -> parse/chunk/index(parse-only finalize)` 链路；它会生成 `document_pages / document_blocks / document_chunks / citation_anchors`，但不会写入 Qdrant。
-- 上传链路已明确收口：OCR 明确保持 disabled，图片/扫描件暂不纳入当前可用范围，前后端会直接限制并提示。
+- 上传链路已明确收口：原始图片仍不纳入当前可用范围，前后端会直接限制并提示；扫描件要求先转成 PDF，再由 parser 仅在无原生文本且含图的页上走 OCR。
 - 文档阅读页已经支持 PDF 基础阅读、解析块查看和按引用锚点回跳，但仍没有 bbox 级高亮与更细粒度定位。
 - 新增 `search_conversation_attachments` tool，临时资料现在可在回答中被检索、引用，并跳转到对应文档块或行号附近。
 - 新增 `read_conversation_attachment_range` tool，模型现在可按 `document_id + page_start/page_end` 成批读取会话附件的几页正文，而不是只能逐段检索或逐锚点读取。
@@ -86,8 +86,8 @@
 - 系统参数页和 `system_settings` 已经接管大部分 provider / infra 配置，并新增了注册开关；Claude-compatible 模型改由 `/admin/models` 与 `llm_model_profiles` 维护，`DATABASE_URL`、`AUTH_SECRET` 继续保持 env-only。
 - web / worker / agent-runtime 启动时通过 `initRuntimeSettings()` 从 DB 加载运行时配置到 `process.env`；Docker 生产部署中这三个服务只需 bootstrap env。
 - 报告链路已具备“创建 -> 默认大纲 -> 章节生成 -> DOCX 导出”的基础版；当前阶段只要求它不阻断主会话链路，不把研究/写作能力深化作为优先项。
-- parser 已有无文本 PDF 的 OCR 降级路径，但真实 OCR provider 仍未接入；当前仅保持 `disabled`。
-- OCR 下一步不再尝试本地 provider；待商业 API 方案确定后再接入，当前继续保持默认关闭。
+- parser 已接入阿里云百炼 DashScope OCR provider：worker 会透传结构化 parser 错误，`document_jobs.error_code` / `error_message` 与 `document_versions.ocr_required` 会反映 OCR 需求和失败原因。
+- OCR 当前默认 provider 为 `dashscope`，并且只会在 PDF 原生文本抽取失败且页面含图时触发；原始图片上传继续禁用。
 - retrieval 已具备 dense + BM25 候选窗口混合打分 + 可选 DashScope rerank 的基础版；后续深化在当前阶段降级为非阻塞项。
 - 去法律化重定位已完成大部分命名与主流程调整，但仍需继续做回归清理，避免通用定位被后续改动带偏。
 
@@ -147,7 +147,7 @@
 - `working tree` Implement document management CRUD
 - `working tree` Document implementation snapshot and current gap assessment
 - `working tree` Finish de-legalization brand cleanup for workspace shell and add regression guard
-- `working tree` Reconfirm OCR stays disabled pending commercial API decision and verify current batch with `pnpm verify`
+- `working tree` Add DashScope OCR for scanned/no-text PDFs, surface parser OCR failures in worker job state, and expose parser OCR runtime settings
 - `working tree` Add BM25 scoring over dense retrieval candidates with regression tests
 - `working tree` Remove unsupported citation confidence metadata from conversation answers
 - `working tree` Expire stale streaming assistant runs when agent-runtime stops heartbeating
@@ -179,7 +179,8 @@
   - 继续检查其余页面和占位实现中的垂类默认文案
   - 回归补齐相关测试，防止后续再漂回法律垂类默认文案
 - 暂缓项
-  - OCR 商业 API provider 接入继续保持 `disabled`，在 provider 口径确认前不开发
+  - OCR 默认 provider 已切到 `dashscope`，但仍只覆盖 PDF 内含图页；原始图片上传、bbox 映射和阅读器高亮暂不进入本轮
+  - 原始图片上传、OCR bbox 到 PDF 坐标映射、阅读器高亮联动暂缓
   - parser / chunking 质量深化暂缓，除非直接阻断会话链路或临时附件链路
   - sparse/BM25 混合检索深化与 rerank 回归测试暂缓，待主会话链路稳定后再恢复
 
@@ -191,7 +192,7 @@
 2. 固化 tool timeline、真实 provider 失败语义和前端状态切换
 3. 收口 citation 证据展示、citation 刷新和阅读器/分享页联动
 4. 只修阻断主链路的会话级临时资料问题
-5. 主链路稳定后，再恢复 retrieval 深化、真实工具 provider 和 OCR 方案评估
+5. 主链路稳定后，再恢复 retrieval 深化、真实工具 provider 和 OCR 深化项（原始图片、bbox 映射、阅读器高亮）
 
 ## 5. 风险与注意事项
 
@@ -200,8 +201,8 @@
 - `AUTH_SECRET` 不进入 `system_settings`。
 - JWT 登录态现在依赖 Redis allowlist；如果 Redis 不可用，服务端应按会话失效处理，而不是继续无状态放行旧 token。
 - `/settings` 与 `/admin/models` 的改动都不会热更新到已运行进程；涉及运行时 provider 的变更仍需重启相关服务。
-- OCR 不要默认开启。
-- OCR 当前明确保持 disabled，不应在未确认商业 provider 前继续扩展本地实现。
+- OCR 当前默认 provider 为 `dashscope`，但仍只对无原生文本且含图的 PDF 页触发；未配置可用 DashScope API Key / endpoint 时应显式失败，不得伪造成功。
+- 原始图片上传当前仍保持禁用。
 - 公开分享链接本质是 bearer URL；公开页必须保持 `noindex`，且不能提供空间内资料跳转。
 - PDF 阅读器当前仍是基础版，没有 bbox 级高亮。
 - 当前 SSE 主通道已切到 Redis Streams live event；数据库只负责恢复快照、过期收敛与终态真相源，不再承担主 token transport。

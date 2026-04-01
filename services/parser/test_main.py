@@ -70,13 +70,54 @@ class ParserMainTestCase(unittest.TestCase):
         self.assertEqual(result["blocks"][1]["heading_path"], ["发布计划"])
         self.assertEqual(result["blocks"][2]["heading_path"], ["发布计划"])
 
-    def test_parse_pdf_document_rejects_blank_text_pdf_without_ocr(self):
+    def test_parse_pdf_document_rejects_blank_text_pdf_without_images(self):
         writer = PdfWriter()
         writer.add_blank_page(width=300, height=300)
         buffer = io.BytesIO()
         writer.write(buffer)
 
-        with self.assertRaises(HTTPException) as context:
+        with self.assertRaises(HTTPException) as context, patch(
+            "main.extract_pdf_page_texts",
+            return_value=[
+                {
+                    "page_no": 1,
+                    "width": 300.0,
+                    "height": 300.0,
+                    "text": "",
+                    "has_image": False,
+                }
+            ],
+        ):
+            parse_pdf_document(buffer.getvalue())
+
+        self.assertEqual(context.exception.status_code, 422)
+        self.assertEqual(context.exception.detail["code"], "pdf_no_extractable_content")
+        self.assertEqual(context.exception.detail["ocr_provider"], None)
+
+    def test_parse_pdf_document_explicitly_reports_disabled_ocr_when_image_pages_need_it(self):
+        writer = PdfWriter()
+        writer.add_blank_page(width=300, height=300)
+        buffer = io.BytesIO()
+        writer.write(buffer)
+
+        with self.assertRaises(HTTPException) as context, patch(
+            "main.extract_pdf_page_texts",
+            return_value=[
+                {
+                    "page_no": 1,
+                    "width": 300.0,
+                    "height": 300.0,
+                    "text": "",
+                    "has_image": True,
+                }
+            ],
+        ), patch.dict(
+            "os.environ",
+            {
+                "PARSER_OCR_PROVIDER": "disabled",
+            },
+            clear=False,
+        ):
             parse_pdf_document(buffer.getvalue())
 
         self.assertEqual(context.exception.status_code, 422)
@@ -89,7 +130,18 @@ class ParserMainTestCase(unittest.TestCase):
         buffer = io.BytesIO()
         writer.write(buffer)
 
-        with patch.dict(
+        with patch(
+            "main.extract_pdf_page_texts",
+            return_value=[
+                {
+                    "page_no": 1,
+                    "width": 300.0,
+                    "height": 300.0,
+                    "text": "",
+                    "has_image": True,
+                }
+            ],
+        ), patch.dict(
             "os.environ",
             {
                 "PARSER_OCR_PROVIDER": "mock",
@@ -105,6 +157,44 @@ class ParserMainTestCase(unittest.TestCase):
         self.assertEqual(result["blocks"][1]["heading_path"], ["发布总览", "第8节 上线检查"])
         self.assertEqual(result["blocks"][2]["heading_path"], ["发布总览", "第8节 上线检查"])
         self.assertEqual(result["blocks"][1]["metadata_json"]["locator"]["page_line_start"], 3)
+
+    def test_parse_pdf_document_only_ocrs_pages_that_lack_native_text(self):
+        with patch(
+            "main.extract_pdf_page_texts",
+            return_value=[
+                {
+                    "page_no": 1,
+                    "width": 612.0,
+                    "height": 792.0,
+                    "text": "原生文本页",
+                    "has_image": True,
+                },
+                {
+                    "page_no": 2,
+                    "width": 612.0,
+                    "height": 792.0,
+                    "text": "",
+                    "has_image": True,
+                },
+            ],
+        ), patch("main.get_ocr_provider") as get_ocr_provider:
+            provider = get_ocr_provider.return_value
+            provider.name = "mock"
+            provider.extract_pdf_pages.return_value = [
+                {
+                    "page_no": 2,
+                    "width": 612.0,
+                    "height": 792.0,
+                    "text": "OCR 补回的第二页",
+                }
+            ]
+
+            result = parse_pdf_document(b"%PDF-mock%")
+
+        provider.extract_pdf_pages.assert_called_once_with(b"%PDF-mock%", page_numbers=[2])
+        self.assertEqual(result["source"]["mode"], "ocr")
+        self.assertEqual(result["source"]["ocr_provider"], "mock")
+        self.assertEqual([page["text_length"] for page in result["pages"]], [5, 10])
 
     def test_parse_document_reads_storage_and_dispatches_by_logical_path(self):
         request = ParseRequest(

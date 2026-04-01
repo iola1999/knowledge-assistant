@@ -46,6 +46,11 @@ describe("validateUploadSupport", () => {
     });
   });
 
+  test("tells users to upload scanned files as PDFs instead of raw images", () => {
+    expect(IMAGE_UPLOAD_DISABLED_MESSAGE).toContain("扫描件，请导出为 PDF");
+    expect(IMAGE_UPLOAD_DISABLED_MESSAGE).toContain("无原生文本且含图的 PDF 页");
+  });
+
   test("rejects unsupported binary files", () => {
     expect(
       validateUploadSupport({

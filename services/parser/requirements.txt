@@ -3,5 +3,7 @@ uvicorn==0.35.0
 pydantic==2.11.9
 boto3==1.40.19
 pypdf==5.9.0
+pypdfium2==5.6.0
+Pillow==12.1.0
 python-docx==1.2.0
 coverage==7.10.6

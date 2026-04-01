@@ -35,6 +35,45 @@ const SYSTEM_SETTING_DEFINITIONS = [
     description: "Base URL for the parser service.",
   },
   {
+    settingKey: "parser_ocr_provider",
+    envName: "PARSER_OCR_PROVIDER",
+    defaultValue: "dashscope",
+    summary: "Parser 处理扫描 PDF 页时默认使用的 OCR provider。",
+    description:
+      "OCR provider for scanned or image-backed PDF pages. Supported values: disabled, mock, dashscope.",
+  },
+  {
+    settingKey: "parser_ocr_dashscope_api_key",
+    envName: "PARSER_OCR_DASHSCOPE_API_KEY",
+    defaultValue: "",
+    isSecret: true,
+    summary: "Parser OCR 使用的 DashScope 专用密钥。",
+    description: "DashScope OCR API key override for the parser OCR provider.",
+  },
+  {
+    settingKey: "parser_ocr_dashscope_api_url",
+    envName: "PARSER_OCR_DASHSCOPE_API_URL",
+    defaultValue:
+      "https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation",
+    summary: "Parser OCR 使用的 DashScope 接口地址。",
+    description: "DashScope OCR endpoint override for the parser OCR provider.",
+  },
+  {
+    settingKey: "parser_ocr_dashscope_model",
+    envName: "PARSER_OCR_DASHSCOPE_MODEL",
+    defaultValue: "qwen-vl-ocr-latest",
+    summary: "Parser OCR 使用的 DashScope 模型名。",
+    description: "DashScope OCR model override for the parser OCR provider.",
+  },
+  {
+    settingKey: "parser_ocr_dashscope_task",
+    envName: "PARSER_OCR_DASHSCOPE_TASK",
+    defaultValue: "advanced_recognition",
+    summary: "Parser OCR 使用的 DashScope OCR 任务。",
+    description:
+      "DashScope OCR task override for scanned PDFs. Default is advanced_recognition.",
+  },
+  {
     settingKey: "redis_url",
     envName: "REDIS_URL",
     defaultValue: "redis://localhost:6379",

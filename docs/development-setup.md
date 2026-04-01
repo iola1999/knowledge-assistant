@@ -1,7 +1,7 @@
 # 本地开发指引
 
-版本：v0.5
-日期：2026-03-31
+版本：v0.6
+日期：2026-04-02
 
 ## 1. 推荐做法
 
@@ -101,6 +101,7 @@ pnpm dev
 补充说明：
 
 - parser 现在走受管稳定启动模式，优先保证 `pnpm dev` / `pnpm dev:status` 可可靠接管。
+- 若通过 `/settings` 配置了 `parser_ocr_*`，`pnpm dev` 会在拉起 parser 前把这些解析后的系统参数注入其环境。
 - 如果你改了 `services/parser/**` 里的代码，当前建议手动重启一次 `pnpm dev`。
 - 如果检测到已有受管进程仍在运行，`pnpm dev` 会保留现有日志目录，避免删除正在写入的日志句柄。
 - 受管进程状态统一写到 `/tmp/anchordesk-dev`：
@@ -218,6 +219,16 @@ pnpm app:upgrade:check # 只检查是否还有 blocking pending upgrades
 - `/admin/models` 同样只允许 super admin 访问。
 - `web` / `worker` / `agent-runtime` 会在启动时调用 `initRuntimeSettings()`；`parser` 进程本身仍直接读取 env，但在 `pnpm dev` 下会由启动脚本注入解析后的系统参数。
 - 保存数据库配置后不会热更新到已运行进程，所以需要重启开发进程。
+- 扫描 PDF OCR 的默认 provider 已是 `dashscope`；如不想启用，可显式把 `parser_ocr_provider` 改成 `disabled`。
+- 若要让默认 OCR 真实可用，至少需要保证以下任一 API Key 已配置：
+  - `parser_ocr_dashscope_api_key`
+  - 或通用 `dashscope_api_key`
+- 如需覆盖地域或模型，可继续配置：
+  - `parser_ocr_dashscope_api_url`
+  - `parser_ocr_dashscope_model`
+  - 可选 `parser_ocr_dashscope_task`，默认 `advanced_recognition`
+- DashScope OCR 的 API Key 与请求地址必须使用同一地域。当前默认 `parser_ocr_dashscope_api_url` 指向北京地域；如果改用美国（弗吉尼亚）或新加坡，需要同时切换到对应地域的 API Key 和 endpoint。
+- 当前只支持“PDF 原生抽取失败且页面含图 -> OCR”；原始图片上传仍保持禁用。
 
 如果你想确认当前已有的注册用户名，可以在 PostgreSQL 中查看：
 
@@ -260,6 +271,7 @@ where setting_key = 's3_endpoint';
 - S3 / MinIO endpoint、bucket、凭证
 - Qdrant endpoint / collection / api key
 - 联网搜索、embedding、rerank 的运行参数
+- parser OCR provider、DashScope OCR endpoint / model / task / API key
 - grounded final answer 的低层参数（如 `anthropic_final_answer_max_tokens`）
 - Agent / Parser / Web 的基础地址
 

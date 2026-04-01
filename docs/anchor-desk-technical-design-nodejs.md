@@ -1,7 +1,7 @@
 # AnchorDesk技术设计（Node.js / Next.js / Claude Agent SDK）
 
-版本：v0.11
-日期：2026-04-01
+版本：v0.12
+日期：2026-04-02
 
 > 文档角色说明：
 >
@@ -55,7 +55,8 @@
 - 工具 provider 未就绪时，应保持稳定契约并返回明确失败，不再提供本地 mock fallback
 - `fetch_source` / `fetch_sources` 通过 `markdown.new` 获取 `text/markdown`，优先返回结构化 Markdown，而不是在本地直接解析原始 HTML
 - OCR 默认关闭，只有扫描件、图片型 PDF 或无文本层材料才启用
-- OCR provider 暂不推进本地实现；后续待商业 API 口径确认后再接入，候选方向优先考虑百炼
+- 扫描 / 无文本 PDF 页的 OCR 已接入阿里云百炼 DashScope HTTP API（`qwen-vl-ocr-*`）；默认 provider 为 `dashscope`
+- 当前不支持直接上传原始图片；若是扫描件，统一要求先转成 PDF，再走 parser 的 OCR 降级链路
 
 ## 3. 总体架构
 
@@ -126,7 +127,7 @@ flowchart LR
 - streaming assistant placeholder 现在会写入运行 lease，`agent-runtime` 处理期间持续 heartbeat；如果 worker 崩溃或长时间失联，SSE 会在 live stream 超时补偿时把过期回答收敛成 `run_failed`，避免前端无限等待。
 - assistant / tool 的失败态 message payload 已收口为共享 helper，消息发送、重试、过期收敛和 worker 失败路径复用同一套错误语义。
 - 当前阶段对非核心工具的要求是“先保持稳定契约和可观测事件流”；真实 provider 是否接齐不是阻塞主会话链路的前置条件。
-- `Python Parser Service` 已支持 PDF / DOCX / text 基础解析、结构块构建、无文本 PDF 的 OCR 降级入口。
+- `Python Parser Service` 已支持 PDF / DOCX / text 基础解析、结构块构建，以及无文本 PDF 的 DashScope OCR 降级解析。
 - 文档页、文档内容 API 和 citation 锚点跳转当前都按“workspace 是否拥有该 library 的访问权”授权，而不是只用 `documents.workspace_id = 当前 workspace` 判断。
 - workspace 资料库页会在根层挂出已订阅的全局资料库；切入后使用只读挂载视图，workspace 侧不能在这些共享资料上执行重命名、移动、删除或上传。
 - 首条消息前可先上传“会话级临时资料”；这条链路会走 `parse/chunk/citation anchor`，但明确跳过 embedding 和 Qdrant indexing。
@@ -143,7 +144,8 @@ flowchart LR
 - 证据展示已从“标签计数”推进到“标签 + 引用摘录”，但更完整的 evidence dossier、claim-to-evidence 映射和分享页最终态联动仍未完成。
 - 当前正文内联引用仍依赖主回答模型遵守 `[[cite:N]]` 约定；应用层不会再做第二次改写兜底，因此当模型忽略该语法时会直接 fail-closed。
 - 当前仍有部分工具停留在基础真实实现；这些工具当前的主要要求是稳定契约、明确失败语义和不伪造引用。
-- OCR 真实 provider 尚未接入；当前仅支持关闭，并继续保持 disabled 直到商业 API 方案确定。
+- OCR 当前已支持“PDF 原生抽取 -> 仅对无原生文本且含图的页做 OCR -> 结构块重建”的真实链路；默认 provider 为 `dashscope`，可显式切回 `disabled` 或 `mock`。
+- OCR 当前只覆盖 PDF 内含图页；原始图片上传、OCR bbox 到 PDF 坐标映射、阅读器 bbox 高亮仍未纳入本轮范围。
 - retrieval 已补上 dense 候选窗口内的 BM25 混合打分，但更完整的 sparse 候选扩展不是当前阶段的主线。
 - 前端与文案仍存在少量去法律化未收口残留。
 - 会话级临时资料当前只做 parse-only 本地检索，不进入工作空间全局检索，也还没有后台清理任务。
@@ -180,7 +182,7 @@ bootstrap env-only（不进入 `system_settings`）：
 - `DATABASE_URL`
 - `AUTH_SECRET`
 
-其余大部分 provider / 基础设施参数（Redis、S3、Qdrant、web search、embedding、DashScope 等）均存储在 `system_settings`，可通过 `/settings` 这个“系统参数”页管理。变更后需重启相关进程。
+其余大部分 provider / 基础设施参数（Redis、S3、Qdrant、web search、embedding、DashScope 等）均存储在 `system_settings`，可通过 `/settings` 这个“系统参数”页管理。变更后需重启相关进程。当前 parser OCR 相关运行参数也通过这一路径维护：`parser_ocr_provider`、`parser_ocr_dashscope_api_key`、`parser_ocr_dashscope_api_url`、`parser_ocr_dashscope_model`、`parser_ocr_dashscope_task`。其中 `parser_ocr_provider` 默认值为 `dashscope`，并优先复用通用 `DASHSCOPE_API_KEY`。
 
 Claude-compatible 对话模型不再放在 `system_settings`；它们存储在 `llm_model_profiles`，由 `/admin/models` 维护，并通过 `conversations.model_profile_id` 按会话持久化当前选择。主对话、grounded final answer 与报告生成统一按请求解析该模型配置。
 
@@ -188,7 +190,7 @@ Claude-compatible 对话模型不再放在 `system_settings`；它们存储在 `
 
 `upgrade` 服务在首次运行时将 `.env.production` 中的值写入 `system_settings`（`INSERT ... ON CONFLICT DO NOTHING`），后续运行不会覆盖已有值。
 
-`parser`（Python）当前仍直接读取环境变量，不经过 `system_settings`。
+`parser`（Python）当前仍直接读取环境变量，不经过 `system_settings`；但在本地 `pnpm dev` 和生产启动脚本中，会先把解析后的 `system_settings` 注入 parser 进程环境，因此 `parser_ocr_*` 可以统一从系统参数页管理。
 
 ### 4.3 单机 Docker 生产部署
 
@@ -223,7 +225,7 @@ Claude-compatible 对话模型不再放在 `system_settings`；它们存储在 `
 负责：
 
 - 文本抽取
-- OCR 降级入口
+- OCR 降级入口（当前为“只对无原生文本且含图的 PDF 页”调用 DashScope OCR）
 - 表格和版面结构恢复
 - 页码与坐标映射
 

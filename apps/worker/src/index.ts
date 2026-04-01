@@ -47,22 +47,13 @@ import {
   shouldSkipEmbeddingIndexing,
 } from "./ingest-mode";
 import { logger } from "./logger";
-
-type ParseArtifact = {
-  page_count: number;
-  pages: Array<{ page_no: number; width?: number; height?: number; text_length?: number }>;
-  blocks: Array<{
-    page_no: number;
-    order_index: number;
-    block_type: string;
-    section_label?: string | null;
-    heading_path?: string[];
-    text: string;
-    bbox_json?: { x1: number; y1: number; x2: number; y2: number } | null;
-    metadata_json?: Record<string, unknown> | null;
-  }>;
-  parse_score_bp: number;
-};
+import {
+  didArtifactUseOcr,
+  isOcrParserErrorCode,
+  type ParseArtifact,
+  ParserServiceError,
+  requestParseArtifact,
+} from "./parser-client";
 
 type EmbeddingArtifact = {
   generated_at: string;
@@ -89,6 +80,31 @@ function createStageLogger(stage: string, documentVersionId: string) {
 
 function getParserServiceUrl() {
   return process.env.PARSER_SERVICE_URL ?? "http://localhost:8001";
+}
+
+function readErrorCode(error: unknown) {
+  if (error instanceof ParserServiceError) {
+    return error.code;
+  }
+
+  if (
+    error &&
+    typeof error === "object" &&
+    "code" in error &&
+    typeof error.code === "string"
+  ) {
+    return error.code;
+  }
+
+  return null;
+}
+
+function shouldMarkVersionAsOcrRequiredOnFailure(error: unknown) {
+  if (error instanceof ParserServiceError) {
+    return error.ocrRequired;
+  }
+
+  return isOcrParserErrorCode(readErrorCode(error));
 }
 
 function readNumericLocatorValue(
@@ -281,11 +297,15 @@ async function parseDocument(documentVersionId: string) {
     .limit(1);
 
   if (cached[0]) {
+    const cachedArtifact =
+      (await getJson<ParseArtifact>(cached[0].artifactStorageKey)) ?? null;
     versionLogger.info(
       {
         parseArtifactId: cached[0].id,
         pageCount: cached[0].pageCount,
         parseScoreBp: cached[0].parseScoreBp,
+        parseSourceMode: cachedArtifact?.source?.mode ?? null,
+        ocrProvider: cachedArtifact?.source?.ocr_provider ?? null,
       },
       "reused cached parse artifact",
     );
@@ -295,18 +315,16 @@ async function parseDocument(documentVersionId: string) {
         parseArtifactId: cached[0].id,
         pageCount: cached[0].pageCount,
         parseScoreBp: cached[0].parseScoreBp,
+        ocrRequired: didArtifactUseOcr(cachedArtifact),
       })
       .where(eq(documentVersions.id, documentVersionId));
 
     return cached[0].artifactStorageKey;
   }
 
-  const response = await fetch(`${getParserServiceUrl()}/parse`, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-    },
-    body: JSON.stringify({
+  const artifact = await requestParseArtifact({
+    parserServiceUrl: getParserServiceUrl(),
+    payload: {
       workspace_id: version.workspaceId,
       library_id: version.libraryId,
       document_version_id: version.versionId,
@@ -314,14 +332,8 @@ async function parseDocument(documentVersionId: string) {
       sha256: version.sha256,
       title: version.documentTitle,
       logical_path: version.documentPath,
-    }),
+    },
   });
-
-  if (!response.ok) {
-    throw new Error(`Parser service failed with ${response.status}`);
-  }
-
-  const artifact = (await response.json()) as ParseArtifact;
   const artifactStorageKey = `parse-artifacts/${version.sha256}.json`;
   await putJson(artifactStorageKey, artifact);
 
@@ -348,6 +360,7 @@ async function parseDocument(documentVersionId: string) {
       parseArtifactId: artifactRecord?.id ?? null,
       pageCount: artifact.page_count,
       parseScoreBp: artifact.parse_score_bp,
+      ocrRequired: didArtifactUseOcr(artifact),
     })
     .where(eq(documentVersions.id, documentVersionId));
 
@@ -357,6 +370,8 @@ async function parseDocument(documentVersionId: string) {
       pageCount: artifact.page_count,
       blockCount: artifact.blocks.length,
       parseScoreBp: artifact.parse_score_bp,
+      parseSourceMode: artifact.source?.mode ?? null,
+      ocrProvider: artifact.source?.ocr_provider ?? null,
     },
     "parse stage completed",
   );
@@ -791,6 +806,7 @@ async function main() {
         .set({
           stage: PARSE_STATUS.FAILED,
           status: RUN_STATUS.FAILED,
+          errorCode: readErrorCode(error),
           errorMessage: error.message,
           finishedAt: new Date(),
           updatedAt: new Date(),
@@ -801,6 +817,7 @@ async function main() {
         .update(documentVersions)
         .set({
           parseStatus: PARSE_STATUS.FAILED,
+          ocrRequired: shouldMarkVersionAsOcrRequiredOnFailure(error),
         })
         .where(eq(documentVersions.id, job.data.documentVersionId));
 
@@ -824,6 +841,7 @@ async function main() {
               : null,
           documentId: version?.documentId ?? null,
           workspaceId: version?.workspaceId ?? null,
+          errorCode: readErrorCode(error),
           errorMessage: error.message,
           error: serializeErrorForLog(error),
         },

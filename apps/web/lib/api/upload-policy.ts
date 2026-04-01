@@ -43,7 +43,7 @@ export const SUPPORTED_UPLOAD_ACCEPT = [
 ].join(",");
 
 export const IMAGE_UPLOAD_DISABLED_MESSAGE =
-  "当前暂不支持图片或扫描件上传。OCR 商业 API 尚未接入，请先转成带文本层的 PDF、DOCX、TXT 或 Markdown。";
+  "当前暂不支持直接上传图片。若是扫描件，请导出为 PDF 后上传；系统会只在无原生文本且含图的 PDF 页上自动走 OCR。";
 
 export const UNSUPPORTED_UPLOAD_MESSAGE = `当前仅支持 ${SUPPORTED_UPLOAD_TYPES_LABEL} 上传。`;
 

@@ -153,6 +153,47 @@ describe("buildSystemSettingSections", () => {
     ]);
   });
 
+  test("groups parser OCR settings into the model section and keeps them ahead of generic DashScope settings", () => {
+    const sections = buildSystemSettingSections([
+      {
+        settingKey: "dashscope_api_key",
+        valueText: "secret",
+        isSecret: true,
+        summary: "DashScope 通用密钥",
+        description: "Shared DashScope API key fallback.",
+      },
+      {
+        settingKey: "parser_ocr_provider",
+        valueText: "dashscope",
+        isSecret: false,
+        summary: "Parser OCR provider",
+        description: "OCR provider for scanned PDFs.",
+      },
+      {
+        settingKey: "parser_ocr_dashscope_api_key",
+        valueText: "secret",
+        isSecret: true,
+        summary: "Parser OCR API key",
+        description: "DashScope OCR API key override.",
+      },
+      {
+        settingKey: "parser_ocr_dashscope_task",
+        valueText: "advanced_recognition",
+        isSecret: false,
+        summary: "Parser OCR task",
+        description: "DashScope OCR task override.",
+      },
+    ]);
+
+    expect(sections.map((section) => section.id)).toEqual(["model"]);
+    expect(sections[0]?.items.map((item) => item.settingKey)).toEqual([
+      "parser_ocr_provider",
+      "parser_ocr_dashscope_api_key",
+      "parser_ocr_dashscope_task",
+      "dashscope_api_key",
+    ]);
+  });
+
   test("keeps final-answer token settings next to other model runtime parameters", () => {
     const sections = buildSystemSettingSections([
       {

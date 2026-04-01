@@ -60,6 +60,21 @@ describe("buildSystemSettingSeedRows", () => {
       valueText: "3",
       isSecret: false,
     });
+    expect(rows.find((row) => row.settingKey === "parser_ocr_provider")).toMatchObject({
+      settingKey: "parser_ocr_provider",
+      valueText: "dashscope",
+      isSecret: false,
+    });
+    expect(rows.find((row) => row.settingKey === "parser_ocr_dashscope_model")).toMatchObject({
+      settingKey: "parser_ocr_dashscope_model",
+      valueText: "qwen-vl-ocr-latest",
+      isSecret: false,
+    });
+    expect(rows.find((row) => row.settingKey === "parser_ocr_dashscope_task")).toMatchObject({
+      settingKey: "parser_ocr_dashscope_task",
+      valueText: "advanced_recognition",
+      isSecret: false,
+    });
     expect(rows.some((row) => row.settingKey === "auth_trust_host")).toBe(false);
   });
 });

@@ -53,6 +53,7 @@ const SECTION_DEFINITIONS = [
     title: "模型与检索策略",
     description: "联网搜索、embedding、DashScope、rerank 等模型侧运行参数。",
     match: (settingKey: string) =>
+      settingKey.startsWith("parser_ocr_") ||
       settingKey.startsWith("anthropic_") ||
       settingKey.startsWith("web_search_") ||
       settingKey.startsWith("brave_search_") ||
@@ -76,6 +77,11 @@ const KNOWN_SETTING_ORDER = [
   "parser_service_url",
   "fetch_allowed_domains",
   "fetch_source_max_concurrency",
+  "parser_ocr_provider",
+  "parser_ocr_dashscope_api_key",
+  "parser_ocr_dashscope_api_url",
+  "parser_ocr_dashscope_model",
+  "parser_ocr_dashscope_task",
   "web_search_provider",
   "brave_search_api_key",
   "brave_search_api_url",
