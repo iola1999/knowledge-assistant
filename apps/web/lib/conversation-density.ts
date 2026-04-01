@@ -26,7 +26,7 @@ export const conversationDensityClassNames = {
   payloadPre:
     "min-w-0 max-w-full max-h-[220px] overflow-auto whitespace-pre-wrap break-all [overflow-wrap:anywhere] select-text rounded-xl bg-app-surface-soft px-3 py-2 text-[11px] leading-5 text-app-muted-strong",
   composerShell:
-    "sticky bottom-0 z-10 shrink-0 px-1 pb-3 pt-3 min-[720px]:pb-4 min-[720px]:pt-4",
+    "sticky bottom-0 z-10 shrink-0 px-4 pb-3 pt-3 min-[720px]:pb-4 min-[720px]:pt-4",
   composerCard:
     "grid min-w-0 gap-2.5 rounded-[24px] border border-app-border/80 bg-white/96 px-4 py-3 shadow-[0_16px_28px_rgba(23,22,18,0.06),0_3px_8px_rgba(23,22,18,0.03)] md:px-5 md:py-4",
   composerText:

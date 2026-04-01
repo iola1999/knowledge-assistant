@@ -124,7 +124,7 @@ const SYSTEM_SETTING_DEFINITIONS = [
   {
     settingKey: "web_search_provider",
     envName: "WEB_SEARCH_PROVIDER",
-    defaultValue: "none",
+    defaultValue: "brave",
     summary: "联网搜索工具的 provider 选择。",
     description: "Web search provider override. Current supported value: brave.",
   },
