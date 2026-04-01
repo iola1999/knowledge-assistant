@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 
 import {
+  buildClaudeAgentSdkRequestLogPayload,
   buildClaudeAgentRuntimeLogContext,
   isClaudeAgentSdkDebugEnabled,
   serializeErrorForLog,
@@ -46,6 +47,80 @@ describe("isClaudeAgentSdkDebugEnabled", () => {
 
   test("defaults to false", () => {
     expect(isClaudeAgentSdkDebugEnabled({})).toBe(false);
+  });
+});
+
+describe("buildClaudeAgentSdkRequestLogPayload", () => {
+  test("captures the outbound SDK request shape without leaking secrets", () => {
+    const payload = buildClaudeAgentSdkRequestLogPayload({
+      prompt: "帮我总结这批资料",
+      options: {
+        tools: [],
+        includePartialMessages: true,
+        mcpServers: {
+          anchorDeskAssistant: {},
+        },
+        allowedTools: ["search_workspace_knowledge", "fetch_source"],
+        cwd: "/tmp/agent-session",
+        env: {
+          ANTHROPIC_API_KEY: "sk-ant-secret",
+          ANTHROPIC_BASE_URL: "http://localhost:8080",
+          DEBUG_CLAUDE_AGENT_SDK: "1",
+        },
+        model: "claude-sonnet-4-5",
+        debug: true,
+        stderr: () => undefined,
+        resume: " session-1 ",
+        maxTurns: 16,
+        systemPrompt: {
+          type: "preset",
+          preset: "claude_code",
+          append: "Always cite sources.",
+        },
+        hooks: {
+          PreToolUse: [{ hooks: [() => undefined] }],
+          PostToolUse: [{ hooks: [() => undefined, () => undefined] }],
+          PostToolUseFailure: [{ hooks: [() => undefined] }],
+        },
+      },
+    });
+
+    expect(payload).toEqual({
+      prompt: "帮我总结这批资料",
+      promptLength: 8,
+      options: {
+        tools: [],
+        includePartialMessages: true,
+        mcpServers: {
+          names: ["anchorDeskAssistant"],
+          count: 1,
+        },
+        allowedTools: ["search_workspace_knowledge", "fetch_source"],
+        cwd: "/tmp/agent-session",
+        env: {
+          hasApiKey: true,
+          baseUrl: "http://localhost:8080",
+          sdkDebugEnabled: true,
+        },
+        model: "claude-sonnet-4-5",
+        debug: true,
+        hasStderrHandler: true,
+        resume: "session-1",
+        maxTurns: 16,
+        systemPrompt: {
+          type: "preset",
+          preset: "claude_code",
+          append: "Always cite sources.",
+          appendLength: 20,
+        },
+        hooks: {
+          PreToolUse: 1,
+          PostToolUse: 2,
+          PostToolUseFailure: 1,
+        },
+      },
+    });
+    expect(JSON.stringify(payload)).not.toContain("sk-ant-secret");
   });
 });
 

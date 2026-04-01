@@ -26,6 +26,7 @@ import {
 } from "./assistant-stream";
 import { type CollectedGroundedEvidence } from "./assistant-answer";
 import {
+  buildClaudeAgentSdkRequestLogPayload,
   buildClaudeAgentRuntimeLogContext,
   isClaudeAgentSdkDebugEnabled,
   serializeErrorForLog,
@@ -549,6 +550,135 @@ export async function runAgentResponse(
       snippet: string;
     }
   >();
+  const allowedTools = getAllowedTools();
+  const debugEnabled = isClaudeAgentSdkDebugEnabled(agentEnv);
+  const systemPromptAppend = buildAgentSystemPrompt({
+    workspaceId,
+    conversationId,
+    searchableKnowledge: input.searchableKnowledge ?? null,
+  });
+  const claudeAgentQueryOptions = {
+    tools: [],
+    includePartialMessages: true,
+    mcpServers: {
+      [ASSISTANT_MCP_SERVER_NAME]: assistantServer,
+    },
+    allowedTools,
+    cwd: workdir,
+    env: agentEnv,
+    model: input.modelProfile.modelName,
+    debug: debugEnabled,
+    stderr: (data: string) => {
+      for (const line of splitClaudeAgentStderr(data)) {
+        requestLogger.debug(
+          {
+            conversationId,
+            modelName: input.modelProfile.modelName,
+            modelProfileId: input.modelProfile.id,
+            workspaceId,
+            workdir,
+            line,
+          },
+          "Claude Agent SDK stderr",
+        );
+      }
+    },
+    resume: input.agentSessionId ?? undefined,
+    maxTurns: DEFAULT_AGENT_MAX_TURNS,
+    systemPrompt: {
+      type: "preset" as const,
+      preset: "claude_code" as const,
+      append: systemPromptAppend,
+    },
+    hooks: {
+      PreToolUse: [
+        {
+          hooks: [
+            async (hookInput: unknown) => {
+              await hooks.onToolStarted?.({
+                toolName: String((hookInput as { tool_name?: string }).tool_name ?? ""),
+                toolInput: (hookInput as { tool_input?: unknown }).tool_input,
+                toolUseId: String(
+                  (hookInput as { tool_use_id?: string }).tool_use_id ?? "",
+                ),
+              });
+
+              return { continue: true };
+            },
+          ],
+        },
+      ],
+      PostToolUse: [
+        {
+          hooks: [
+            async (hookInput: unknown) => {
+              const toolCall = hookInput as {
+                tool_name: string;
+                tool_input: unknown;
+                tool_response: unknown;
+                tool_use_id: string;
+              };
+              const payload = parseToolPayload(toolCall.tool_response);
+
+              if (payload) {
+                collectGroundedEvidence(
+                  toolCall.tool_name,
+                  payload,
+                  citationMap,
+                  webSearchResultsByUrl,
+                );
+              } else {
+                requestLogger.debug(
+                  {
+                    toolName: toolCall.tool_name,
+                    toolUseId: toolCall.tool_use_id,
+                    toolResponseType: Array.isArray(toolCall.tool_response)
+                      ? "array"
+                      : toolCall.tool_response === null
+                        ? "null"
+                        : typeof toolCall.tool_response,
+                  },
+                  "tool completed without a parseable payload",
+                );
+              }
+
+              await hooks.onToolFinished?.({
+                toolName: toolCall.tool_name,
+                toolInput: toolCall.tool_input,
+                toolResponse: toolCall.tool_response,
+                toolUseId: toolCall.tool_use_id,
+              });
+
+              return { continue: true };
+            },
+          ],
+        },
+      ],
+      PostToolUseFailure: [
+        {
+          hooks: [
+            async (hookInput: unknown) => {
+              const failedTool = hookInput as {
+                tool_name: string;
+                tool_input: unknown;
+                tool_use_id: string;
+                error: string;
+              };
+
+              await hooks.onToolFailed?.({
+                toolName: failedTool.tool_name,
+                toolInput: failedTool.tool_input,
+                toolUseId: failedTool.tool_use_id,
+                error: failedTool.error,
+              });
+
+              return { continue: true };
+            },
+          ],
+        },
+      ],
+    },
+  };
 
   requestLogger.info(
     {
@@ -559,6 +689,10 @@ export async function runAgentResponse(
       workdir,
       requestedSessionId: input.agentSessionId ?? null,
       ...runtimeLogContext,
+      claudeAgentSdkRequest: buildClaudeAgentSdkRequestLogPayload({
+        prompt,
+        options: claudeAgentQueryOptions,
+      }),
     },
     "starting Claude Agent SDK query",
   );
@@ -566,132 +700,7 @@ export async function runAgentResponse(
   try {
     for await (const message of query({
       prompt,
-      options: {
-        tools: [],
-        includePartialMessages: true,
-        mcpServers: {
-          [ASSISTANT_MCP_SERVER_NAME]: assistantServer,
-        },
-        allowedTools: getAllowedTools(),
-        cwd: workdir,
-        env: agentEnv,
-        model: input.modelProfile.modelName,
-        debug: isClaudeAgentSdkDebugEnabled(agentEnv),
-        stderr: (data) => {
-          for (const line of splitClaudeAgentStderr(data)) {
-            requestLogger.debug(
-              {
-                conversationId,
-                modelName: input.modelProfile.modelName,
-                modelProfileId: input.modelProfile.id,
-                workspaceId,
-                workdir,
-                line,
-              },
-              "Claude Agent SDK stderr",
-            );
-          }
-        },
-        resume: input.agentSessionId ?? undefined,
-        maxTurns: DEFAULT_AGENT_MAX_TURNS,
-        systemPrompt: {
-          type: "preset",
-          preset: "claude_code",
-          append: buildAgentSystemPrompt({
-            workspaceId,
-            conversationId,
-            searchableKnowledge: input.searchableKnowledge ?? null,
-          }),
-        },
-        hooks: {
-          PreToolUse: [
-            {
-              hooks: [
-                async (hookInput) => {
-                  await hooks.onToolStarted?.({
-                    toolName: String((hookInput as { tool_name?: string }).tool_name ?? ""),
-                    toolInput: (hookInput as { tool_input?: unknown }).tool_input,
-                    toolUseId: String(
-                      (hookInput as { tool_use_id?: string }).tool_use_id ?? "",
-                    ),
-                  });
-
-                  return { continue: true };
-                },
-              ],
-            },
-          ],
-          PostToolUse: [
-            {
-              hooks: [
-                async (hookInput) => {
-                  const toolCall = hookInput as {
-                    tool_name: string;
-                    tool_input: unknown;
-                    tool_response: unknown;
-                    tool_use_id: string;
-                  };
-                  const payload = parseToolPayload(toolCall.tool_response);
-
-                  if (payload) {
-                    collectGroundedEvidence(
-                      toolCall.tool_name,
-                      payload,
-                      citationMap,
-                      webSearchResultsByUrl,
-                    );
-                  } else {
-                    requestLogger.debug(
-                      {
-                        toolName: toolCall.tool_name,
-                        toolUseId: toolCall.tool_use_id,
-                        toolResponseType: Array.isArray(toolCall.tool_response)
-                          ? "array"
-                          : toolCall.tool_response === null
-                            ? "null"
-                            : typeof toolCall.tool_response,
-                      },
-                      "tool completed without a parseable payload",
-                    );
-                  }
-
-                  await hooks.onToolFinished?.({
-                    toolName: toolCall.tool_name,
-                    toolInput: toolCall.tool_input,
-                    toolResponse: toolCall.tool_response,
-                    toolUseId: toolCall.tool_use_id,
-                  });
-
-                  return { continue: true };
-                },
-              ],
-            },
-          ],
-          PostToolUseFailure: [
-            {
-              hooks: [
-                async (hookInput) => {
-                  const failedTool = hookInput as {
-                    tool_name: string;
-                    tool_input: unknown;
-                    tool_use_id: string;
-                    error: string;
-                  };
-
-                  await hooks.onToolFailed?.({
-                    toolName: failedTool.tool_name,
-                    toolInput: failedTool.tool_input,
-                    toolUseId: failedTool.tool_use_id,
-                    error: failedTool.error,
-                  });
-
-                  return { continue: true };
-                },
-              ],
-            },
-          ],
-        },
-      },
+      options: claudeAgentQueryOptions,
     })) {
       if ("session_id" in message && typeof message.session_id === "string") {
         sessionId = message.session_id;
