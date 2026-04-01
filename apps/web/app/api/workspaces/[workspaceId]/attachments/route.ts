@@ -16,6 +16,7 @@ import {
   getDb,
 } from "@anchordesk/db";
 import { enqueueIngestFlow } from "@anchordesk/queue";
+import { withProducerSpan } from "@anchordesk/tracing";
 import {
   buildContentAddressedStorageKey,
   matchesContentAddressedStorageKey,
@@ -201,13 +202,27 @@ export async function POST(
     })
     .returning();
 
-  await enqueueIngestFlow({
-    workspaceId,
-    libraryId: privateLibrary.id,
-    documentId: document.id,
-    documentVersionId: documentVersion.id,
-    indexingMode: DOCUMENT_INDEXING_MODE.PARSE_ONLY,
-  });
+  await withProducerSpan(
+    {
+      carrier: request.headers,
+      name: "bullmq parse-only attachment ingest enqueue",
+      attributes: {
+        "messaging.destination.name": "document.parse",
+        "messaging.operation": "publish",
+        "messaging.system": "bullmq",
+        document_version_id: documentVersion.id,
+        workspace_id: workspaceId,
+      },
+    },
+    async () =>
+      enqueueIngestFlow({
+        workspaceId,
+        libraryId: privateLibrary.id,
+        documentId: document.id,
+        documentVersionId: documentVersion.id,
+        indexingMode: DOCUMENT_INDEXING_MODE.PARSE_ONLY,
+      }),
+  );
 
   return Response.json(
     {

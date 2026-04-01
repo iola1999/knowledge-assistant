@@ -15,6 +15,7 @@ import {
 } from "@anchordesk/db";
 import { serializeErrorForLog } from "@anchordesk/logging";
 import { enqueueConversationResponse } from "@anchordesk/queue";
+import { withProducerSpan } from "@anchordesk/tracing";
 
 import { auth } from "@/auth";
 import { findRegeneratableConversationTurn } from "@/lib/api/conversation-retry";
@@ -127,17 +128,30 @@ export async function POST(
     });
 
   try {
-    const queueJob = await enqueueConversationResponse({
-      conversationId,
-      userMessageId: regeneratableTurn.userMessageId,
-      assistantMessageId: regeneratableTurn.assistantMessageId,
-      runId: nextRunState.run_id,
-      modelProfileId: selectedModelProfile.id,
-      prompt: buildConversationPrompt({
-        content: regeneratableTurn.promptContent,
-        workspacePrompt: conversation.workspacePrompt,
-      }),
-    });
+    const queueJob = await withProducerSpan(
+      {
+        carrier: request.headers,
+        name: "bullmq conversation.respond retry enqueue",
+        attributes: {
+          "messaging.destination.name": "conversation.respond",
+          "messaging.operation": "publish",
+          "messaging.system": "bullmq",
+          conversation_id: conversationId,
+        },
+      },
+      async () =>
+        enqueueConversationResponse({
+          conversationId,
+          userMessageId: regeneratableTurn.userMessageId,
+          assistantMessageId: regeneratableTurn.assistantMessageId,
+          runId: nextRunState.run_id,
+          modelProfileId: selectedModelProfile.id,
+          prompt: buildConversationPrompt({
+            content: regeneratableTurn.promptContent,
+            workspacePrompt: conversation.workspacePrompt,
+          }),
+        }),
+    );
 
     await db
       .update(conversations)

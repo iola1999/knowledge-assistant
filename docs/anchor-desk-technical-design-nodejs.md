@@ -47,6 +47,7 @@
 - 结构化生成（报告工具等）：`@anthropic-ai/sdk`
 - 文档解析：`Python + FastAPI`
 - PDF 阅读：`PDF.js`
+- 可观测性：`OpenTelemetry + W3C Trace Context`（日志继续使用 `pino`）
 
 当前 provider 策略：
 
@@ -107,6 +108,9 @@ flowchart LR
 - `search_workspace_knowledge` 现在会先解析当前 workspace 的 `searchableLibraryIds`，默认召回“私有资料库 + 已激活且开启检索的全局资料库订阅”。
 - `conversation.respond` 队列已接入 `Agent Runtime` Worker；用户发消息后会先落 user message + assistant placeholder，再异步执行 Claude Agent SDK。
 - `conversation.respond` 当前支持通过 `agent_runtime_respond_worker_concurrency` 调整 BullMQ worker 并发，便于在同一进程内并行处理多条会话回答。
+- `web` / `worker` / `agent-runtime` 当前都会初始化 OpenTelemetry；当存在活动 span 时，结构化日志会自动附带 `trace_id` / `span_id` / `trace_flags`，继续保留业务侧 `requestId` / `runId` / `conversationId` 等字段。
+- `conversation.respond` 与 ingest flow 现在会把 W3C Trace Context（`traceparent` / `tracestate` / `baggage`）写入 BullMQ payload；`agent-runtime`、`worker` 与 `parser` 会继续同一条 trace，便于跨进程捞整条请求上下文日志。
+- `worker -> parser /parse` 当前会透传 trace headers；`Python Parser Service` 会按同一 trace 记日志，并在配置 OTLP exporter 后继续上报 span。
 - `Agent Runtime` 现在会显式开启 Claude Agent SDK `includePartialMessages`，同时消费 assistant text delta、assistant thinking delta、`tool_progress`、`task_started` / `task_progress` 与 `system/status`，把它们统一收口为会话 live event。
 - `Agent Runtime` 当前采用单次流式回答：Claude Agent SDK 直接输出最终正文，前端只消费这一条回答流；phase/status 只区分“分析中 / 调工具 / 生成中”。
 - live conversation stream 已进一步收口为 `assistant_message_id + run_id` 作用域：重试同一条 assistant message 时会生成新的 `run_id`，Redis Streams、BullMQ job、tool timeline 和 SSE fallback 都只消费当前 run，避免旧 run 事件或旧 tool timeline 回灌到新一轮回答。
@@ -138,6 +142,7 @@ flowchart LR
 
 - 当前主会话链路已切到 token 级 live transport：`agent-runtime` 发布 Redis Streams 会话事件，Web SSE 直接转发 assistant delta / progress / status；数据库退回为快照恢复、授权与终态真相源。
 - 当前“停止生成”是基于数据库状态的协作式收口，不是 provider-side cancel；外部模型请求可能仍在后台跑完，只是不再继续写回当前消息。
+- 当前 tracing 已覆盖 `web -> queue -> agent-runtime/worker -> parser` 主边界，但更细粒度的第三方 SDK 自动 instrumentation 仍未全面铺开；目前主要保证入口、队列和跨服务 HTTP 边界的 trace 关联。
 - 当前单次回答链路采用 fail-closed 语义：只要模型引用了未知 `citation_id`，或在已有证据时遗漏 `[[cite:N]]` marker，整轮回答都会显式进入 `run_failed` / assistant failed，而不是落成未校验成功态。
 - 主会话链路的 completed/failed 收尾体验已补到“终态事件先切本地最终态 + 当前会话继续发送/首条消息创建新会话/最新失败回答重试都可本地恢复 streaming”，侧栏与页头的核心 meta 也能跟随提交和终态事件同步本地状态；更完整的失败恢复路径仍需要继续收口。
 - 证据展示已从“标签计数”推进到“标签 + 引用摘录”，但更完整的 evidence dossier、claim-to-evidence 映射和分享页最终态联动仍未完成。
@@ -179,6 +184,9 @@ bootstrap env-only（不进入 `system_settings`）：
 
 - `DATABASE_URL`
 - `AUTH_SECRET`
+- `OTEL_EXPORTER_OTLP_ENDPOINT`
+- `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`
+- `OTEL_EXPORTER_OTLP_HEADERS`
 
 其余大部分 provider / 基础设施参数（Redis、S3、Qdrant、web search、embedding、DashScope 等）均存储在 `system_settings`，可通过 `/settings` 这个“系统参数”页管理。变更后需重启相关进程。
 
@@ -189,6 +197,7 @@ Claude-compatible 对话模型不再放在 `system_settings`；它们存储在 `
 `upgrade` 服务在首次运行时将 `.env.production` 中的值写入 `system_settings`（`INSERT ... ON CONFLICT DO NOTHING`），后续运行不会覆盖已有值。
 
 `parser`（Python）当前仍直接读取环境变量，不经过 `system_settings`。
+OpenTelemetry exporter 参数同样保持 env-only，由各进程在启动时自行读取。
 
 ### 4.3 单机 Docker 生产部署
 

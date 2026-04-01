@@ -18,6 +18,7 @@ import {
   getDb,
 } from "@anchordesk/db";
 import { enqueueIngestFlow } from "@anchordesk/queue";
+import { withProducerSpan } from "@anchordesk/tracing";
 
 import { auth } from "@/auth";
 import { findManagedKnowledgeLibrary } from "@/lib/api/admin-knowledge-libraries";
@@ -212,12 +213,26 @@ export async function POST(
     })
     .returning();
 
-  await enqueueIngestFlow({
-    workspaceId: null,
-    libraryId,
-    documentId: document.id,
-    documentVersionId: documentVersion.id,
-  });
+  await withProducerSpan(
+    {
+      carrier: request.headers,
+      name: "bullmq global library ingest enqueue",
+      attributes: {
+        "messaging.destination.name": "document.parse",
+        "messaging.operation": "publish",
+        "messaging.system": "bullmq",
+        document_version_id: documentVersion.id,
+        library_id: libraryId,
+      },
+    },
+    async () =>
+      enqueueIngestFlow({
+        workspaceId: null,
+        libraryId,
+        documentId: document.id,
+        documentVersionId: documentVersion.id,
+      }),
+  );
 
   return Response.json(
     {

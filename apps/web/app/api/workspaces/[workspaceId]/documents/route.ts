@@ -19,6 +19,7 @@ import {
   getDb,
 } from "@anchordesk/db";
 import { enqueueIngestFlow } from "@anchordesk/queue";
+import { withProducerSpan } from "@anchordesk/tracing";
 
 import { auth } from "@/auth";
 import { ensureWorkspaceDirectoryPath } from "@/lib/api/workspace-directories";
@@ -198,12 +199,26 @@ export async function POST(
     })
     .returning();
 
-  await enqueueIngestFlow({
-    workspaceId,
-    libraryId: privateLibrary.id,
-    documentId: document.id,
-    documentVersionId: documentVersion.id,
-  });
+  await withProducerSpan(
+    {
+      carrier: request.headers,
+      name: "bullmq document ingest enqueue",
+      attributes: {
+        "messaging.destination.name": "document.parse",
+        "messaging.operation": "publish",
+        "messaging.system": "bullmq",
+        document_version_id: documentVersion.id,
+        workspace_id: workspaceId,
+      },
+    },
+    async () =>
+      enqueueIngestFlow({
+        workspaceId,
+        libraryId: privateLibrary.id,
+        documentId: document.id,
+        documentVersionId: documentVersion.id,
+      }),
+  );
 
   return Response.json(
     {

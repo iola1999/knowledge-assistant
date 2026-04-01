@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@anchordesk/contracts": "workspace:*",
+    "@anchordesk/tracing": "workspace:*",
     "bullmq": "^5.71.1",
     "ioredis": "^5.7.0"
   }

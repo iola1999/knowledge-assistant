@@ -71,6 +71,7 @@
 - `agent.log` 已补充 citation 排障字段；详见 [anchor-desk-citation-debugging.md](./anchor-desk-citation-debugging.md)。
 - 工具层现在会为可引用证据注入运行期数字 citation id；对话主链路已移除第二次 grounded rewrite，改为单次回答 fail-closed 校验。
 - assistant / tool 的失败态 payload 已收口为共享构造函数，消息发送、重试、运行过期和 worker 失败路径复用同一套错误语义。
+- 主链路已接入 OpenTelemetry trace context：`web` 入口、BullMQ enqueue/consume、`worker -> parser` HTTP 调用会沿用同一条 `traceparent`，Node `pino` 日志和 parser 日志都可按同一个 `trace_id` 关联。
 - 上传链路现在由前端先计算 SHA256，再直传 `blobs/<sha256>`；worker 负责复核对象内容和 hash/key 一致性，对象层不再按工作空间前缀组织，目录归属仅由数据库 metadata 表达。
 - 本地缺少 `ANTHROPIC_API_KEY` 或关键 provider 时，主会话链路会直接进入失败态，并继续通过既有 SSE / message failed 链路暴露给前端。
 - 会话页现在已提供“重新生成”入口；当最新 assistant 消息处于 failed 状态时，可复用上一条 user prompt 直接重试当前回答，前端会先本地重置该轮的回答/citation/工具时间线，再交给 SSE 持续接管。
@@ -167,8 +168,11 @@
   - 单次回答的正文、citations 和引用跳转已能在终态事件到达后直接切到本地最终态；后续仍需继续收口更完整的失败恢复和其余收尾断层
 - 工具契约与真实 provider 对齐
   - `search_web_general` / `search_statutes` / 报告生成等工具应逐步切到真实 provider 或明确失败语义
-  - tool response 必须保持稳定契约，能持续驱动 tool timeline、tool progress、assistant streaming、completed/failed 和前端展示
-  - 不得伪造 citation、置信度覆盖度或外部来源
+- tool response 必须保持稳定契约，能持续驱动 tool timeline、tool progress、assistant streaming、completed/failed 和前端展示
+- 不得伪造 citation、置信度覆盖度或外部来源
+- tracing / observability
+  - 当前已能跨 `web -> queue -> agent-runtime/worker -> parser` 以同一 `trace_id` 关联日志
+  - 后续若需要完整 span 树、聚合检索与 trace UI，仍需在部署环境补齐 OTLP collector / backend
 - citation/evidence dossier 与更清晰的证据展示
   - 当前已补齐引用摘录展示，仍需继续补 evidence dossier、引用说明和完成态切换体验
   - 收口 citation 刷新、阅读器联动和分享页最终态一致性
@@ -200,6 +204,7 @@
 - `AUTH_SECRET` 不进入 `system_settings`。
 - JWT 登录态现在依赖 Redis allowlist；如果 Redis 不可用，服务端应按会话失效处理，而不是继续无状态放行旧 token。
 - `/settings` 与 `/admin/models` 的改动都不会热更新到已运行进程；涉及运行时 provider 的变更仍需重启相关服务。
+- OTLP exporter 仍是进程启动时读取的 env-only 配置；修改 collector endpoint 或 headers 后同样需要重启对应服务。
 - OCR 不要默认开启。
 - OCR 当前明确保持 disabled，不应在未确认商业 provider 前继续扩展本地实现。
 - 公开分享链接本质是 bearer URL；公开页必须保持 `noindex`，且不能提供空间内资料跳转。

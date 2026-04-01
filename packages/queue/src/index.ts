@@ -5,6 +5,7 @@ import {
   DOCUMENT_INDEXING_MODE,
   type DocumentIndexingMode,
 } from "@anchordesk/contracts";
+import { injectTraceContextHeaders, type TraceContextHeaders } from "@anchordesk/tracing";
 
 export const QUEUE_NAMES = {
   respond: "conversation.respond",
@@ -20,6 +21,7 @@ export type IngestJobPayload = {
   documentId: string;
   documentVersionId: string;
   indexingMode?: DocumentIndexingMode;
+  traceContext?: TraceContextHeaders | null;
 };
 
 export type ConversationResponseJobPayload = {
@@ -30,7 +32,21 @@ export type ConversationResponseJobPayload = {
   modelProfileId?: string;
   prompt: string;
   draftUploadId?: string | null;
+  traceContext?: TraceContextHeaders | null;
 };
+
+export function withEnqueuedTraceContext<T extends Record<string, unknown>>(
+  payload: T & { traceContext?: TraceContextHeaders | null },
+) {
+  if (payload.traceContext !== undefined) {
+    return payload;
+  }
+
+  return {
+    ...payload,
+    traceContext: injectTraceContextHeaders(),
+  };
+}
 
 export function sanitizeQueueJobIdPart(value: string) {
   return value.trim().replace(/:/g, "_");
@@ -66,13 +82,15 @@ export async function enqueueIngestFlow(
   options?: JobsOptions,
 ) {
   const producer = createFlowProducer();
-  const indexingMode = payload.indexingMode ?? DEFAULT_DOCUMENT_INDEXING_MODE;
+  const payloadWithTraceContext = withEnqueuedTraceContext(payload);
+  const indexingMode =
+    payloadWithTraceContext.indexingMode ?? DEFAULT_DOCUMENT_INDEXING_MODE;
 
   return producer.add({
     name: QUEUE_NAMES.index,
     queueName: QUEUE_NAMES.index,
     data: {
-      ...payload,
+      ...payloadWithTraceContext,
       indexingMode,
     },
     opts: {
@@ -87,8 +105,8 @@ export async function enqueueIngestFlow(
             {
               name: QUEUE_NAMES.chunk,
               queueName: QUEUE_NAMES.chunk,
-              data: {
-                ...payload,
+                data: {
+                ...payloadWithTraceContext,
                 indexingMode,
               },
               opts: {
@@ -101,7 +119,7 @@ export async function enqueueIngestFlow(
                   name: QUEUE_NAMES.parse,
                   queueName: QUEUE_NAMES.parse,
                   data: {
-                    ...payload,
+                    ...payloadWithTraceContext,
                     indexingMode,
                   },
                   opts: {
@@ -118,7 +136,7 @@ export async function enqueueIngestFlow(
               name: QUEUE_NAMES.embed,
               queueName: QUEUE_NAMES.embed,
               data: {
-                ...payload,
+                ...payloadWithTraceContext,
                 indexingMode,
               },
               opts: {
@@ -131,7 +149,7 @@ export async function enqueueIngestFlow(
                   name: QUEUE_NAMES.chunk,
                   queueName: QUEUE_NAMES.chunk,
                   data: {
-                    ...payload,
+                    ...payloadWithTraceContext,
                     indexingMode,
                   },
                   opts: {
@@ -143,8 +161,8 @@ export async function enqueueIngestFlow(
                     {
                       name: QUEUE_NAMES.parse,
                       queueName: QUEUE_NAMES.parse,
-                      data: {
-                        ...payload,
+                        data: {
+                        ...payloadWithTraceContext,
                         indexingMode,
                       },
                       opts: {
@@ -166,9 +184,14 @@ export async function enqueueConversationResponse(
   options?: JobsOptions,
 ) {
   const queue = createQueue(QUEUE_NAMES.respond);
+  const payloadWithTraceContext = withEnqueuedTraceContext(payload);
 
-  return queue.add(QUEUE_NAMES.respond, payload, {
-    jobId: buildQueueJobId(payload.assistantMessageId, payload.runId, "respond"),
+  return queue.add(QUEUE_NAMES.respond, payloadWithTraceContext, {
+    jobId: buildQueueJobId(
+      payloadWithTraceContext.assistantMessageId,
+      payloadWithTraceContext.runId,
+      "respond",
+    ),
     removeOnComplete: DEFAULT_QUEUE_JOB_RETENTION_LIMIT,
     removeOnFail: DEFAULT_QUEUE_JOB_RETENTION_LIMIT,
     ...options,

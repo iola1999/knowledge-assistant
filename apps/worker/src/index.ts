@@ -41,6 +41,12 @@ import {
   putJson,
   putObjectBytes,
 } from "@anchordesk/storage";
+import {
+  injectTraceContextHeaders,
+  startNodeTracing,
+  withClientSpan,
+  withConsumerSpan,
+} from "@anchordesk/tracing";
 import { buildChunkSeeds } from "./chunking";
 import {
   resolveDocumentIndexingMode,
@@ -301,21 +307,46 @@ async function parseDocument(documentVersionId: string) {
     return cached[0].artifactStorageKey;
   }
 
-  const response = await fetch(`${getParserServiceUrl()}/parse`, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
+  const response = await withClientSpan(
+    {
+      name: "POST parser /parse",
+      attributes: {
+        "http.method": "POST",
+        "http.route": "/parse",
+        document_version_id: version.versionId,
+      },
     },
-    body: JSON.stringify({
-      workspace_id: version.workspaceId,
-      library_id: version.libraryId,
-      document_version_id: version.versionId,
-      storage_key: version.storageKey,
-      sha256: version.sha256,
-      title: version.documentTitle,
-      logical_path: version.documentPath,
-    }),
-  });
+    async () => {
+      const traceHeaders = injectTraceContextHeaders();
+      const headers: Record<string, string> = {
+        "content-type": "application/json",
+      };
+
+      if (traceHeaders?.traceparent) {
+        headers.traceparent = traceHeaders.traceparent;
+      }
+      if (traceHeaders?.tracestate) {
+        headers.tracestate = traceHeaders.tracestate;
+      }
+      if (traceHeaders?.baggage) {
+        headers.baggage = traceHeaders.baggage;
+      }
+
+      return fetch(`${getParserServiceUrl()}/parse`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          workspace_id: version.workspaceId,
+          library_id: version.libraryId,
+          document_version_id: version.versionId,
+          storage_key: version.storageKey,
+          sha256: version.sha256,
+          title: version.documentTitle,
+          logical_path: version.documentPath,
+        }),
+      });
+    },
+  );
 
   if (!response.ok) {
     throw new Error(`Parser service failed with ${response.status}`);
@@ -705,12 +736,16 @@ async function indexDocument(documentVersionId: string) {
 }
 
 async function main() {
+  const tracing = startNodeTracing({
+    serviceName: "anchordesk-worker",
+  });
   await initRuntimeSettings();
 
   const connection = getRedisConnection();
   logger.info(
     {
       healthPort,
+      otlpTraceExporterUrl: tracing.otlpTraceExporterUrl,
       parserServiceUrl: getParserServiceUrl(),
       redisConfigured: Boolean(connection.url),
     },
@@ -720,7 +755,19 @@ async function main() {
   const parseWorker = new Worker(
     QUEUE_NAMES.parse,
     async (job) => {
-      await parseDocument(job.data.documentVersionId);
+      await withConsumerSpan(
+        {
+          carrier: job.data.traceContext,
+          name: "document.parse process",
+          attributes: {
+            "messaging.destination.name": QUEUE_NAMES.parse,
+            "messaging.operation": "process",
+            "messaging.system": "bullmq",
+            document_version_id: job.data.documentVersionId,
+          },
+        },
+        async () => parseDocument(job.data.documentVersionId),
+      );
     },
     { connection },
   );
@@ -728,7 +775,19 @@ async function main() {
   const chunkWorker = new Worker(
     QUEUE_NAMES.chunk,
     async (job) => {
-      await chunkDocument(job.data.documentVersionId);
+      await withConsumerSpan(
+        {
+          carrier: job.data.traceContext,
+          name: "document.chunk process",
+          attributes: {
+            "messaging.destination.name": QUEUE_NAMES.chunk,
+            "messaging.operation": "process",
+            "messaging.system": "bullmq",
+            document_version_id: job.data.documentVersionId,
+          },
+        },
+        async () => chunkDocument(job.data.documentVersionId),
+      );
     },
     { connection },
   );
@@ -736,7 +795,19 @@ async function main() {
   const embedWorker = new Worker(
     QUEUE_NAMES.embed,
     async (job) => {
-      await embedDocument(job.data.documentVersionId);
+      await withConsumerSpan(
+        {
+          carrier: job.data.traceContext,
+          name: "document.embed process",
+          attributes: {
+            "messaging.destination.name": QUEUE_NAMES.embed,
+            "messaging.operation": "process",
+            "messaging.system": "bullmq",
+            document_version_id: job.data.documentVersionId,
+          },
+        },
+        async () => embedDocument(job.data.documentVersionId),
+      );
     },
     { connection },
   );
@@ -744,7 +815,19 @@ async function main() {
   const indexWorker = new Worker(
     QUEUE_NAMES.index,
     async (job) => {
-      await indexDocument(job.data.documentVersionId);
+      await withConsumerSpan(
+        {
+          carrier: job.data.traceContext,
+          name: "document.index process",
+          attributes: {
+            "messaging.destination.name": QUEUE_NAMES.index,
+            "messaging.operation": "process",
+            "messaging.system": "bullmq",
+            document_version_id: job.data.documentVersionId,
+          },
+        },
+        async () => indexDocument(job.data.documentVersionId),
+      );
     },
     { connection },
   );

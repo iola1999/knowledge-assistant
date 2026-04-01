@@ -1,5 +1,6 @@
 import { createRequire } from "node:module";
 import pino, { type Logger, type LoggerOptions } from "pino";
+import { getActiveTraceLogContext } from "@anchordesk/tracing";
 
 export const LOG_LEVEL = {
   TRACE: "trace",
@@ -103,6 +104,9 @@ export function buildLoggerOptions(input: {
     },
     formatters: {
       level: (label) => ({ level: label }),
+    },
+    mixin() {
+      return getActiveTraceLogContext();
     },
   };
 

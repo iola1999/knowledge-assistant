@@ -14,6 +14,7 @@ import {
   getDb,
 } from "@anchordesk/db";
 import { enqueueIngestFlow } from "@anchordesk/queue";
+import { withProducerSpan } from "@anchordesk/tracing";
 
 import { auth } from "@/auth";
 import {
@@ -25,7 +26,7 @@ import { isSuperAdmin } from "@/lib/auth/super-admin";
 export const runtime = "nodejs";
 
 export async function POST(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ jobId: string }> },
 ) {
   const { jobId } = await params;
@@ -82,13 +83,28 @@ export async function POST(
       ? (job.metadataJson.indexing_mode as DocumentIndexingMode)
       : DEFAULT_DOCUMENT_INDEXING_MODE;
 
-  await enqueueIngestFlow({
-    workspaceId: job.workspaceId ?? null,
-    libraryId: job.libraryId ?? undefined,
-    documentId: job.documentId,
-    documentVersionId: job.documentVersionId,
-    indexingMode,
-  });
+  await withProducerSpan(
+    {
+      carrier: request.headers,
+      name: "bullmq document ingest retry enqueue",
+      attributes: {
+        "messaging.destination.name": "document.parse",
+        "messaging.operation": "publish",
+        "messaging.system": "bullmq",
+        document_version_id: job.documentVersionId,
+        workspace_id: job.workspaceId ?? null,
+        library_id: job.libraryId ?? null,
+      },
+    },
+    async () =>
+      enqueueIngestFlow({
+        workspaceId: job.workspaceId ?? null,
+        libraryId: job.libraryId ?? undefined,
+        documentId: job.documentId,
+        documentVersionId: job.documentVersionId,
+        indexingMode,
+      }),
+  );
 
   return Response.json({ ok: true });
 }

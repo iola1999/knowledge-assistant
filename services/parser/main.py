@@ -1,17 +1,25 @@
 from __future__ import annotations
 
 import io
+import json
+import logging
 import os
 
 import boto3
 from botocore.config import Config
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request as FastAPIRequest
 from pydantic import BaseModel
 from docx import Document
 from docx.oxml.table import CT_Tbl
 from docx.oxml.text.paragraph import CT_P
 from docx.table import Table
 from docx.text.paragraph import Paragraph
+from opentelemetry import propagate, trace
+from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+from opentelemetry.sdk.resources import SERVICE_NAME, Resource
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.trace import SpanKind
 from pypdf import PdfReader
 
 from ocr import OCRProviderError, get_ocr_provider
@@ -35,6 +43,72 @@ class ParseRequest(BaseModel):
 
 
 app = FastAPI(title="anchordesk-parser")
+logger = logging.getLogger("anchordesk.parser")
+_TRACING_INITIALIZED = False
+
+if not logger.handlers:
+    handler = logging.StreamHandler()
+    handler.setFormatter(logging.Formatter("%(message)s"))
+    logger.addHandler(handler)
+logger.propagate = False
+logger.setLevel(getattr(logging, os.getenv("LOG_LEVEL", "INFO").upper(), logging.INFO))
+
+
+def init_tracing():
+    global _TRACING_INITIALIZED
+
+    if _TRACING_INITIALIZED:
+        return
+
+    resource = Resource.create(
+        {
+            SERVICE_NAME: "anchordesk-parser",
+            "deployment.environment.name": os.getenv("NODE_ENV", "development"),
+        }
+    )
+    provider = TracerProvider(resource=resource)
+
+    trace_endpoint = os.getenv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT")
+    base_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+    exporter_endpoint = (
+        trace_endpoint.strip()
+        if isinstance(trace_endpoint, str) and trace_endpoint.strip()
+        else f"{base_endpoint.rstrip('/')}/v1/traces"
+        if isinstance(base_endpoint, str) and base_endpoint.strip()
+        else None
+    )
+
+    if exporter_endpoint:
+        provider.add_span_processor(
+            BatchSpanProcessor(OTLPSpanExporter(endpoint=exporter_endpoint))
+        )
+
+    trace.set_tracer_provider(provider)
+    _TRACING_INITIALIZED = True
+
+
+def get_trace_log_context():
+    span_context = trace.get_current_span().get_span_context()
+    if not span_context or not span_context.is_valid:
+        return {}
+
+    return {
+        "trace_id": format(span_context.trace_id, "032x"),
+        "span_id": format(span_context.span_id, "016x"),
+        "trace_flags": format(int(span_context.trace_flags), "02x"),
+    }
+
+
+def log_event(level: int, message: str, **fields):
+    payload = {
+        "environment": os.getenv("NODE_ENV", "development"),
+        "level": logging.getLevelName(level).lower(),
+        "message": message,
+        "service": "parser",
+        **get_trace_log_context(),
+        **fields,
+    }
+    logger.log(level, json.dumps(payload, ensure_ascii=False))
 
 
 def get_required_env(name: str) -> str:
@@ -269,7 +343,6 @@ def health():
     return {"ok": True}
 
 
-@app.post("/parse")
 def parse_document(request: ParseRequest):
     file_kind = infer_file_kind(request.storage_key, request.logical_path)
     data = get_object_bytes(request.storage_key)
@@ -282,3 +355,43 @@ def parse_document(request: ParseRequest):
         return parse_text_document(data)
 
     raise HTTPException(status_code=415, detail=f"Unsupported file type: {file_kind}")
+
+
+@app.post("/parse")
+def parse_document_route(request: ParseRequest, http_request: FastAPIRequest):
+    init_tracing()
+    request_context = propagate.extract({key: value for key, value in http_request.headers.items()})
+    tracer = trace.get_tracer("anchordesk.parser")
+
+    with tracer.start_as_current_span(
+        "parser.parse",
+        context=request_context,
+        kind=SpanKind.SERVER,
+        attributes={
+            "document.version.id": request.document_version_id,
+            "library.id": request.library_id or "",
+            "workspace.id": request.workspace_id or "",
+        },
+    ):
+        file_kind = infer_file_kind(request.storage_key, request.logical_path)
+        log_event(
+            logging.INFO,
+            "parser request started",
+            document_version_id=request.document_version_id,
+            file_kind=file_kind,
+            library_id=request.library_id,
+            logical_path=request.logical_path,
+            storage_key=request.storage_key,
+            workspace_id=request.workspace_id,
+        )
+        result = parse_document(request)
+
+        log_event(
+            logging.INFO,
+            "parser request completed",
+            block_count=len(result.get("blocks", [])),
+            document_version_id=request.document_version_id,
+            file_kind=file_kind,
+            page_count=result.get("page_count"),
+        )
+        return result

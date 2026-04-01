@@ -38,6 +38,7 @@ import {
   appendConversationStreamEvent,
   type ConversationResponseJobPayload,
 } from "@anchordesk/queue";
+import { withConsumerSpan } from "@anchordesk/tracing";
 
 import {
   materializeAssistantAnswer,
@@ -377,7 +378,7 @@ async function persistMessageCitations(input: {
     });
 }
 
-export async function processConversationResponseJob(
+async function processConversationResponseJobWithContext(
   payload: ConversationResponseJobPayload,
 ) {
   const jobLogger = logger.child({
@@ -1009,4 +1010,23 @@ export async function processConversationResponseJob(
   } finally {
     unregisterActiveRun();
   }
+}
+
+export async function processConversationResponseJob(
+  payload: ConversationResponseJobPayload,
+) {
+  return withConsumerSpan(
+    {
+      carrier: payload.traceContext,
+      name: "conversation.respond process",
+      attributes: {
+        "messaging.destination.name": "conversation.respond",
+        "messaging.operation": "process",
+        "messaging.system": "bullmq",
+        assistant_message_id: payload.assistantMessageId,
+        conversation_id: payload.conversationId,
+      },
+    },
+    async () => processConversationResponseJobWithContext(payload),
+  );
 }
