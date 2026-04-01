@@ -6,9 +6,11 @@ import { MESSAGE_STATUS, type MessageStatus } from "@anchordesk/contracts";
 
 import {
   AnswerIcon,
+  BoltIcon,
   ChevronDownIcon,
   GlobeIcon,
   LibraryIcon,
+  SearchIcon,
   SlidersIcon,
   SourceIcon,
 } from "@/components/icons";
@@ -34,23 +36,6 @@ type TimelineMessage = {
   structuredJson?: Record<string, unknown> | null;
 };
 
-function formatTime(value: string) {
-  return new Intl.DateTimeFormat("zh-CN", {
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(value));
-}
-
-function formatTimeRange(startAt: string, completedAt: string | null) {
-  if (!completedAt || completedAt === startAt) {
-    return formatTime(startAt);
-  }
-
-  const startLabel = formatTime(startAt);
-  const completedLabel = formatTime(completedAt);
-  return startLabel === completedLabel ? completedLabel : `${startLabel} → ${completedLabel}`;
-}
-
 function formatPayloadValue(value: unknown) {
   if (typeof value === "string") {
     return value;
@@ -61,32 +46,6 @@ function formatPayloadValue(value: unknown) {
   } catch {
     return String(value);
   }
-}
-
-function describePayloadPreview(value: unknown) {
-  if (value == null) {
-    return "空";
-  }
-
-  if (Array.isArray(value)) {
-    return `${value.length} 项`;
-  }
-
-  if (typeof value === "object") {
-    const keys = Object.keys(value as Record<string, unknown>);
-    return keys.length <= 2 ? keys.join("、") || "对象" : `${keys.slice(0, 2).join("、")} 等 ${keys.length} 项`;
-  }
-
-  if (typeof value === "string") {
-    const normalized = value.trim();
-    if (!normalized) {
-      return "字符串";
-    }
-
-    return normalized.length > 28 ? `${normalized.slice(0, 28)}...` : normalized;
-  }
-
-  return String(value);
 }
 
 function resolveTimelineIcon(entry: ConversationTimelineEntryView) {
@@ -100,7 +59,7 @@ function resolveTimelineIcon(entry: ConversationTimelineEntryView) {
       return <SourceIcon className="size-3.5" />;
     case "thinking":
     case "report":
-      return <AnswerIcon className="size-3.5" />;
+      return <BoltIcon className="size-3.5" />;
     default:
       return <SlidersIcon className="size-3.5" />;
   }
@@ -108,38 +67,55 @@ function resolveTimelineIcon(entry: ConversationTimelineEntryView) {
 
 function resolveMarkerClasses(entry: ConversationTimelineEntryView) {
   return entry.tone === "danger"
-    ? "border-red-200/90 bg-red-50 text-red-700"
+    ? "text-red-700"
     : entry.tone === "active"
-      ? "border-app-border-strong bg-white text-app-text"
-      : "border-app-border/70 bg-app-bg text-app-muted-strong";
+      ? "text-app-text"
+      : "text-app-muted-strong";
 }
 
-function resolveStatusClasses(entry: ConversationTimelineEntryView) {
+function resolveStatusTextClasses(entry: ConversationTimelineEntryView) {
   return entry.tone === "danger"
-    ? "border-red-200/80 bg-red-50/88 text-red-700"
+    ? "text-red-600"
     : entry.tone === "active"
-      ? "border-app-border/80 bg-app-surface-soft/82 text-app-text"
-      : "border-app-border/70 bg-white/78 text-app-muted-strong";
+      ? "text-app-muted-strong"
+      : "text-app-muted";
 }
 
-function resolvePreviewToneClasses(tone: ConversationTimelinePreviewItem["tone"]) {
+function resolvePreviewTextClasses(tone: ConversationTimelinePreviewItem["tone"]) {
   return tone === "danger"
     ? {
-        pill: "border-red-200/80 bg-red-50 text-red-700",
         value: "text-red-700",
         meta: "text-red-600/85",
       }
     : tone === "warning"
       ? {
-          pill: "border-amber-200/80 bg-amber-50 text-amber-800",
           value: "text-amber-900",
           meta: "text-amber-700/85",
         }
       : {
-          pill: "border-app-border/70 bg-app-surface-soft/76 text-app-muted-strong",
           value: "text-app-text",
           meta: "text-app-muted",
         };
+}
+
+function formatArgumentText(label: string, value: string) {
+  if (label === "关键词" || label === "链接" || label === "页段") {
+    return value;
+  }
+
+  return `${label} · ${value}`;
+}
+
+function buildFaviconUrl(href: string | null | undefined) {
+  if (!href) {
+    return null;
+  }
+
+  try {
+    return `https://www.google.com/s2/favicons?sz=128&domain=${encodeURIComponent(href)}`;
+  } catch {
+    return null;
+  }
 }
 
 function ToolPayloadBlock({
@@ -155,19 +131,13 @@ function ToolPayloadBlock({
     <div className="min-w-0">
       <button
         type="button"
-        className={cn(
-          conversationDensityClassNames.payloadDisclosure,
-          open && "bg-app-surface-soft/84 text-app-text",
-        )}
+        className={cn(conversationDensityClassNames.payloadDisclosure, open && "text-app-text")}
         aria-expanded={open}
         onClick={() => {
           setOpen((current) => !current);
         }}
       >
         <span className="font-medium">{label}</span>
-        <span className="min-w-0 max-w-[180px] truncate text-app-muted min-[720px]:max-w-[260px]">
-          {describePayloadPreview(value)}
-        </span>
         <ChevronDownIcon
           className={cn("size-3 shrink-0 text-app-muted transition-transform", open && "rotate-180")}
         />
@@ -203,25 +173,36 @@ function TimelinePreviewList({
   return (
     <div className={conversationDensityClassNames.timelinePreviewList}>
       {visibleItems.map((item, index) => {
-        const toneClasses = resolvePreviewToneClasses(item.tone);
+        const toneClasses = resolvePreviewTextClasses(item.tone);
+        const faviconUrl = buildFaviconUrl(item.href);
         const content = (
           <span
             className={cn(
               conversationDensityClassNames.timelinePreviewItem,
-              item.href ? "group hover:bg-white/74" : "",
+              item.href ? "group hover:text-app-text" : "",
             )}
           >
-            <span
-              className={cn(
-                "inline-flex h-5 shrink-0 items-center rounded-full border px-1.5 text-[9.5px] font-semibold",
-                toneClasses.pill,
+            <span className="relative flex size-[14px] shrink-0 items-center justify-center overflow-hidden rounded-full">
+              {item.href && faviconUrl ? (
+                <img
+                  alt=""
+                  aria-hidden="true"
+                  className="block size-[14px]"
+                  height="14"
+                  src={faviconUrl}
+                  width="14"
+                />
+              ) : item.href ? (
+                <GlobeIcon className="size-3.5 text-app-muted" />
+              ) : item.label === "摘录" || item.label === "引用" || item.label === "草稿" ? (
+                <AnswerIcon className="size-3.5 text-app-muted" />
+              ) : (
+                <SearchIcon className="size-3.5 text-app-muted" />
               )}
-            >
-              {item.label}
             </span>
             <span
               className={cn(
-                "min-w-0 flex-1 truncate text-[11px] leading-4.5",
+                "min-w-0 flex-1 truncate text-[11px] leading-5",
                 toneClasses.value,
                 item.href ? "group-hover:underline" : "",
               )}
@@ -231,7 +212,7 @@ function TimelinePreviewList({
             {item.meta ? (
               <span
                 className={cn(
-                  "hidden max-w-[42%] shrink-0 truncate text-[10px] leading-4 min-[520px]:inline",
+                  "shrink-0 truncate text-[10.5px] leading-4",
                   toneClasses.meta,
                 )}
               >
@@ -258,12 +239,12 @@ function TimelinePreviewList({
       {canToggle ? (
         <button
           type="button"
-          className="w-fit rounded-full px-1 py-0.5 text-[10.5px] font-medium text-app-muted transition hover:text-app-text"
+          className="w-fit px-0 text-[10.5px] font-medium text-app-muted transition hover:text-app-text"
           onClick={() => {
             setShowAll((current) => !current);
           }}
         >
-          {showAll ? "收起" : `+ 其他 ${hiddenCount} 项`}
+          {showAll ? "收起" : `+其他 ${hiddenCount} 个`}
         </button>
       ) : null}
     </div>
@@ -273,78 +254,51 @@ function TimelinePreviewList({
 function TimelineEntry({
   entry,
   defaultOpen = false,
+  isLast = false,
 }: {
   entry: ConversationTimelineEntryView;
   defaultOpen?: boolean;
+  isLast?: boolean;
 }) {
   const expandable = canExpandConversationTimelineEntry(entry);
-  const visibleArguments = entry.arguments.slice(0, 2);
-  const hiddenArgumentCount = Math.max(entry.arguments.length - visibleArguments.length, 0);
   const [open, setOpen] = useState(defaultOpen);
 
   useEffect(() => {
     setOpen(defaultOpen);
   }, [defaultOpen, entry.id]);
 
+  const statusLabel =
+    entry.status === MESSAGE_STATUS.COMPLETED && entry.kind !== "status_event"
+      ? null
+      : entry.statusLabel;
+
   const summary = (
-    <span className="grid min-w-0 grid-cols-[16px_minmax(0,1fr)_auto] items-start gap-2">
-      <span className="relative z-10 flex justify-center pt-[3px]">
-        <span
-          className={cn(
-            "inline-flex size-4 items-center justify-center rounded-full border",
-            resolveMarkerClasses(entry),
-          )}
-        >
+    <span className="flex min-w-0 max-w-full items-start gap-2">
+      <span className="relative z-10 flex size-5 shrink-0 items-center justify-center">
+        <span className="absolute inset-1/2 size-6 -translate-x-1/2 -translate-y-1/2 rounded-full bg-app-bg" />
+        <span className={cn("relative", resolveMarkerClasses(entry))}>
           {resolveTimelineIcon(entry)}
         </span>
       </span>
 
-      <span className="min-w-0">
-        <span className="flex min-w-0 items-start gap-2">
-          <span className="min-w-0 flex-1 truncate text-[12px] leading-4.5 text-app-text">
-            {entry.displayName}
-          </span>
+      <span className="flex min-w-0 max-w-full items-start gap-1.5">
+        <span className="min-w-0 truncate text-[12px] leading-5 text-inherit">
+          {entry.displayName}
         </span>
-
-        {visibleArguments.length > 0 || hiddenArgumentCount > 0 ? (
-          <span className="mt-0.5 flex flex-wrap gap-1">
-            {visibleArguments.map((item) => (
-              <span
-                key={`${item.label}-${item.value}`}
-                className={conversationDensityClassNames.timelineArgument}
-              >
-                <span className="shrink-0 text-app-muted">{item.label}</span>
-                <span className="min-w-0 truncate text-app-text">{item.value}</span>
-              </span>
-            ))}
-            {hiddenArgumentCount > 0 ? (
-              <span className="inline-flex items-center rounded-full border border-app-border/65 bg-white/74 px-1.5 py-0.5 text-[10px] text-app-muted">
-                +{hiddenArgumentCount}
-              </span>
-            ) : null}
+        {statusLabel ? (
+          <span
+            className={cn(
+              "shrink-0 pt-[2px] text-[10.5px] leading-4",
+              resolveStatusTextClasses(entry),
+            )}
+          >
+            {statusLabel}
           </span>
         ) : null}
-
-        {entry.previewSummary && !open ? (
-          <span className="mt-0.5 block truncate text-[10.5px] leading-4 text-app-muted">
-            {entry.previewSummary}
-          </span>
-        ) : null}
-      </span>
-
-      <span className="flex items-start gap-1 pt-[1px]">
-        <span
-          className={cn(
-            "inline-flex items-center rounded-full border px-1.5 py-0.5 text-[9.5px] font-semibold",
-            resolveStatusClasses(entry),
-          )}
-        >
-          {entry.statusLabel}
-        </span>
         {expandable ? (
           <span
             className={cn(
-              "text-app-muted transition-transform",
+              "shrink-0 pt-[2px] text-app-muted transition-transform",
               open ? "rotate-180" : "rotate-0",
             )}
           >
@@ -356,9 +310,25 @@ function TimelineEntry({
   );
 
   const details = (
-    <div className="ml-[22px] mt-1 grid min-w-0 max-w-full gap-1.5 overflow-hidden">
+    <div className="ml-[28px] mt-2 grid min-w-0 max-w-full gap-2 overflow-hidden pl-[14px]">
+      {entry.arguments.length > 0 ? (
+        <div className="grid gap-1.5">
+          {entry.arguments.map((item) => (
+            <div
+              key={`${item.label}-${item.value}`}
+              className={conversationDensityClassNames.timelineArgument}
+            >
+              <SearchIcon className="size-3.5 shrink-0 text-app-muted" />
+              <span className="min-w-0 truncate">
+                {formatArgumentText(item.label, item.value)}
+              </span>
+            </div>
+          ))}
+        </div>
+      ) : null}
+
       {entry.kind === "thinking" && entry.detailText ? (
-        <div className="min-w-0 max-w-full overflow-hidden rounded-[12px] bg-app-surface-soft/52 px-2.5 py-2">
+        <div className="min-w-0 max-w-full overflow-hidden">
           <pre className="whitespace-pre-wrap break-words text-[11.5px] leading-5 text-app-muted-strong">
             {entry.detailText}
           </pre>
@@ -375,20 +345,19 @@ function TimelineEntry({
 
       {entry.input !== null || entry.output !== null ? (
         <div className="grid gap-1">
-          {entry.input !== null ? <ToolPayloadBlock label="查看原始入参" value={entry.input} /> : null}
-          {entry.output !== null ? <ToolPayloadBlock label="查看原始结果" value={entry.output} /> : null}
+          {entry.input !== null ? <ToolPayloadBlock label="原始入参" value={entry.input} /> : null}
+          {entry.output !== null ? <ToolPayloadBlock label="原始结果" value={entry.output} /> : null}
         </div>
       ) : null}
-
-      <p className="pl-0.5 text-[10px] leading-4 text-app-muted">
-        {formatTimeRange(entry.createdAt, entry.completedAt)}
-      </p>
     </div>
   );
 
   if (!expandable) {
     return (
       <article className={conversationDensityClassNames.timelineEntry}>
+        {!isLast ? (
+          <span className="absolute left-[9px] top-[18px] bottom-[-18px] w-px bg-app-border/75" />
+        ) : null}
         {summary}
       </article>
     );
@@ -396,9 +365,12 @@ function TimelineEntry({
 
   return (
     <article className={conversationDensityClassNames.timelineEntry}>
+      {!isLast ? (
+        <span className="absolute left-[9px] top-[18px] bottom-[-18px] w-px bg-app-border/75" />
+      ) : null}
       <button
         type="button"
-        className="w-full cursor-pointer rounded-[12px] px-0.5 py-0.5 text-left transition hover:bg-white/48"
+        className="max-w-full cursor-pointer text-left text-app-muted-strong transition hover:text-app-text"
         aria-expanded={open}
         onClick={() => {
           setOpen((current) => !current);
@@ -458,7 +430,7 @@ export function ConversationTimeline({
     <div className={conversationDensityClassNames.timelineShell}>
       <button
         type="button"
-        className="flex w-full cursor-pointer items-center gap-1 text-[11.5px] font-semibold text-app-muted-strong transition hover:text-app-text"
+        className="flex w-fit max-w-full cursor-pointer items-center gap-1.5 text-[12px] font-semibold text-app-muted-strong transition hover:text-app-text"
         aria-expanded={open}
         onClick={() => {
           setOpen((current) => !current);
@@ -476,6 +448,7 @@ export function ConversationTimeline({
             <TimelineEntry
               key={entry.id}
               entry={entry}
+              isLast={index === timelineEntries.length - 1}
               defaultOpen={
                 defaultOpen &&
                 entry.status === MESSAGE_STATUS.STREAMING &&

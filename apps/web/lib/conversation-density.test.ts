@@ -23,27 +23,27 @@ describe("conversationDensityClassNames", () => {
     expect(conversationDensityClassNames.answerText).toContain("leading-7");
   });
 
-  it("uses a stepped timeline layout with a vertical rail and expandable task cards", () => {
+  it("uses a stepped timeline layout with a vertical rail and borderless task rows", () => {
     expect(conversationDensityClassNames.timelineShell).toContain("max-w-full");
-    expect(conversationDensityClassNames.timelineShell).toContain("rounded-[16px]");
-    expect(conversationDensityClassNames.timelineList).toContain("before:absolute");
+    expect(conversationDensityClassNames.timelineShell).not.toContain("border");
     expect(conversationDensityClassNames.timelineEntry).toContain("group/timeline-entry");
     expect(conversationDensityClassNames.timelineEntrySummary).toContain(
-      "grid-cols-[1.75rem_minmax(0,1fr)]",
+      "grid-cols-[1.5rem_minmax(0,1fr)]",
     );
-    expect(conversationDensityClassNames.timelineEntryCard).toContain("rounded-[16px]");
+    expect(conversationDensityClassNames.timelineList).toContain("gap-4");
+    expect(conversationDensityClassNames.timelineEntryCard).not.toContain("border");
     expect(conversationDensityClassNames.timelineEntryDetails).toContain(
-      "grid-cols-[1.75rem_minmax(0,1fr)]",
+      "grid-cols-[1.5rem_minmax(0,1fr)]",
     );
-    expect(conversationDensityClassNames.timelineArgument).toContain("rounded-full");
-    expect(conversationDensityClassNames.timelinePreviewList).toContain("gap-0.5");
-    expect(conversationDensityClassNames.timelinePreviewItem).toContain("rounded-[11px]");
-    expect(conversationDensityClassNames.payloadDisclosure).toContain("rounded-full");
+    expect(conversationDensityClassNames.timelineArgument).toContain("text-[11px]");
+    expect(conversationDensityClassNames.timelinePreviewList).toContain("gap-1.5");
+    expect(conversationDensityClassNames.timelinePreviewItem).toContain("items-center");
+    expect(conversationDensityClassNames.payloadDisclosure).not.toContain("border");
     expect(conversationDensityClassNames.payloadPre).toContain("max-w-full");
     expect(conversationDensityClassNames.payloadPre).toContain("max-h-[180px]");
     expect(conversationDensityClassNames.payloadPre).toContain("break-all");
     expect(conversationDensityClassNames.payloadPre).toContain("select-text");
-    expect(conversationDensityClassNames.payloadDisclosure).toContain("bg-white/78");
+    expect(conversationDensityClassNames.payloadPre).toContain("bg-app-surface-soft/62");
   });
 
   it("keeps the stage composer compact while preserving attachment visibility", () => {
