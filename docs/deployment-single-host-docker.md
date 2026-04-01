@@ -1,5 +1,8 @@
 # 单机 Docker 多容器部署说明
 
+版本：v0.2
+日期：2026-04-01
+
 ## 1. 部署原则
 
 生产环境采用单机 Docker 多容器：
@@ -31,12 +34,12 @@ cp .env.production.example .env.production
 注意：
 
 - `docker compose` 默认只会自动读取项目根目录的 `.env`，不会自动读取 `.env.production`。
-- 本文后续所有命令都必须显式带上 `--env-file .env.production`，否则 `web` / `worker` / `agent-runtime` 拿到的 `DATABASE_URL`、`AUTH_SECRET` 会变成空字符串。
+- 本文后续所有命令都必须显式带上 `--env-file .env.production`，否则 compose 变量不会被正确展开；`web` / `worker` / `agent-runtime` 至少会拿不到 `DATABASE_URL`，`web` 还会缺少 `AUTH_SECRET`。
 
-必须提供的 bootstrap 变量（web / worker / agent-runtime 只需要这两项）：
+必须提供的 bootstrap 变量：
 
-- `DATABASE_URL`
-- `AUTH_SECRET`
+- 所有 Node 运行时服务：`DATABASE_URL`
+- `web`：额外需要 `AUTH_SECRET`
 
 以下变量由 `upgrade` 服务在首次启动时写入 `system_settings`，后续可通过 `/settings` 管理；
 `parser`（Python）仍直接读取 S3 相关环境变量：
@@ -47,9 +50,16 @@ cp .env.production.example .env.production
 - `REDIS_URL`
 - `QDRANT_URL` / `QDRANT_COLLECTION`
 - `S3_*`
-- `ANTHROPIC_API_KEY`
-- `ANTHROPIC_BASE_URL`
-- 其他 provider 配置
+- `WEB_SEARCH_*` / `BRAVE_SEARCH_*`
+- `EMBEDDING_*` / `DASHSCOPE_*` / `RERANK_*`
+- 其他非 bootstrap 的 provider 配置
+
+Claude-compatible 模型配置是例外：
+
+- 对话/报告模型不再写入 `system_settings`。
+- 全新部署时，`upgrade` 会尝试读取 `.env.production` 中的 `ANTHROPIC_API_KEY`，以及可选的 `ANTHROPIC_BASE_URL` / `ANTHROPIC_MODEL`，为 `llm_model_profiles` seed 第一条默认模型。
+- 如果首次升级时没有提供可用的 `ANTHROPIC_API_KEY`，升级仍可能只创建占位默认模型；上线前需要在 `/admin/models` 补全或替换它，否则主对话链路会显式失败。
+- 后续新增、禁用、切换默认模型统一通过 `/admin/models` 维护，不再通过 env 或 `system_settings` 改模型。
 
 ## 3. 构建镜像
 
@@ -87,7 +97,7 @@ docker compose --env-file .env.production -f docker-compose.prod.yml run --rm up
 而 `pnpm app:upgrade` 内部会执行：
 
 1. SQL migrations
-2. blocking app upgrades
+2. blocking app upgrades（包括默认 `llm_model_profiles` seed、历史 `conversations.model_profile_id` backfill，以及废弃 Anthropic model settings 清理）
 
 Drizzle 已执行过的 SQL 会记录在数据库里的 `drizzle.__drizzle_migrations` 表中，所以不会重复执行。
 app upgrades 的执行状态记录在 `app_upgrades` 表里。

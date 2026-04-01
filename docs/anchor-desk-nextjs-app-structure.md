@@ -1,7 +1,7 @@
 # AnchorDesk Next.js App Router 结构
 
-版本：v0.6
-日期：2026-03-30
+版本：v0.7
+日期：2026-04-01
 
 > 文档角色说明：
 >
@@ -23,6 +23,8 @@
   - 空间选择页
 - `/settings`
   - 系统参数维护页
+- `/admin/models`
+  - super admin Claude-compatible 模型管理页
 - `/settings/libraries`
   - super admin 全局资料库列表与创建入口
 - `/settings/libraries/[libraryId]`
@@ -44,6 +46,10 @@
 
 - `/api/account/password`
 - `/api/account/display-name`
+- `/api/admin/model-profiles`
+  - super admin 模型列表与创建
+- `/api/admin/model-profiles/[modelProfileId]`
+  - super admin 模型详情与更新
 - `/api/system-settings`
 - `/api/knowledge-libraries`
   - super admin 全局资料库列表与创建
@@ -69,6 +75,7 @@
 - `/api/workspaces/[workspaceId]/library-subscriptions`
   - 管理当前 workspace 对全局资料库的订阅、暂停和移除
 - `/api/workspaces/[workspaceId]/conversations`
+  - 创建会话时可附带 `modelProfileId`，并持久化到 `conversations.model_profile_id`
 - `/api/conversations/[conversationId]/messages`
   - 写入 user message
   - 创建 assistant placeholder
@@ -104,10 +111,11 @@ Server Components：
 Client Components：
 
 - AccountPasswordForm
-- Composer
+- Composer（含 conversation-scoped model picker 与 stop action）
 - ConversationSession
 - ConversationTimeline
 - ConversationSharePopover
+- ModelProfilesAdmin
 - WorkspaceLibrarySubscriptions
 - KnowledgeBaseExplorer
 - PDF Viewer

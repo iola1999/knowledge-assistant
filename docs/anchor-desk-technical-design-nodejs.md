@@ -183,6 +183,8 @@ bootstrap env-only（不进入 `system_settings`）：
 
 Claude-compatible 对话模型不再放在 `system_settings`；它们存储在 `llm_model_profiles`，由 `/admin/models` 维护，并通过 `conversations.model_profile_id` 按会话持久化当前选择。主对话、grounded final answer 与报告生成统一按请求解析该模型配置。
 
+生产 fresh bootstrap 时，`upgrade` 还会额外读取 legacy env（`ANTHROPIC_API_KEY`，以及可选的 `ANTHROPIC_BASE_URL` / `ANTHROPIC_MODEL`）来 seed 第一条默认 model profile；后续模型维护统一通过 `/admin/models`，不再写回 `system_settings`。
+
 `upgrade` 服务在首次运行时将 `.env.production` 中的值写入 `system_settings`（`INSERT ... ON CONFLICT DO NOTHING`），后续运行不会覆盖已有值。
 
 `parser`（Python）当前仍直接读取环境变量，不经过 `system_settings`。

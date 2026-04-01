@@ -1,6 +1,6 @@
 # 实施跟踪
 
-版本：v0.10
+版本：v0.11
 日期：2026-04-01
 
 > 本文件是项目的执行跟踪文档。
@@ -30,8 +30,9 @@
 - 本地开发一键启动脚本已补齐。
 - 数据库与应用升级开始从 ad-hoc bootstrap 收敛到 versioned SQL migrations + tracked app upgrades。
 - 已新增生产单机 Docker 多容器部署资产与基础健康检查。
-- 运行时配置已收口为"bootstrap env + DB system_settings"模型：web / worker / agent-runtime 启动时从 DB 加载配置，Docker 生产部署只需提供 `DATABASE_URL`、`AUTH_SECRET`。
+- 运行时配置已收口为"bootstrap env + DB system_settings"模型：web / worker / agent-runtime 启动时从 DB 加载配置；steady state 的 Node runtime 只保留极少量 bootstrap env（`DATABASE_URL`，以及 Web 侧的 `AUTH_SECRET`）。若希望 fresh deployment 自动 seed 可用默认模型，仍应在 `upgrade` 阶段提供初始 Anthropic 模型参数。
 - Claude-compatible 模型已从 `system_settings` 迁到 `llm_model_profiles`；管理员通过 `/admin/models` 维护模型，用户按 conversation 维度选择模型，切换模型时当前版本不主动重置 `Agent Session`。
+- 当 workspace 已有可检索本地资料，或当前聊天里已有会话附件时，agent 编排现在会优先走本地检索，再决定是否调用 `search_statutes` / `search_web_general`。
 - 当前最缺的不是更多 agent 花样，而是先把 P0 承诺和实际实现对齐，把主会话链路、SSE、完成态刷新和 citation 展示彻底走顺。
 - 产品整体已切换为通用知识库助手定位，但保留 `search_statutes` 专项工具。
 - 全局资料库第一版已补齐管理员维护、workspace 订阅、资料页只读挂载和 citation 来源展示；后续以回归和细化为主，不单独上调优先级。
@@ -41,9 +42,11 @@
 - `web -> BullMQ conversation.respond -> agent-runtime -> single answer stream -> citations` 主问答链路已通；发送消息后会先落 user message + assistant placeholder，再异步生成最终回答。
 - `agent-runtime` 当前支持通过 `agent_runtime_respond_worker_concurrency` 配置 `conversation.respond` worker 并发，允许多条会话在同一进程内并行处理。
 - 问答策略已固定为“本地资料优先 + 联网查询补充”；不再保留 `kb_only / kb_plus_web` 模式切换与相关设置入口。
+- 工作空间对话页已提供 conversation-scoped 模型选择器；创建新会话时会把选中的 `model_profile_id` 持久化到 `conversations`，后续重试和报告工具沿用同一份模型配置解析逻辑。
 - 账号认证仍采用 `Auth.js` JWT session，但服务端现在会把有效 session 的稳定 `sessionId` claim 记录到 Redis，并在每次读取 session 时做 allowlist 校验与 TTL 续期；登出、改密和后续管理员强制下线都可走这层撤销机制。
 - 第一个注册成功的用户现在会被持久化为 super admin（`users.is_super_admin = true`）；`/settings` 和全局资料库入口统一读取该标记授权，不再依赖 `SUPER_ADMIN_USERNAMES`。
 - 首屏提问区已支持先上传“会话级临时资料”；首条消息创建会话后会自动认领这些附件，并把附件清单与“小文档全文 / 长文档节选”一起预载给 agent；被截断的内容仍通过附件工具按需读取。
+- 当问题可能依赖本地政策、规范、法条整理稿或聊天里刚上传的附件时，agent prompt 会优先尝试 `search_conversation_attachments` / `search_workspace_knowledge`；只有本地证据不足或用户明确要求时才继续走法规/外网搜索。
 - 账号页已补齐修改密码与退出登录的基础入口；工作空间当前只保留软删除，不再提供归档。
 - 资料边界已提升为 `knowledge_libraries`：每个 workspace 会自动拥有一个 private library；super admin 可维护 `global_managed` library；workspace 通过 `workspace_library_subscriptions` 决定可挂载、可读和可检索的全局资料范围。
 - `search_workspace_knowledge`、文档阅读授权和 citation 跳转都已切到 library scope；默认召回 workspace 私有库 + 已激活且开启检索的全局订阅库。
@@ -89,6 +92,11 @@
 
 ## 2. 最近完成
 
+- `48ddb3b` Add conversation attachment preload and range reads
+- `29178a4` Add `/admin/models` management and conversation-scoped model profile selection
+- `391d70b` Prioritize local knowledge when searchable docs exist
+- `8034566` Prefer local knowledge before external legal search
+- `769d42e` Set Brave as default web search provider in system settings defaults
 - `working tree` Add stop action in composer and let `/api/conversations/[conversationId]/stop` finalize the active streaming assistant with its partial content
 - `working tree` Remove the second grounded-answer pass and switch conversations to a single streamed answer with runtime citation ids and `[[cite:N]]` markers
 - `working tree` Replace DB-polled assistant draft streaming with Redis Streams live transport, assistant status/tool progress events, and single-answer token streaming
@@ -117,9 +125,7 @@
 - `working tree` Materialize workspace knowledge-base directories, add file-manager table layout, batch operations, zip download, and drag-to-directory flow
 - `working tree` Add Redis-backed JWT session allowlist and revoke all sessions on password change
 - `working tree` Add retry entry for the latest failed assistant turn in workspace conversations
-- `working tree` Align local mock agent fallback with real tool names and stable output structure
 - `working tree` Hydrate conversation terminal SSE events with final assistant payload and citations before refresh
-- `working tree` Reprioritize roadmap around conversation-chain-first delivery and explicit mock-tool allowance
 - `working tree` Remove workspace archive controls and switch workspace delete to soft delete
 - `working tree` Add account security page with password change and logout
 - `working tree` Add read-only conversation sharing with revocable share links and public share page
@@ -146,7 +152,6 @@
 - `working tree` Expire stale streaming assistant runs when agent-runtime stops heartbeating
 - `working tree` Replace empty-state helper copy with temporary attachment upload entry and parse-only conversation attachment flow
 - `working tree` Persist tool timeline into conversation messages and stream it over SSE
-- `working tree` Stream assistant draft content over SSE with local mock tool fallback for the main conversation chain
 - `f0e431a` Prioritize DashScope retrieval providers
 - `70aa665` Add parser OCR fallback and citation validation baseline
 

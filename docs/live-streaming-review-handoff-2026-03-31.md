@@ -2,6 +2,12 @@
 
 日期：2026-03-31
 
+> 历史交接文档。
+>
+> - 本文只记录 2026-03-31 这一轮 live streaming review 的上下文。
+> - 后续已经继续演进出 single-pass citations、`llm_model_profiles` 多模型管理、会话附件预载与按页读取等实现。
+> - 当前事实来源请优先看 [anchor-desk-technical-design-nodejs.md](./anchor-desk-technical-design-nodejs.md) 和 [implementation-tracker.md](./implementation-tracker.md)。
+
 ## 1. 背景
 
 这批变更是在已经上线的“token 级流式回答”基础上，针对一次内部 review 提出的 4 个问题做的收口：

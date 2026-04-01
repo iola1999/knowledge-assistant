@@ -1,7 +1,7 @@
 # AnchorDesk MCP Tool 契约
 
-版本：v0.5
-日期：2026-03-31
+版本：v0.6
+日期：2026-04-01
 
 > 文档角色说明：
 >
@@ -33,12 +33,14 @@
 - 输入：`workspace_id`、`query`、可选过滤器、`top_k`
 - 当前默认范围：workspace 私有资料库 + 已激活且开启检索的全局资料库订阅。
 - 输出：`anchor_id`、`document_id`、`document_title`、`document_path`、`anchor_label`、`page_no`、`section_label`、`locator`、`snippet`、`score`
+- 编排约束：当 workspace 已有可检索本地资料，且问题可能依赖内部规范、政策、报告、法条整理稿或其他本地文档时，应优先尝试这个工具，再考虑 `search_web_general` 或 `search_statutes`。
 
 ### 3.2 `search_conversation_attachments`
 
 - 作用：检索当前会话里临时上传并已完成 parse-only 的附件。
 - 输入：`conversation_id`、`query`、`top_k`
 - 输出：与 `search_workspace_knowledge` 同形的结果结构，包含 `locator`
+- 编排约束：当用户提到“这次聊天里刚上传的文件”或当前 prompt 已预载附件摘录时，应先尝试这个工具，再回退到 workspace 知识库。
 
 ### 3.3 `read_conversation_attachment_range`
 
@@ -98,3 +100,4 @@
 - 说明：它不是产品主定位，但作为独立工具继续保留。
 - 输入：`query`、`jurisdiction`、`top_k`
 - 输出：标题、URL、发布方、状态、摘要
+- 编排约束：优先在会话附件和 workspace 本地知识中查找已有的法条、制度或整理稿；只有用户明确需要法规原文/法条级引用，且本地资料不足时，再调用本工具。
