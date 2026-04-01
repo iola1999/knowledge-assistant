@@ -175,7 +175,7 @@ pnpm verify
 - `pnpm infra:logs`
   查看开发期 Docker 基础设施日志。
 - `pnpm dev`
-  一键启动本地开发栈；会检查 `node_modules`、`.venv`、`.env.local/.env`、自动执行 safe blocking upgrade、确保 bucket，再启动 `web` / `worker` / `agent-runtime` / `parser`。受管进程的日志与 PID 状态统一写到 `/tmp/anchordesk-dev/` 下，不再落在仓库内 `.dev/`。
+  一键启动本地开发栈；会检查 `node_modules`、`.venv`、`.env.local/.env`，并在 `services/parser/requirements.txt` 变化时自动重跑 `pnpm setup:python`，随后执行 safe blocking upgrade、确保 bucket，再启动 `web` / `worker` / `agent-runtime` / `parser`。受管进程的日志与 PID 状态统一写到 `/tmp/anchordesk-dev/` 下，不再落在仓库内 `.dev/`。
 - `pnpm dev:status`
   查看本地基础设施连通性与受管开发进程状态。
 - `pnpm dev:down`

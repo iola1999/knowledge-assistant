@@ -111,6 +111,7 @@ flowchart LR
 - `web` / `worker` / `agent-runtime` 当前都会初始化 OpenTelemetry；当存在活动 span 时，结构化日志会自动附带 `trace_id` / `span_id` / `trace_flags`，继续保留业务侧 `requestId` / `runId` / `conversationId` 等字段。
 - `conversation.respond` 与 ingest flow 现在会把 W3C Trace Context（`traceparent` / `tracestate` / `baggage`）写入 BullMQ payload；`agent-runtime`、`worker` 与 `parser` 会继续同一条 trace，便于跨进程捞整条请求上下文日志。
 - `worker -> parser /parse` 当前会透传 trace headers；`Python Parser Service` 会按同一 trace 记日志，并在配置 OTLP exporter 后继续上报 span。
+- 本地 `pnpm dev` 启动前会校验 `services/parser/requirements.txt` 的指纹；当 parser 依赖变更时会自动重跑 `pnpm setup:python`，避免沿用过期 `.venv` 导致服务启动失败。
 - `Agent Runtime` 现在会显式开启 Claude Agent SDK `includePartialMessages`，同时消费 assistant text delta、assistant thinking delta、`tool_progress`、`task_started` / `task_progress` 与 `system/status`，把它们统一收口为会话 live event。
 - `Agent Runtime` 当前采用单次流式回答：Claude Agent SDK 直接输出最终正文，前端只消费这一条回答流；phase/status 只区分“分析中 / 调工具 / 生成中”。
 - live conversation stream 已进一步收口为 `assistant_message_id + run_id` 作用域：重试同一条 assistant message 时会生成新的 `run_id`，Redis Streams、BullMQ job、tool timeline 和 SSE fallback 都只消费当前 run，避免旧 run 事件或旧 tool timeline 回灌到新一轮回答。

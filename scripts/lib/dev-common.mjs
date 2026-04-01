@@ -3,6 +3,7 @@ import fs from "node:fs";
 import fsp from "node:fs/promises";
 import net from "node:net";
 import path from "node:path";
+import crypto from "node:crypto";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
@@ -47,6 +48,17 @@ const envExamplePath = path.join(repoRoot, ".env.example");
 const envLocalPath = path.join(repoRoot, ".env.local");
 const envPath = path.join(repoRoot, ".env");
 const nodeModulesPath = path.join(repoRoot, "node_modules");
+const pythonRequirementsPath = path.join(
+  repoRoot,
+  "services",
+  "parser",
+  "requirements.txt",
+);
+const pythonRequirementsStampPath = path.join(
+  repoRoot,
+  ".venv",
+  ".parser-requirements.sha256",
+);
 const MANAGED_SERVICE_STATE = {
   UNMANAGED: "unmanaged",
   STOPPED: "stopped",
@@ -165,23 +177,71 @@ export async function pathExists(targetPath) {
   }
 }
 
-export async function ensureToolingInstalled() {
-  if (!(await pathExists(nodeModulesPath))) {
-    console.log("node_modules not found, running pnpm install...");
-    await runCommand({
+async function computeFileSha256(targetPath) {
+  const content = await fsp.readFile(targetPath);
+  return crypto.createHash("sha256").update(content).digest("hex");
+}
+
+async function readTrimmedFile(targetPath) {
+  try {
+    return (await fsp.readFile(targetPath, "utf8")).trim();
+  } catch {
+    return null;
+  }
+}
+
+export async function ensureToolingInstalled(options = {}) {
+  const nodeModulesPathToCheck = options.nodeModulesPath ?? nodeModulesPath;
+  const pythonBinaryPath = options.pythonBinaryPath ?? resolvePythonBinary();
+  const pythonRequirementsPathToCheck =
+    options.pythonRequirementsPath ?? pythonRequirementsPath;
+  const pythonRequirementsStampPathToCheck =
+    options.pythonRequirementsStampPath ?? pythonRequirementsStampPath;
+  const log = options.log ?? console.log;
+  const runCommandFn = options.runCommand ?? runCommand;
+
+  if (!(await pathExists(nodeModulesPathToCheck))) {
+    log("node_modules not found, running pnpm install...");
+    await runCommandFn({
       command: resolvePnpmBinary(),
       args: ["install"],
       cwd: repoRoot,
     });
   }
 
-  if (!(await pathExists(resolvePythonBinary()))) {
-    console.log(".venv not found, running pnpm setup:python...");
-    await runCommand({
+  const pythonBinaryExists = await pathExists(pythonBinaryPath);
+  const requirementsHash = await computeFileSha256(pythonRequirementsPathToCheck);
+  const recordedRequirementsHash = await readTrimmedFile(
+    pythonRequirementsStampPathToCheck,
+  );
+
+  if (!pythonBinaryExists || recordedRequirementsHash !== requirementsHash) {
+    if (!pythonBinaryExists) {
+      log(".venv not found, running pnpm setup:python...");
+    } else if (!recordedRequirementsHash) {
+      log(
+        "parser dependency stamp not found, running pnpm setup:python to refresh .venv...",
+      );
+    } else {
+      log(
+        "services/parser/requirements.txt changed, running pnpm setup:python to refresh .venv...",
+      );
+    }
+
+    await runCommandFn({
       command: resolvePnpmBinary(),
       args: ["setup:python"],
       cwd: repoRoot,
     });
+
+    await fsp.mkdir(path.dirname(pythonRequirementsStampPathToCheck), {
+      recursive: true,
+    });
+    await fsp.writeFile(
+      pythonRequirementsStampPathToCheck,
+      `${requirementsHash}\n`,
+      "utf8",
+    );
   }
 }
 

@@ -28,6 +28,7 @@
 - 主会话链路现已切到“Claude Agent SDK partial events + Redis Streams live transport + 单次流式回答 + 应用层 citation materialization”模型；Claude Agent SDK 仍留在独立 `agent-runtime` 进程中负责决策与工具调用，并在 provider 返回时透传 raw thinking delta。
 - 当前阶段不再接受本地 mock 会话回退；链路联调应直接暴露真实 provider 缺失或调用失败，并保持错误语义稳定。
 - 本地开发一键启动脚本已补齐。
+- `pnpm dev` 现在会在 parser 的 `requirements.txt` 变化时自动刷新 `.venv`，避免旧 Python 依赖残留导致 parser 无法启动。
 - 数据库与应用升级开始从 ad-hoc bootstrap 收敛到 versioned SQL migrations + tracked app upgrades。
 - 已新增生产单机 Docker 多容器部署资产与基础健康检查。
 - 运行时配置已收口为"bootstrap env + DB system_settings"模型：web / worker / agent-runtime 启动时从 DB 加载配置；steady state 的 Node runtime 只保留极少量 bootstrap env（`DATABASE_URL`，以及 Web 侧的 `AUTH_SECRET`）。若希望 fresh deployment 自动 seed 可用默认模型，仍应在 `upgrade` 阶段提供初始 Anthropic 模型参数。

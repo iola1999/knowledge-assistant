@@ -14,7 +14,7 @@
     "infra:down": "docker compose stop postgres redis qdrant minio",
     "infra:logs": "docker compose logs -f postgres redis qdrant minio",
     "build:web": "pnpm --filter @anchordesk/web build",
-    "setup:python": "sh -c 'PYTHON_BIN=$(command -v python3.12 || command -v python3.13 || command -v python3); \"$PYTHON_BIN\" -m venv .venv && ./.venv/bin/python -m pip install --upgrade pip && ./.venv/bin/python -m pip install -r services/parser/requirements.txt'",
+    "setup:python": "sh -c 'PYTHON_BIN=$(command -v python3.12 || command -v python3.13 || command -v python3); \"$PYTHON_BIN\" -m venv .venv && ./.venv/bin/python -m pip install --upgrade pip && ./.venv/bin/python -m pip install -r services/parser/requirements.txt && node scripts/write-parser-requirements-stamp.mjs'",
     "test": "pnpm test:ts && pnpm test:python",
     "test:ts": "vitest run",
     "test:python": "sh -c 'PYTHON=.venv/bin/python; if [ ! -x \"$PYTHON\" ]; then PYTHON=python3; fi; \"$PYTHON\" -m unittest discover -s services/parser -p \"test_*.py\"'",

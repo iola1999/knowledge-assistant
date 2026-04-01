@@ -1,10 +1,19 @@
 import os from "node:os";
+import crypto from "node:crypto";
 import path from "node:path";
-import { mkdtemp, mkdir, readdir, rm, writeFile } from "node:fs/promises";
+import {
+  mkdtemp,
+  mkdir,
+  readFile,
+  readdir,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
+  ensureToolingInstalled,
   resetDevLogDirectory,
   resolveDevLogRoot,
   resolvePidRoot,
@@ -12,6 +21,10 @@ import {
 } from "./dev-common.mjs";
 
 const tempDirs: string[] = [];
+
+function sha256(content: string) {
+  return crypto.createHash("sha256").update(content).digest("hex");
+}
 
 afterEach(async () => {
   await Promise.all(
@@ -86,5 +99,94 @@ describe("resetDevLogDirectory", () => {
     await resetDevLogDirectory(targetLogDir);
 
     await expect(readdir(targetLogDir)).resolves.toEqual([]);
+  });
+});
+
+describe("ensureToolingInstalled", () => {
+  it("does not rerun pnpm setup:python when the parser requirements stamp matches", async () => {
+    const tempRoot = await mkdtemp(
+      path.join(os.tmpdir(), "anchordesk-python-tooling-"),
+    );
+    tempDirs.push(tempRoot);
+
+    const fakeNodeModules = path.join(tempRoot, "node_modules");
+    const fakePythonBinary = path.join(tempRoot, ".venv", "bin", "python");
+    const fakeRequirements = path.join(tempRoot, "requirements.txt");
+    const fakeRequirementsStamp = path.join(
+      tempRoot,
+      ".venv",
+      ".parser-requirements.sha256",
+    );
+
+    await mkdir(fakeNodeModules, { recursive: true });
+    await mkdir(path.dirname(fakePythonBinary), { recursive: true });
+    await writeFile(fakePythonBinary, "", "utf8");
+    const requirementsContent =
+      "fastapi==0.115.0\nopentelemetry-api==1.40.0\n";
+    await writeFile(fakeRequirements, requirementsContent, "utf8");
+
+    const matchingStamp = sha256(requirementsContent);
+    await writeFile(fakeRequirementsStamp, `${matchingStamp}\n`, "utf8");
+
+    const commandCalls = [];
+
+    await ensureToolingInstalled({
+      nodeModulesPath: fakeNodeModules,
+      pythonBinaryPath: fakePythonBinary,
+      pythonRequirementsPath: fakeRequirements,
+      pythonRequirementsStampPath: fakeRequirementsStamp,
+      runCommand: async (input) => {
+        commandCalls.push(input);
+      },
+      log: () => {},
+    });
+
+    expect(commandCalls).toEqual([]);
+  });
+
+  it("reruns pnpm setup:python and updates the stamp when parser requirements change", async () => {
+    const tempRoot = await mkdtemp(
+      path.join(os.tmpdir(), "anchordesk-python-tooling-"),
+    );
+    tempDirs.push(tempRoot);
+
+    const fakeNodeModules = path.join(tempRoot, "node_modules");
+    const fakePythonBinary = path.join(tempRoot, ".venv", "bin", "python");
+    const fakeRequirements = path.join(tempRoot, "requirements.txt");
+    const fakeRequirementsStamp = path.join(
+      tempRoot,
+      ".venv",
+      ".parser-requirements.sha256",
+    );
+
+    await mkdir(fakeNodeModules, { recursive: true });
+    await mkdir(path.dirname(fakePythonBinary), { recursive: true });
+    await writeFile(fakePythonBinary, "", "utf8");
+    const requirementsContent =
+      "fastapi==0.115.0\nopentelemetry-api==1.40.0\n";
+    await writeFile(fakeRequirements, requirementsContent, "utf8");
+    await writeFile(fakeRequirementsStamp, "stale-stamp\n", "utf8");
+
+    const commandCalls = [];
+
+    await ensureToolingInstalled({
+      nodeModulesPath: fakeNodeModules,
+      pythonBinaryPath: fakePythonBinary,
+      pythonRequirementsPath: fakeRequirements,
+      pythonRequirementsStampPath: fakeRequirementsStamp,
+      runCommand: async (input) => {
+        commandCalls.push(input);
+      },
+      log: () => {},
+    });
+
+    expect(commandCalls).toHaveLength(1);
+    expect(commandCalls[0]).toMatchObject({
+      command: expect.stringMatching(/pnpm(?:\.cmd)?$/u),
+      args: ["setup:python"],
+    });
+    expect(await readFile(fakeRequirementsStamp, "utf8")).toBe(
+      `${sha256(requirementsContent)}\n`,
+    );
   });
 });

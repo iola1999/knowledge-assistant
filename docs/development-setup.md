@@ -90,7 +90,7 @@ pnpm dev
 
 这个命令会按顺序做：
 
-1. 检查 `node_modules` 和 `.venv`
+1. 检查 `node_modules`，并在 `.venv` 缺失或 `services/parser/requirements.txt` 变化时自动执行 `pnpm setup:python`
 2. 执行 SQL migrations + safe blocking app upgrades
 3. 从数据库解析 `system_settings` 并生成受管进程运行时环境
 4. 校验 PostgreSQL / Redis / Qdrant / MinIO 连通性
@@ -101,6 +101,7 @@ pnpm dev
 补充说明：
 
 - parser 现在走受管稳定启动模式，优先保证 `pnpm dev` / `pnpm dev:status` 可可靠接管。
+- `pnpm dev` 不再只按“.venv 是否存在”判断 parser 环境可用；如果 parser 的 `requirements.txt` 更新过，会自动刷新已有虚拟环境，避免复用过期依赖。
 - 如果你改了 `services/parser/**` 里的代码，当前建议手动重启一次 `pnpm dev`。
 - 如果检测到已有受管进程仍在运行，`pnpm dev` 会保留现有日志目录，避免删除正在写入的日志句柄。
 - 受管进程状态统一写到 `/tmp/anchordesk-dev`：
