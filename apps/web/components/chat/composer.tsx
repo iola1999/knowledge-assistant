@@ -144,7 +144,7 @@ function ModelProfileSelector({
             aria-expanded={open}
             aria-haspopup="menu"
             className={cn(
-              "inline-flex h-9 min-w-0 max-w-full items-center gap-2 rounded-full border border-app-border/90 bg-app-surface-soft/92 pl-2.5 pr-3 text-[13px] font-medium text-app-muted-strong transition-[background-color,border-color,color,transform,box-shadow] duration-200 [transition-timing-function:var(--ease-out-quart)] hover:-translate-y-px hover:border-app-border-strong hover:bg-white hover:text-app-text focus:outline-none focus:ring-4 focus:ring-app-accent/10",
+              "inline-flex h-9 min-w-0 max-w-full items-center gap-2 rounded-full border border-app-border/90 bg-app-surface-soft/92 pl-2.5 pr-3 text-[13px] font-medium text-app-muted-strong transition-[background-color,border-color,color,box-shadow] duration-200 [transition-timing-function:var(--ease-out-quart)] hover:border-app-border-strong hover:bg-white hover:text-app-text focus:outline-none focus:ring-4 focus:ring-app-accent/10",
               open && "border-app-border-strong bg-white text-app-text shadow-sm",
             )}
           >
