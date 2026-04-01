@@ -228,7 +228,7 @@ function TimelineEntry({
   }, [defaultOpen, entry.id]);
 
   const summary = (
-    <div className="grid min-w-0 grid-cols-[18px_minmax(0,1fr)_auto] items-start gap-2.5">
+    <span className="grid min-w-0 grid-cols-[18px_minmax(0,1fr)_auto] items-start gap-2.5">
       <span className="relative z-10 flex justify-center pt-1">
         <span
           className={cn(
@@ -240,15 +240,15 @@ function TimelineEntry({
         </span>
       </span>
 
-      <div className="min-w-0">
-        <div className="flex min-w-0 items-start gap-2">
+      <span className="min-w-0">
+        <span className="flex min-w-0 items-start gap-2">
           <span className="min-w-0 flex-1 truncate text-[12.5px] leading-5 text-app-text">
             {entry.displayName}
           </span>
-        </div>
+        </span>
 
         {entry.arguments.length > 0 ? (
-          <div className="mt-1 flex flex-wrap gap-1">
+          <span className="mt-1 flex flex-wrap gap-1">
             {entry.arguments.map((item) => (
               <span
                 key={`${item.label}-${item.value}`}
@@ -258,17 +258,17 @@ function TimelineEntry({
                 <span className="min-w-0 truncate text-app-text">{item.value}</span>
               </span>
             ))}
-          </div>
+          </span>
         ) : null}
 
         {entry.previewSummary && !open ? (
-          <p className="mt-1 text-[11px] leading-4.5 text-app-muted-strong">
+          <span className="mt-1 block text-[11px] leading-4.5 text-app-muted-strong">
             {entry.previewSummary}
-          </p>
+          </span>
         ) : null}
-      </div>
+      </span>
 
-      <div className="flex items-start gap-1.5 pt-0.5">
+      <span className="flex items-start gap-1.5 pt-0.5">
         <span
           className={cn(
             "inline-flex items-center rounded-full border px-1.5 py-0.5 text-[10px] font-semibold",
@@ -287,8 +287,8 @@ function TimelineEntry({
             <ChevronDownIcon className="size-3.5" />
           </span>
         ) : null}
-      </div>
-    </div>
+      </span>
+    </span>
   );
 
   const details = (
@@ -325,18 +325,19 @@ function TimelineEntry({
   }
 
   return (
-    <details
-      className={conversationDensityClassNames.timelineEntry}
-      open={open}
-      onToggle={(event) => {
-        setOpen(event.currentTarget.open);
-      }}
-    >
-      <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+    <article className={conversationDensityClassNames.timelineEntry}>
+      <button
+        type="button"
+        className="w-full cursor-pointer text-left"
+        aria-expanded={open}
+        onClick={() => {
+          setOpen((current) => !current);
+        }}
+      >
         {summary}
-      </summary>
-      {details}
-    </details>
+      </button>
+      {open ? details : null}
+    </article>
   );
 }
 
@@ -384,21 +385,22 @@ export function ConversationTimeline({
   }
 
   return (
-    <details
-      className={conversationDensityClassNames.timelineShell}
-      open={open}
-      onToggle={(event) => {
-        setOpen(event.currentTarget.open);
-      }}
-    >
-      <summary className="flex cursor-pointer list-none items-center gap-1.5 text-[12px] font-medium text-app-muted-strong [&::-webkit-details-marker]:hidden">
+    <div className={conversationDensityClassNames.timelineShell}>
+      <button
+        type="button"
+        className="flex w-full cursor-pointer items-center gap-1.5 text-[12px] font-medium text-app-muted-strong"
+        aria-expanded={open}
+        onClick={() => {
+          setOpen((current) => !current);
+        }}
+      >
         <ChevronDownIcon
           className={cn("size-3.5 transition-transform", open ? "rotate-180" : "rotate-0")}
         />
         <span className="text-app-text">{summary}</span>
-      </summary>
+      </button>
 
-      {timelineEntries.length > 0 ? (
+      {open && timelineEntries.length > 0 ? (
         <div className={conversationDensityClassNames.timelineList}>
           {timelineEntries.map((entry, index) => (
             <TimelineEntry
@@ -414,11 +416,11 @@ export function ConversationTimeline({
         </div>
       ) : null}
 
-      {timelineEntries.length === 0 && runtimeStatus ? (
+      {open && timelineEntries.length === 0 && runtimeStatus ? (
         <p className="mt-2 border-t border-app-border/55 pt-2 text-[11px] leading-4.5 text-app-muted-strong">
           {runtimeStatus}
         </p>
       ) : null}
-    </details>
+    </div>
   );
 }
