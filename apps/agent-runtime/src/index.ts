@@ -17,10 +17,21 @@ import { processConversationResponseJob } from "./process-conversation-job";
 import { runAgentResponse } from "./run-agent-response";
 import { buildClaudeAgentRuntimeLogContext } from "./runtime-log";
 import { resolveRespondWorkerConcurrency } from "./runtime-config";
+import { listActiveConversationRuns } from "./active-conversation-runs";
+import { failConversationResponseRun } from "./conversation-run-failure";
 
 const BULLMQ_WORKER_EVENT = {
   FAILED: "failed",
 } as const;
+
+const AGENT_RUNTIME_SHUTDOWN_SIGNAL = {
+  SIGINT: "SIGINT",
+  SIGTERM: "SIGTERM",
+  SIGUSR2: "SIGUSR2",
+} as const;
+
+const AGENT_RUNTIME_SHUTDOWN_ERROR =
+  "Agent Runtime 正在重启，当前回答未完成。请重新生成。";
 
 async function main() {
   await initRuntimeSettings();
@@ -164,9 +175,69 @@ async function main() {
     );
   });
 
-  app.listen(port, () => {
+  const server = app.listen(port, () => {
     logger.info({ port }, "agent runtime listening");
   });
+
+  let shutdownPromise: Promise<void> | null = null;
+  const shutdownSignals = Object.values(AGENT_RUNTIME_SHUTDOWN_SIGNAL);
+
+  const shutdownRuntime = async (signal: NodeJS.Signals) => {
+    if (shutdownPromise) {
+      return shutdownPromise;
+    }
+
+    shutdownPromise = (async () => {
+      const activeRuns = listActiveConversationRuns();
+      logger.warn(
+        {
+          signal,
+          activeRunCount: activeRuns.length,
+        },
+        "agent runtime shutdown requested",
+      );
+
+      await Promise.allSettled(
+        activeRuns.map((run) =>
+          failConversationResponseRun({
+            conversationId: run.conversationId,
+            assistantMessageId: run.assistantMessageId,
+            runId: run.runId,
+            error: AGENT_RUNTIME_SHUTDOWN_ERROR,
+          }),
+        ),
+      );
+
+      await Promise.allSettled([
+        respondWorker.close(true),
+        new Promise<void>((resolve) => {
+          server.close(() => {
+            resolve();
+          });
+        }),
+      ]);
+    })();
+
+    try {
+      await shutdownPromise;
+      process.exit(0);
+    } catch (error) {
+      logger.error(
+        {
+          signal,
+          error: serializeErrorForLog(error),
+        },
+        "agent runtime shutdown failed",
+      );
+      process.exit(1);
+    }
+  };
+
+  for (const signal of shutdownSignals) {
+    process.on(signal, () => {
+      void shutdownRuntime(signal);
+    });
+  }
 }
 
 main().catch((error) => {

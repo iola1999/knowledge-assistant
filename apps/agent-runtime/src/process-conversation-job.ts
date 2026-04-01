@@ -2,8 +2,6 @@ import { and, eq, inArray } from "drizzle-orm";
 
 import {
   ASSISTANT_STREAM_PHASE,
-  buildAssistantFailedMessageState,
-  buildRunFailedToolMessageState,
   CONVERSATION_STREAM_EVENT,
   finalizeStreamingAssistantRunState,
   GROUNDED_EVIDENCE_KIND,
@@ -52,6 +50,8 @@ import {
 import { logger } from "./logger";
 import { runAgentResponse } from "./run-agent-response";
 import { buildToolTimelineMessage } from "./timeline";
+import { failConversationResponseRun } from "./conversation-run-failure";
+import { registerActiveConversationRun } from "./active-conversation-runs";
 
 const db = getDb();
 
@@ -211,38 +211,6 @@ async function insertToolMessage(input: {
           (message.structuredJson as Record<string, unknown> | null | undefined) ?? null,
       }
     : null;
-}
-
-function buildFailedAssistantStateForRun(input: {
-  error: unknown;
-  runState: Record<string, unknown> | null | undefined;
-}) {
-  const failedAssistantState = buildAssistantFailedMessageState(input.error);
-
-  return {
-    ...failedAssistantState,
-    structuredJson: {
-      ...finalizeStreamingAssistantRunState(input.runState),
-      ...failedAssistantState.structuredJson,
-    },
-  };
-}
-
-function buildRunFailedToolStateForRun(input: {
-  error: unknown;
-  assistantMessageId: string;
-  assistantRunId: string;
-}) {
-  const failedToolState = buildRunFailedToolMessageState(input.error);
-
-  return {
-    ...failedToolState,
-    structuredJson: {
-      ...failedToolState.structuredJson,
-      assistant_message_id: input.assistantMessageId,
-      assistant_run_id: input.assistantRunId,
-    },
-  };
 }
 
 async function updateStreamingAssistantSnapshot(input: {
@@ -451,6 +419,12 @@ export async function processConversationResponseJob(
     },
     "processing conversation response job",
   );
+
+  const unregisterActiveRun = registerActiveConversationRun({
+    conversationId: payload.conversationId,
+    assistantMessageId: payload.assistantMessageId,
+    runId: payload.runId,
+  });
 
   try {
     async function assertAssistantMessageStillStreaming() {
@@ -967,102 +941,24 @@ export async function processConversationResponseJob(
       return;
     }
 
-    let currentRunState =
-      readStreamingAssistantRunState(
-        (assistantMessage.structuredJson as Record<string, unknown> | null | undefined) ?? null,
-      ) ??
-      buildInitialStreamingAssistantRunState({
-        runId: payload.runId,
-      });
-    let failedAssistantState = buildFailedAssistantStateForRun({
-      error,
-      runState: currentRunState,
-    });
-    const failedToolState = buildRunFailedToolStateForRun({
-      error,
-      assistantMessageId: payload.assistantMessageId,
-      assistantRunId: payload.runId,
-    });
-
-    const [failedToolMessage] = await db
-      .insert(messages)
-      .values({
-        conversationId: payload.conversationId,
-        role: MESSAGE_ROLE.TOOL,
-        ...failedToolState,
-      })
-      .returning({
-        id: messages.id,
-        status: messages.status,
-        contentMarkdown: messages.contentMarkdown,
-        createdAt: messages.createdAt,
-        structuredJson: messages.structuredJson,
-      });
-
-    await db
-      .update(messages)
-      .set(failedAssistantState)
-      .where(eq(messages.id, payload.assistantMessageId));
-
-    if (failedToolMessage) {
-      await appendConversationStreamEvent({
-        assistantMessageId: payload.assistantMessageId,
-        runId: payload.runId,
-        event: buildToolMessageEvent({
-          message: {
-            id: failedToolMessage.id,
-            status: failedToolMessage.status,
-            contentMarkdown: failedToolMessage.contentMarkdown,
-            createdAt: failedToolMessage.createdAt,
-            structuredJson:
-              (failedToolMessage.structuredJson as
-                | Record<string, unknown>
-                | null
-                | undefined) ?? null,
-          },
-        }),
-      }).catch(() => null);
-    }
-
-    const runFailedEventId = await appendConversationStreamEvent({
+    const failureResult = await failConversationResponseRun({
+      conversationId: payload.conversationId,
       assistantMessageId: payload.assistantMessageId,
       runId: payload.runId,
-      event: {
-        type: CONVERSATION_STREAM_EVENT.RUN_FAILED,
-        conversation_id: payload.conversationId,
-        message_id: payload.assistantMessageId,
-        status: MESSAGE_STATUS.FAILED,
-        content_markdown: failedAssistantState.contentMarkdown,
-        structured: failedAssistantState.structuredJson,
-        citations: [],
-        error: failedAssistantState.structuredJson.agent_error,
-      },
-    }).catch(() => null);
-    if (runFailedEventId) {
-      currentRunState = finalizeStreamingAssistantRunState(currentRunState, {
-        streamEventId: runFailedEventId,
-      });
-      failedAssistantState = {
-        ...failedAssistantState,
-        structuredJson: {
-          ...currentRunState,
-          ...(failedAssistantState.structuredJson ?? {}),
-        },
-      };
-      await db
-        .update(messages)
-        .set(failedAssistantState)
-        .where(eq(messages.id, payload.assistantMessageId));
-    }
+      error,
+    });
 
     jobLogger.error(
       {
         modelProfileId: payload.modelProfileId ?? null,
         workspaceId: conversation.workspaceId,
-        errorMessage: failedAssistantState.structuredJson.agent_error,
+        errorMessage:
+          failureResult.errorMessage ?? normalizeConversationFailureMessage(error),
         error: serializeErrorForLog(error),
       },
       "conversation response job failed",
     );
+  } finally {
+    unregisterActiveRun();
   }
 }
