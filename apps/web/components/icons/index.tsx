@@ -232,6 +232,24 @@ export function GlobeIcon({
   );
 }
 
+export function SearchIcon({
+  className,
+  strokeWidth = 1.6,
+  ...props
+}: IconProps) {
+  return (
+    <IconBase
+      className={cn("size-4", className)}
+      stroke="currentColor"
+      strokeWidth={strokeWidth}
+      {...props}
+    >
+      <circle cx="8.75" cy="8.75" r="4.5" />
+      <path d="m12.2 12.2 3.05 3.05" strokeLinecap="round" />
+    </IconBase>
+  );
+}
+
 export function ExportIcon({
   className,
   strokeWidth = 1.6,
@@ -368,6 +386,27 @@ export function ChevronDownIcon({
       {...props}
     >
       <path d="M5.5 7.5 10 12l4.5-4.5" strokeLinecap="round" strokeLinejoin="round" />
+    </IconBase>
+  );
+}
+
+export function BoltIcon({
+  className,
+  strokeWidth = 1.7,
+  ...props
+}: IconProps) {
+  return (
+    <IconBase
+      className={cn("size-4", className)}
+      stroke="currentColor"
+      strokeWidth={strokeWidth}
+      {...props}
+    >
+      <path
+        d="M10.417 3.75 5.833 10h3.334l-.834 6.25L14.167 10h-3.334l-.416-6.25Z"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </IconBase>
   );
 }
