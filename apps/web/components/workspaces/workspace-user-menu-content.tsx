@@ -3,7 +3,6 @@
 import Link from "next/link";
 
 import {
-  LibraryIcon,
   LogoutIcon,
   SlidersIcon,
   UserIcon,
@@ -105,8 +104,8 @@ function resolveWorkspaceUserMenuActionIcon(key: WorkspaceUserPanelAction["key"]
     return <UserIcon />;
   }
 
-  if (key === "global-libraries") {
-    return <LibraryIcon />;
+  if (key === "system-management") {
+    return <SlidersIcon />;
   }
 
   return <SlidersIcon />;

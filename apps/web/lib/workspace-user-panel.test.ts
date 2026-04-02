@@ -41,17 +41,15 @@ describe("buildWorkspaceUserPanelState", () => {
     expect(state.avatarLabel).toBe("F");
     expect(state.actions.map((action) => action.key)).toEqual([
       "account",
-      "global-libraries",
-      "model-management",
-      "system-settings",
+      "system-management",
       "logout",
     ]);
     expect(state.accountActions.map((action) => action.key)).toEqual(["account"]);
-    expect(state.adminActions.map((action) => action.key)).toEqual([
-      "global-libraries",
-      "model-management",
-      "system-settings",
-    ]);
+    expect(state.adminActions.map((action) => action.key)).toEqual(["system-management"]);
+    expect(state.adminActions[0]).toMatchObject({
+      href: "/admin/models",
+      label: "系统管理",
+    });
     expect(state.logoutAction?.key).toBe("logout");
   });
 });

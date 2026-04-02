@@ -46,7 +46,9 @@ describe("requestParseArtifact", () => {
   });
 
   it("forwards caller-supplied headers with the parser request", async () => {
-    let requestHeaders: Headers | null = null;
+    const capture: { requestHeaders: Headers | null } = {
+      requestHeaders: null,
+    };
 
     await requestParseArtifact({
       parserServiceUrl: "http://localhost:8001",
@@ -60,7 +62,7 @@ describe("requestParseArtifact", () => {
         sha256: "abc",
       },
       fetchImpl: async (_input, init) => {
-        requestHeaders = new Headers(init?.headers);
+        capture.requestHeaders = new Headers(init?.headers);
         return new Response(
           JSON.stringify({
             page_count: 1,
@@ -78,9 +80,48 @@ describe("requestParseArtifact", () => {
       },
     });
 
-    expect(requestHeaders?.get("content-type")).toBe("application/json");
-    expect(requestHeaders?.get("traceparent")).toContain("4bf92f3577b34da6a3ce929d0e0e4736");
-    expect(requestHeaders?.get("baggage")).toBe("service.name=worker");
+    expect(capture.requestHeaders?.get("content-type")).toBe("application/json");
+    expect(capture.requestHeaders?.get("traceparent")).toContain(
+      "4bf92f3577b34da6a3ce929d0e0e4736",
+    );
+    expect(capture.requestHeaders?.get("baggage")).toBe("service.name=worker");
+  });
+
+  it("accepts null caller-supplied headers and keeps the default content type", async () => {
+    const capture: { requestHeaders: Headers | null } = {
+      requestHeaders: null,
+    };
+
+    await requestParseArtifact({
+      parserServiceUrl: "http://localhost:8001",
+      headers: null,
+      payload: {
+        document_version_id: "dv_123",
+        storage_key: "blobs/abc",
+        sha256: "abc",
+      },
+      fetchImpl: async (_input, init) => {
+        capture.requestHeaders = new Headers(init?.headers);
+        return new Response(
+          JSON.stringify({
+            page_count: 1,
+            pages: [],
+            blocks: [],
+            parse_score_bp: 3200,
+          }),
+          {
+            status: 200,
+            headers: {
+              "content-type": "application/json",
+            },
+          },
+        );
+      },
+    });
+
+    expect(capture.requestHeaders?.get("content-type")).toBe("application/json");
+    expect(capture.requestHeaders?.get("traceparent")).toBeNull();
+    expect(capture.requestHeaders?.get("baggage")).toBeNull();
   });
 
   it("surfaces structured parser errors with code and OCR metadata", async () => {

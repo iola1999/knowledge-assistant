@@ -35,9 +35,11 @@ type ParserErrorDetail = {
   recoverable?: boolean;
 };
 
+type ParserRequestHeaders = Record<string, string | null | undefined> | null;
+
 type RequestParseArtifactInput = {
   parserServiceUrl: string;
-  headers?: Record<string, string | null | undefined>;
+  headers?: ParserRequestHeaders;
   payload: ParseArtifactRequestPayload;
   fetchImpl?: typeof fetch;
 };
@@ -108,7 +110,7 @@ async function readJsonResponse(response: Response) {
   }
 }
 
-function buildRequestHeaders(headers: Record<string, string | null | undefined> | undefined) {
+function buildRequestHeaders(headers?: ParserRequestHeaders) {
   const requestHeaders: Record<string, string> = {
     "content-type": "application/json",
   };

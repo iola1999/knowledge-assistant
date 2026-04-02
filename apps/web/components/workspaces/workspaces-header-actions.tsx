@@ -6,9 +6,7 @@ import { signOut, useSession } from "next-auth/react";
 import { useEffect, useId, useState } from "react";
 
 import {
-  AnswerIcon,
   ChevronDownIcon,
-  LibraryIcon,
   SlidersIcon,
 } from "@/components/icons";
 import {
@@ -190,12 +188,8 @@ function headerMenuTriggerStyles(open: boolean) {
 }
 
 function resolveAdminActionIcon(key: WorkspaceUserPanelAction["key"]) {
-  if (key === "global-libraries") {
-    return <LibraryIcon />;
-  }
-
-  if (key === "model-management") {
-    return <AnswerIcon />;
+  if (key === "system-management") {
+    return <SlidersIcon />;
   }
 
   return <SlidersIcon />;
