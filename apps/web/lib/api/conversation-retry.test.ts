@@ -15,6 +15,12 @@ describe("findRegeneratableConversationTurn", () => {
           role: MESSAGE_ROLE.USER,
           status: MESSAGE_STATUS.COMPLETED,
           contentMarkdown: "请总结最新讨论",
+          structuredJson: {
+            follow_up_quote: {
+              assistantMessageId: "assistant-0",
+              text: "大概是哪个行业（3C、游戏、汽车、教育等）",
+            },
+          },
         },
         {
           id: "assistant-1",
@@ -27,6 +33,10 @@ describe("findRegeneratableConversationTurn", () => {
       assistantMessageId: "assistant-1",
       userMessageId: "user-1",
       promptContent: "请总结最新讨论",
+      quote: {
+        assistantMessageId: "assistant-0",
+        text: "大概是哪个行业（3C、游戏、汽车、教育等）",
+      },
     });
   });
 

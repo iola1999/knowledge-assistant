@@ -234,4 +234,75 @@ describe("POST /api/conversations/[conversationId]/messages", () => {
       }),
     );
   });
+
+  it("passes quoted follow-up context into prompt construction", async () => {
+    mocks.auth.mockResolvedValue({
+      user: { id: "user-1" },
+    });
+    mocks.requireOwnedConversation.mockResolvedValue({
+      id: "conversation-1",
+      workspaceId: "workspace-1",
+      workspacePrompt: "空间提示",
+      modelProfileId: "model-profile-1",
+    });
+    mocks.resolveSelectedModelProfile.mockResolvedValue({
+      id: "model-profile-1",
+    });
+    mocks.buildConversationPrompt.mockReturnValue("完整 prompt");
+    mocks.enqueueConversationResponse.mockResolvedValue({
+      id: "job-1",
+    });
+    mocks.selectExistingMessages.push({ id: "older-message-1" }, { id: "user-message-1" });
+    mocks.insertReturningQueue.push(
+      [
+        {
+          id: "user-message-1",
+          role: MESSAGE_ROLE.USER,
+          status: MESSAGE_STATUS.COMPLETED,
+          contentMarkdown: "请继续展开说明。",
+          structuredJson: null,
+        },
+      ],
+      [
+        {
+          id: "assistant-message-1",
+          role: MESSAGE_ROLE.ASSISTANT,
+          status: MESSAGE_STATUS.STREAMING,
+          contentMarkdown: "",
+          structuredJson: {
+            run_id: "run-1",
+          },
+        },
+      ],
+    );
+
+    const response = await POST(
+      new Request("http://localhost/api/conversations/conversation-1/messages", {
+        body: JSON.stringify({
+          content: "请继续展开说明。",
+          quote: {
+            assistantMessageId: "assistant-0",
+            text: "  大概是哪个行业（3C、游戏、汽车、教育等）  ",
+          },
+        }),
+        headers: {
+          "content-type": "application/json",
+        },
+        method: "POST",
+      }),
+      {
+        params: Promise.resolve({ conversationId: "conversation-1" }),
+      },
+    );
+
+    expect(response.status).toBe(201);
+    expect(mocks.buildConversationPrompt).toHaveBeenCalledWith({
+      content: "请继续展开说明。",
+      workspacePrompt: "空间提示",
+      quote: {
+        assistantMessageId: "assistant-0",
+        text: "大概是哪个行业（3C、游戏、汽车、教育等）",
+      },
+    });
+  });
 });

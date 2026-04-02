@@ -22,6 +22,11 @@ import { withProducerSpan } from "@anchordesk/tracing";
 import { auth } from "@/auth";
 import { buildConversationTitleFromPrompt } from "@/lib/api/conversations";
 import { buildRequestLogContext, logger, resolveRequestId } from "@/lib/server/logger";
+import {
+  normalizeConversationMessageQuote,
+  resolveConversationUserMessageContent,
+  writeConversationMessageQuote,
+} from "@/lib/api/conversation-message-quote";
 import { buildConversationPrompt } from "@/lib/api/workspace-prompt";
 import {
   writeConversationMessageAttachments,
@@ -85,6 +90,7 @@ export async function POST(
     content?: string;
     draftUploadId?: string;
     modelProfileId?: string;
+    quote?: unknown;
   };
   const attachmentIds = Array.isArray(body.attachmentIds)
     ? Array.from(
@@ -95,7 +101,11 @@ export async function POST(
         ),
       )
     : [];
-  const content = String(body.content ?? "").trim();
+  const quote = normalizeConversationMessageQuote(body.quote);
+  const content = resolveConversationUserMessageContent({
+    content: body.content,
+    quote,
+  });
   const draftUploadId = String(body.draftUploadId ?? "").trim() || null;
   if (!content) {
     requestLogger.warn(
@@ -168,8 +178,11 @@ export async function POST(
       role: MESSAGE_ROLE.USER,
       status: MESSAGE_STATUS.COMPLETED,
       contentMarkdown: content,
-      structuredJson: writeConversationMessageAttachments({
-        attachments: submittedAttachments,
+      structuredJson: writeConversationMessageQuote({
+        quote,
+        structuredJson: writeConversationMessageAttachments({
+          attachments: submittedAttachments,
+        }),
       }),
     })
     .returning();
@@ -252,6 +265,7 @@ export async function POST(
           draftUploadId,
           prompt: buildConversationPrompt({
             content,
+            quote,
             workspacePrompt: conversation.workspacePrompt,
           }),
         }),

@@ -14,6 +14,10 @@ import {
   upsertStreamingAssistantToolProcessStep,
 } from "@anchordesk/contracts";
 
+import {
+  readConversationMessageQuote,
+  type ConversationMessageQuote,
+} from "./conversation-message-quote";
 import { slugify } from "./slug";
 
 export type ConversationChatMessage = {
@@ -32,6 +36,8 @@ export type ConversationMessageAttachment = {
   documentVersionId?: string | null;
   sourceFilename: string;
 };
+
+export type { ConversationMessageQuote };
 
 export type ConversationMessageCitation = {
   id: string;
@@ -179,6 +185,8 @@ export function applyConversationMessageAttachments(input: {
     }),
   };
 }
+
+export { readConversationMessageQuote };
 
 export function buildConversationAttachmentLinkTarget(input: {
   workspaceId?: string | null;

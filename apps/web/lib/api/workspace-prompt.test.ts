@@ -56,4 +56,26 @@ describe("buildConversationPrompt", () => {
       }),
     ).toContain("当前用户问题：\n请总结当前资料。");
   });
+
+  it("adds quoted follow-up context before the current user request", () => {
+    expect(
+      buildConversationPrompt({
+        content: "请继续展开说明。",
+        quote: {
+          assistantMessageId: "assistant-1",
+          text: "大概是哪个行业（3C、游戏、汽车、教育等）",
+        },
+      }),
+    ).toContain("当前用户引用了你上一条回答中的一段内容");
+
+    expect(
+      buildConversationPrompt({
+        content: "请继续展开说明。",
+        quote: {
+          assistantMessageId: "assistant-1",
+          text: "大概是哪个行业（3C、游戏、汽车、教育等）",
+        },
+      }),
+    ).toContain("引用内容：\n「大概是哪个行业（3C、游戏、汽车、教育等）」");
+  });
 });

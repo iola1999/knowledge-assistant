@@ -215,4 +215,51 @@ describe("POST /api/conversations/[conversationId]/retry", () => {
       }),
     );
   });
+
+  it("reuses quoted follow-up context when retrying a failed answer", async () => {
+    mocks.auth.mockResolvedValue({
+      user: { id: "user-1" },
+    });
+    mocks.requireOwnedConversation.mockResolvedValue({
+      id: "conversation-1",
+      workspaceId: "workspace-1",
+      workspacePrompt: "空间提示",
+      modelProfileId: "model-profile-1",
+    });
+    mocks.resolveSelectedModelProfile.mockResolvedValue({
+      id: "model-profile-1",
+    });
+    mocks.buildConversationPrompt.mockReturnValue("完整 prompt");
+    mocks.enqueueConversationResponse.mockResolvedValue({
+      id: "job-1",
+    });
+    mocks.findRegeneratableConversationTurn.mockReturnValue({
+      assistantMessageId: "assistant-message-1",
+      userMessageId: "user-message-1",
+      promptContent: "请继续展开说明。",
+      quote: {
+        assistantMessageId: "assistant-0",
+        text: "大概是哪个行业（3C、游戏、汽车、教育等）",
+      },
+    });
+
+    const response = await POST(
+      new Request("http://localhost/api/conversations/conversation-1/retry", {
+        method: "POST",
+      }),
+      {
+        params: Promise.resolve({ conversationId: "conversation-1" }),
+      },
+    );
+
+    expect(response.status).toBe(202);
+    expect(mocks.buildConversationPrompt).toHaveBeenCalledWith({
+      content: "请继续展开说明。",
+      workspacePrompt: "空间提示",
+      quote: {
+        assistantMessageId: "assistant-0",
+        text: "大概是哪个行业（3C、游戏、汽车、教育等）",
+      },
+    });
+  });
 });

@@ -10,6 +10,7 @@ import {
 } from "@/components/chat/composer";
 import { ConversationSession } from "@/components/chat/conversation-session";
 import { type EnabledModelProfileOption } from "@/lib/api/model-profiles";
+import { type ConversationMessageQuote } from "@/lib/api/conversation-message-quote";
 import { type AssistantProcessMessage } from "@/lib/api/conversation-process";
 import { conversationDensityClassNames } from "@/lib/conversation-density";
 import {
@@ -85,6 +86,7 @@ export function WorkspaceConversationPanel({
     initialTimelineMessagesByAssistant ?? {},
   );
   const [citations, setCitations] = useState(initialCitations ?? []);
+  const [selectedQuote, setSelectedQuote] = useState<ConversationMessageQuote | null>(null);
   const panelRef = useRef<HTMLDivElement | null>(null);
   const pendingScrollToBottomRef = useRef(scrollToBottomOnMount);
 
@@ -92,6 +94,7 @@ export function WorkspaceConversationPanel({
     setMessages(initialMessages);
     setTimelineMessagesByAssistant(initialTimelineMessagesByAssistant ?? {});
     setCitations(initialCitations ?? []);
+    setSelectedQuote(null);
   }, [initialCitations, initialMessages, initialTimelineMessagesByAssistant]);
 
   useEffect(() => {
@@ -171,6 +174,7 @@ export function WorkspaceConversationPanel({
       ...current,
       [turn.assistantMessage.id]: [],
     }));
+    setSelectedQuote(null);
     onSubmittedTurn?.(turn);
   }
 
@@ -199,6 +203,7 @@ export function WorkspaceConversationPanel({
           initialMessages={messages}
           initialCitations={citations}
           onAssistantTerminalEvent={onAssistantTerminalEvent}
+          onQuoteRequest={setSelectedQuote}
           onSessionStateSync={handleSessionStateSync}
         />
       </div>
@@ -218,8 +223,10 @@ export function WorkspaceConversationPanel({
           initialAttachments={[]}
           isStreaming={activeAssistantStatus === MESSAGE_STATUS.STREAMING}
           onStop={handleStopStreamingAssistant}
+          onClearSelectedQuote={() => setSelectedQuote(null)}
           onSelectedModelProfileIdChange={onSelectedModelProfileIdChange}
           onSubmitted={handleSubmitted}
+          selectedQuote={selectedQuote}
           selectedModelProfileId={selectedModelProfileId}
         />
       </div>

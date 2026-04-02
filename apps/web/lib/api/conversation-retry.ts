@@ -1,10 +1,12 @@
 import { MESSAGE_ROLE, MESSAGE_STATUS, type MessageRole, type MessageStatus } from "@anchordesk/contracts";
+import { readConversationMessageQuote } from "./conversation-message-quote";
 
 export type RetryableConversationMessage = {
   id: string;
   role: MessageRole;
   status: MessageStatus;
   contentMarkdown: string;
+  structuredJson?: Record<string, unknown> | null;
 };
 
 export function findRegeneratableConversationTurn(messages: RetryableConversationMessage[]) {
@@ -27,10 +29,13 @@ export function findRegeneratableConversationTurn(messages: RetryableConversatio
     return null;
   }
 
+  const quote = readConversationMessageQuote(previousMessage.structuredJson ?? null);
+
   return {
     assistantMessageId: lastMessage.id,
     userMessageId: previousMessage.id,
     promptContent: previousMessage.contentMarkdown,
+    ...(quote ? { quote } : {}),
   };
 }
 

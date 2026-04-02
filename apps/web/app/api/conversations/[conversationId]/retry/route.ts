@@ -56,6 +56,7 @@ export async function POST(
         role: messages.role,
         status: messages.status,
         contentMarkdown: messages.contentMarkdown,
+        structuredJson: messages.structuredJson,
       })
       .from(messages)
       .where(and(eq(messages.conversationId, conversationId), ne(messages.role, MESSAGE_ROLE.TOOL)))
@@ -148,6 +149,7 @@ export async function POST(
           modelProfileId: selectedModelProfile.id,
           prompt: buildConversationPrompt({
             content: regeneratableTurn.promptContent,
+            quote: regeneratableTurn.quote,
             workspacePrompt: conversation.workspacePrompt,
           }),
         }),

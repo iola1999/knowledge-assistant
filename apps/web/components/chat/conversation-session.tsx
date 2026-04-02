@@ -30,6 +30,7 @@ import {
   describeAssistantStreamingStatus,
 } from "@/lib/api/conversation-process";
 import { buildCitationSourceBadges } from "@/lib/api/knowledge-libraries";
+import { normalizeConversationMessageQuoteText } from "@/lib/api/conversation-message-quote";
 import {
   findRegeneratableConversationTurn,
   type RetryableConversationMessage,
@@ -39,6 +40,7 @@ import {
   applyAssistantToolMessageEvent,
   buildConversationAttachmentLinkTarget,
   readConversationMessageAttachments,
+  readConversationMessageQuote,
   applyAssistantDeltaEvent,
   applyAssistantTerminalEvent,
   applyAssistantTerminalEventToSessionSnapshot,
@@ -46,6 +48,7 @@ import {
   type ConversationChatMessage,
   type ConversationMessageAttachment,
   type ConversationMessageCitation,
+  type ConversationMessageQuote,
   type ConversationSessionSnapshot,
   type ConversationTimelineMessagesByAssistant,
   findLatestAssistantMessageId,
@@ -90,11 +93,19 @@ type ConversationSessionProps = {
   initialTimelineMessagesByAssistant?: TimelineMessagesByAssistant;
   initialCitations?: MessageCitation[];
   streamEnabled?: boolean;
-  sourceLinksEnabled?: boolean;
+  documentLinksEnabled?: boolean;
   readOnly?: boolean;
   emptyStateMessage?: string;
   onAssistantTerminalEvent?: (conversationId: string) => void;
+  onQuoteRequest?: (quote: ConversationMessageQuote) => void;
   onSessionStateSync?: (snapshot: ConversationSessionSnapshot) => void;
+};
+
+type PendingQuoteSelection = {
+  assistantMessageId: string;
+  left: number;
+  text: string;
+  top: number;
 };
 
 function flattenTimelineMessageIds(timelineByAssistant: TimelineMessagesByAssistant) {
@@ -289,10 +300,11 @@ export function ConversationSession({
   initialTimelineMessagesByAssistant,
   initialCitations,
   streamEnabled = true,
-  sourceLinksEnabled = true,
+  documentLinksEnabled = true,
   readOnly = false,
   emptyStateMessage = "这一轮还没有消息",
   onAssistantTerminalEvent,
+  onQuoteRequest,
   onSessionStateSync,
 }: ConversationSessionProps) {
   const [chatMessages, setChatMessages] = useState(initialMessages);
@@ -320,6 +332,8 @@ export function ConversationSession({
   >({});
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const [regeneratingMessageId, setRegeneratingMessageId] = useState<string | null>(null);
+  const [pendingQuoteSelection, setPendingQuoteSelection] =
+    useState<PendingQuoteSelection | null>(null);
   const chatMessagesRef = useRef(initialMessages);
   const messageCitationsRef = useRef(initialCitations ?? []);
   const timelineMessagesByAssistantRef = useRef(initialTimelineMessagesByAssistant ?? {});
@@ -336,6 +350,7 @@ export function ConversationSession({
     setActionStatusByMessage({});
     setCopiedMessageId(null);
     setRegeneratingMessageId(null);
+    setPendingQuoteSelection(null);
     chatMessagesRef.current = initialMessages;
     messageCitationsRef.current = initialCitations ?? [];
     timelineMessagesByAssistantRef.current = initialTimelineMessagesByAssistant ?? {};
@@ -386,6 +401,24 @@ export function ConversationSession({
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (!pendingQuoteSelection) {
+      return;
+    }
+
+    function clearPendingQuoteSelection() {
+      setPendingQuoteSelection(null);
+    }
+
+    window.addEventListener("resize", clearPendingQuoteSelection);
+    window.addEventListener("scroll", clearPendingQuoteSelection, true);
+
+    return () => {
+      window.removeEventListener("resize", clearPendingQuoteSelection);
+      window.removeEventListener("scroll", clearPendingQuoteSelection, true);
+    };
+  }, [pendingQuoteSelection]);
 
   useEffect(() => {
     if (!streamEnabled || !streamingAssistantMessageId) {
@@ -654,10 +687,15 @@ export function ConversationSession({
           role: message.role,
           status: message.status,
           contentMarkdown: message.contentMarkdown,
+          structuredJson: message.structuredJson ?? null,
         })),
       );
 
   function setMessageView(messageId: string, nextView: MessageViewMode) {
+    if (nextView !== "answer") {
+      setPendingQuoteSelection(null);
+    }
+
     setMessageViewModes((current) => ({
       ...current,
       [messageId]: nextView,
@@ -753,6 +791,60 @@ export function ConversationSession({
     }
   }
 
+  function handleAnswerMouseUp(
+    assistantMessageId: string,
+    event: React.MouseEvent<HTMLDivElement>,
+  ) {
+    if (!onQuoteRequest || readOnly) {
+      return;
+    }
+
+    const container = event.currentTarget;
+    const selection = window.getSelection();
+    if (
+      !selection ||
+      selection.rangeCount === 0 ||
+      selection.isCollapsed ||
+      !container.contains(selection.anchorNode) ||
+      !container.contains(selection.focusNode)
+    ) {
+      setPendingQuoteSelection(null);
+      return;
+    }
+
+    const text = normalizeConversationMessageQuoteText(selection.toString());
+    if (!text) {
+      setPendingQuoteSelection(null);
+      return;
+    }
+
+    const rect = selection.getRangeAt(0).getBoundingClientRect();
+    if (!rect.width && !rect.height) {
+      setPendingQuoteSelection(null);
+      return;
+    }
+
+    setPendingQuoteSelection({
+      assistantMessageId,
+      left: rect.left + rect.width / 2,
+      text,
+      top: Math.max(12, rect.top - 10),
+    });
+  }
+
+  function handleQuoteRequest() {
+    if (!pendingQuoteSelection || !onQuoteRequest) {
+      return;
+    }
+
+    onQuoteRequest({
+      assistantMessageId: pendingQuoteSelection.assistantMessageId,
+      text: pendingQuoteSelection.text,
+    });
+    window.getSelection()?.removeAllRanges();
+    setPendingQuoteSelection(null);
+  }
+
   return (
     <div className={conversationDensityClassNames.sessionStack}>
       {chatMessages.length > 0 ? (
@@ -788,10 +880,23 @@ export function ConversationSession({
 
           if (isUser) {
             const attachments = readConversationMessageAttachments(message.structuredJson);
+            const quotedMessage = readConversationMessageQuote(message.structuredJson);
 
             return (
               <article key={message.id} className={conversationDensityClassNames.userWrap}>
                 <div className={conversationDensityClassNames.userStack}>
+                  {quotedMessage ? (
+                    <div className="max-w-[min(100%,42rem)] rounded-[18px] border border-app-border bg-app-surface-soft/88 px-3 py-2.5 text-[13px] text-app-muted-strong shadow-soft">
+                      <div className="flex items-start gap-2">
+                        <span className="inline-flex shrink-0 rounded-full border border-app-border bg-white/90 px-2 py-0.5 text-[11px] font-medium text-app-muted-strong">
+                          引用
+                        </span>
+                        <p className="min-w-0 flex-1 line-clamp-3 leading-6">
+                          {quotedMessage.text}
+                        </p>
+                      </div>
+                    </div>
+                  ) : null}
                   <div className={conversationDensityClassNames.userBubble}>
                     <LinkifiedText
                       text={message.contentMarkdown}
@@ -882,7 +987,7 @@ export function ConversationSession({
                       {citations.map((citation, index) => {
                         const target = buildCitationLinkTarget({
                           citation,
-                          sourceLinksEnabled,
+                          documentLinksEnabled,
                           workspaceId,
                         });
 
@@ -904,7 +1009,7 @@ export function ConversationSession({
                           <div
                             key={citation.id}
                             aria-disabled="true"
-                            title={sourceLinksEnabled ? undefined : "公开页不提供资料跳转"}
+                            title={documentLinksEnabled ? undefined : "公开页不提供本地资料跳转"}
                             className={cn(
                               conversationDensityClassNames.sourceCard,
                               "cursor-default hover:border-app-border/55 hover:bg-white/72",
@@ -916,14 +1021,18 @@ export function ConversationSession({
                       })}
                     </div>
                   ) : (
-                    <div className="grid gap-3">
+                    <div
+                      data-follow-up-anchor={message.id}
+                      className="grid gap-3"
+                      onMouseUp={(event) => handleAnswerMouseUp(message.id, event)}
+                    >
                       <MarkdownContent
                         content={answerText}
                         className={conversationDensityClassNames.answerText}
                         streaming={isStreamingAssistant}
                         citations={citations}
                         workspaceId={workspaceId}
-                        sourceLinksEnabled={sourceLinksEnabled}
+                        documentLinksEnabled={documentLinksEnabled}
                       />
                     </div>
                   )}
@@ -941,6 +1050,31 @@ export function ConversationSession({
       ) : (
         <div className={ui.muted}>{emptyStateMessage}</div>
       )}
+      {pendingQuoteSelection ? (
+        <div className="pointer-events-none fixed inset-0 z-50">
+          <div
+            className="pointer-events-auto fixed"
+            style={{
+              left: pendingQuoteSelection.left,
+              top: pendingQuoteSelection.top,
+              transform: "translate(-50%, -100%)",
+            }}
+          >
+            <div className="rounded-2xl border border-app-border bg-white/98 p-1 shadow-card backdrop-blur-md">
+              <button
+                type="button"
+                className="inline-flex min-h-8 items-center justify-center rounded-xl border border-app-border/90 bg-app-surface-soft px-3 text-[13px] font-medium text-app-text transition hover:border-app-border-strong hover:bg-white focus:outline-none focus:ring-4 focus:ring-app-accent/10"
+                onMouseDown={(event) => {
+                  event.preventDefault();
+                }}
+                onClick={handleQuoteRequest}
+              >
+                追问这段
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

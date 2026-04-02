@@ -8,6 +8,7 @@ import {
   ArrowUpIcon,
   CheckIcon,
   ChevronDownIcon,
+  CloseIcon,
   PlusIcon,
   StopIcon,
 } from "@/components/icons";
@@ -35,6 +36,10 @@ import {
   resolveComposerSubmitStatus,
 } from "@/lib/api/composer";
 import { computeFileSha256 } from "@/lib/api/file-digests";
+import {
+  resolveConversationUserMessageContent,
+  type ConversationMessageQuote,
+} from "@/lib/api/conversation-message-quote";
 import {
   formatUserFacingModelProfileLabel,
   type EnabledModelProfileOption,
@@ -83,9 +88,11 @@ type ComposerProps = {
   textareaClassName?: string;
   availableModelProfiles?: EnabledModelProfileOption[];
   selectedModelProfileId?: string | null;
+  selectedQuote?: ConversationMessageQuote | null;
   initialAttachments?: ComposerAttachment[];
   isStreaming?: boolean;
   onStop?: () => Promise<void> | void;
+  onClearSelectedQuote?: () => void;
   onSelectedModelProfileIdChange?: (modelProfileId: string) => void;
   onSubmitted?: (turn: ComposerSubmittedTurn) => void;
 };
@@ -276,9 +283,11 @@ export function Composer({
   textareaClassName,
   availableModelProfiles = [],
   selectedModelProfileId,
+  selectedQuote = null,
   initialAttachments = [],
   isStreaming = false,
   onStop,
+  onClearSelectedQuote,
   onSelectedModelProfileIdChange,
   onSubmitted,
 }: ComposerProps) {
@@ -317,6 +326,7 @@ export function Composer({
     availableModelProfiles.length > 0 && currentModelProfileId !== null;
   const primaryAction = resolveComposerPrimaryAction({
     content,
+    hasQuotedSelection: Boolean(selectedQuote),
     hasPendingAttachments,
     isStreaming: canStopStreaming,
   });
@@ -675,7 +685,10 @@ export function Composer({
       return;
     }
 
-    const prompt = content.trim();
+    const prompt = resolveConversationUserMessageContent({
+      content,
+      quote: selectedQuote,
+    });
     if (!prompt) return;
     if (hasPendingAttachments) {
       setStatus("临时文件仍在解析中，等状态变成可用后再发送。");
@@ -717,6 +730,7 @@ export function Composer({
         attachmentIds: submittedAttachments.map((attachment) => attachment.attachmentId),
         content: prompt,
         modelProfileId: currentModelProfileId ?? undefined,
+        quote: selectedQuote ?? undefined,
         draftUploadId:
           !conversationId && attachments.length > 0 ? draftUploadIdRef.current : undefined,
       }),
@@ -743,6 +757,7 @@ export function Composer({
         assistantMessage: body?.assistantMessage ?? null,
       });
       setAttachments([]);
+      onClearSelectedQuote?.();
       draftUploadIdRef.current =
         typeof crypto !== "undefined" ? crypto.randomUUID() : `${Date.now()}-draft`;
 
@@ -824,6 +839,31 @@ export function Composer({
     );
   }
 
+  function renderSelectedQuote() {
+    if (!selectedQuote) {
+      return null;
+    }
+
+    return (
+      <div className="flex items-start gap-2 rounded-[18px] border border-app-border/80 bg-app-surface-soft/92 px-3 py-2.5 text-[13px] text-app-muted-strong">
+        <span className="inline-flex shrink-0 rounded-full border border-app-border bg-white/90 px-2 py-0.5 text-[11px] font-medium text-app-muted-strong">
+          引用
+        </span>
+        <p className="min-w-0 flex-1 line-clamp-3 leading-6 text-app-muted-strong">
+          {selectedQuote.text}
+        </p>
+        <button
+          type="button"
+          className="inline-flex size-7 shrink-0 items-center justify-center rounded-full text-app-muted transition hover:bg-white hover:text-app-text focus:outline-none focus:ring-4 focus:ring-app-accent/10"
+          aria-label="移除引用"
+          onClick={onClearSelectedQuote}
+        >
+          <CloseIcon className="size-3.5" aria-hidden="true" />
+        </button>
+      </div>
+    );
+  }
+
   return (
     <form
       onSubmit={onSubmit}
@@ -852,9 +892,9 @@ export function Composer({
       {isStage ? (
         <div className="grid gap-2.5">
           <div className={conversationDensityClassNames.composerCard}>
+            {renderSelectedQuote()}
             <textarea
               ref={textareaRef}
-              required
               rows={stageTextareaSizing.minRows}
               value={content}
               onChange={(e) => setContent(e.target.value)}
@@ -959,9 +999,9 @@ export function Composer({
       ) : (
         <>
           {renderModelSelector("max-w-[320px]")}
+          {renderSelectedQuote()}
           <textarea
             ref={textareaRef}
-            required
             rows={rows ?? 4}
             value={content}
             onChange={(e) => setContent(e.target.value)}

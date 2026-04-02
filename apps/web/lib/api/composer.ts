@@ -79,6 +79,7 @@ export function resolveComposerSubmitStatus(agentError?: string | null) {
 
 export function resolveComposerPrimaryAction(input: {
   content: string;
+  hasQuotedSelection?: boolean;
   hasPendingAttachments: boolean;
   isStreaming: boolean;
 }) {
@@ -91,7 +92,9 @@ export function resolveComposerPrimaryAction(input: {
 
   return {
     mode: COMPOSER_PRIMARY_ACTION.SUBMIT,
-    disabled: input.hasPendingAttachments || !input.content.trim(),
+    disabled:
+      input.hasPendingAttachments ||
+      (!input.content.trim() && !input.hasQuotedSelection),
   };
 }
 

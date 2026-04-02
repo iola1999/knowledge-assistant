@@ -3,7 +3,7 @@
 import { createElement } from "react";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { afterEach, beforeEach, describe, expect, test } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { MESSAGE_ROLE, MESSAGE_STATUS } from "@anchordesk/contracts";
 
 import { ConversationSession } from "./conversation-session";
@@ -357,5 +357,108 @@ describe("ConversationSession", () => {
     expect(link?.getAttribute("target")).toBe("_blank");
     expect(link?.getAttribute("rel")).toBe("noopener noreferrer");
     expect(container.textContent).toContain("先看这份合同");
+  });
+
+  test("shows a follow-up button for selected assistant text and forwards the quote", () => {
+    const onQuoteRequest = vi.fn();
+
+    act(() => {
+      root.render(
+        createElement(ConversationSession, {
+          conversationId: "conversation-1",
+          workspaceId: "workspace-1",
+          assistantMessageId: "assistant-1",
+          assistantStatus: MESSAGE_STATUS.COMPLETED,
+          streamEnabled: false,
+          onQuoteRequest,
+          initialMessages: [
+            {
+              id: "assistant-1",
+              role: MESSAGE_ROLE.ASSISTANT,
+              status: MESSAGE_STATUS.COMPLETED,
+              contentMarkdown: "如果你方便说一下大概是哪个行业，我可以继续细化。",
+              structuredJson: null,
+            },
+          ],
+        }),
+      );
+    });
+
+    const answerHost = container.querySelector('[data-follow-up-anchor="assistant-1"]');
+    const textNode = answerHost?.querySelector("p")?.firstChild;
+    const removeAllRanges = vi.fn();
+    const selection = {
+      anchorNode: textNode,
+      focusNode: textNode,
+      getRangeAt: () => ({
+        commonAncestorContainer: textNode,
+        getBoundingClientRect: () => ({
+          top: 180,
+          left: 200,
+          right: 320,
+          bottom: 208,
+          width: 120,
+          height: 28,
+          x: 200,
+          y: 180,
+          toJSON: () => ({}),
+        }),
+      }),
+      isCollapsed: false,
+      rangeCount: 1,
+      removeAllRanges,
+      toString: () => "大概是哪个行业",
+    };
+    vi.spyOn(window, "getSelection").mockReturnValue(selection as unknown as Selection);
+
+    act(() => {
+      answerHost?.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
+    });
+
+    const followUpButton = Array.from(container.querySelectorAll("button")).find((button) =>
+      button.textContent?.includes("追问"),
+    );
+
+    expect(followUpButton).toBeTruthy();
+
+    act(() => {
+      followUpButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    expect(onQuoteRequest).toHaveBeenCalledWith({
+      assistantMessageId: "assistant-1",
+      text: "大概是哪个行业",
+    });
+    expect(removeAllRanges).toHaveBeenCalled();
+  });
+
+  test("renders quoted follow-up context above the user prompt", () => {
+    act(() => {
+      root.render(
+        createElement(ConversationSession, {
+          conversationId: "conversation-1",
+          workspaceId: "workspace-1",
+          streamEnabled: false,
+          initialMessages: [
+            {
+              id: "user-1",
+              role: MESSAGE_ROLE.USER,
+              status: MESSAGE_STATUS.COMPLETED,
+              contentMarkdown: "请继续展开说明。",
+              structuredJson: {
+                follow_up_quote: {
+                  assistantMessageId: "assistant-1",
+                  text: "大概是哪个行业（3C、游戏、汽车、教育等）",
+                },
+              },
+            },
+          ],
+        }),
+      );
+    });
+
+    expect(container.textContent).toContain("引用");
+    expect(container.textContent).toContain("大概是哪个行业（3C、游戏、汽车、教育等）");
+    expect(container.textContent).toContain("请继续展开说明。");
   });
 });

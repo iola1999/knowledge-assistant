@@ -78,12 +78,27 @@ describe("resolveComposerPrimaryAction", () => {
     expect(
       resolveComposerPrimaryAction({
         content: "继续分析",
+        hasQuotedSelection: false,
         hasPendingAttachments: true,
         isStreaming: false,
       }),
     ).toEqual({
       mode: COMPOSER_PRIMARY_ACTION.SUBMIT,
       disabled: true,
+    });
+  });
+
+  it("allows quote-only follow-ups to submit without extra text", () => {
+    expect(
+      resolveComposerPrimaryAction({
+        content: "   ",
+        hasQuotedSelection: true,
+        hasPendingAttachments: false,
+        isStreaming: false,
+      }),
+    ).toEqual({
+      mode: COMPOSER_PRIMARY_ACTION.SUBMIT,
+      disabled: false,
     });
   });
 });
