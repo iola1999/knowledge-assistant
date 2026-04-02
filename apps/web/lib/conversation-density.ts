@@ -3,6 +3,11 @@ export const conversationDensityClassNames = {
   assistantSection: "grid min-w-0 gap-2.5 min-[720px]:gap-3",
   userWrap: "ml-auto w-full min-w-0 max-w-[860px]",
   userStack: "grid justify-items-end gap-2",
+  userBubbleRow:
+    "group/user-message-row inline-grid min-w-0 max-w-full grid-cols-[2rem_minmax(0,1fr)] items-start gap-2",
+  userActionRail: "flex h-full items-center justify-end",
+  userActionButton:
+    "size-8 border-app-border/65 bg-white/92 text-app-muted-strong shadow-soft opacity-0 pointer-events-none translate-y-0.5 transition-[opacity,transform,background-color,border-color,color] duration-150 [transition-timing-function:var(--ease-out-quart)] group-hover/user-message-row:pointer-events-auto group-hover/user-message-row:translate-y-0 group-hover/user-message-row:opacity-100 group-focus-within/user-message-row:pointer-events-auto group-focus-within/user-message-row:translate-y-0 group-focus-within/user-message-row:opacity-100 focus-visible:pointer-events-auto focus-visible:translate-y-0 focus-visible:opacity-100 hover:border-app-border-strong hover:bg-white hover:text-app-text",
   userBubble:
     "min-w-0 rounded-[20px] border border-app-border/60 bg-app-surface-strong/54 px-4 py-3 shadow-[0_10px_24px_rgba(23,22,18,0.03)] min-[720px]:rounded-[22px] min-[720px]:px-5 min-[720px]:py-3.5",
   userText: "text-[14px] leading-7 text-app-text md:text-[15px]",

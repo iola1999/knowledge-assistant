@@ -14,6 +14,7 @@ import {
 
 import {
   AnswerIcon,
+  CheckIcon,
   CopyIcon,
   ExportIcon,
   GlobeIcon,
@@ -57,7 +58,14 @@ import {
 } from "@/lib/api/conversation-session";
 import { conversationDensityClassNames } from "@/lib/conversation-density";
 import { buildCitationLinkTarget, buildCitationPreviewModel } from "@/lib/citation-display";
-import { chipButtonStyles, cn, tabButtonStyles, textSelectionStyles, ui } from "@/lib/ui";
+import {
+  buttonStyles,
+  chipButtonStyles,
+  cn,
+  tabButtonStyles,
+  textSelectionStyles,
+  ui,
+} from "@/lib/ui";
 
 type ChatMessage = ConversationChatMessage;
 
@@ -723,6 +731,7 @@ export function ConversationSession({
         setCopiedMessageId((current) => (current === messageId ? null : current));
       }, 1600);
     } catch {
+      setCopiedMessageId((current) => (current === messageId ? null : current));
       setActionStatus(messageId, "复制失败");
     }
   }
@@ -881,6 +890,8 @@ export function ConversationSession({
           if (isUser) {
             const attachments = readConversationMessageAttachments(message.structuredJson);
             const quotedMessage = readConversationMessageQuote(message.structuredJson);
+            const canCopyUserMessage = Boolean(message.contentMarkdown.trim());
+            const userMessageCopied = copiedMessageId === message.id;
 
             return (
               <article key={message.id} className={conversationDensityClassNames.userWrap}>
@@ -897,11 +908,36 @@ export function ConversationSession({
                       </div>
                     </div>
                   ) : null}
-                  <div className={conversationDensityClassNames.userBubble}>
-                    <LinkifiedText
-                      text={message.contentMarkdown}
-                      className={conversationDensityClassNames.userText}
-                    />
+                  <div className={conversationDensityClassNames.userBubbleRow}>
+                    <div className={conversationDensityClassNames.userActionRail}>
+                      {canCopyUserMessage ? (
+                        <button
+                          type="button"
+                          data-user-message-copy-button={message.id}
+                          aria-label={userMessageCopied ? "已复制用户消息" : "复制用户消息"}
+                          title={userMessageCopied ? "已复制" : "复制"}
+                          className={cn(
+                            buttonStyles({ variant: "secondary", size: "xs", shape: "icon" }),
+                            conversationDensityClassNames.userActionButton,
+                            userMessageCopied &&
+                              "border-emerald-200 bg-emerald-50 text-emerald-800 hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-800",
+                          )}
+                          onClick={() => handleCopyMessage(message.id, message.contentMarkdown)}
+                        >
+                          {userMessageCopied ? (
+                            <CheckIcon className="size-4" strokeWidth={1.8} />
+                          ) : (
+                            <CopyIcon className="size-4" />
+                          )}
+                        </button>
+                      ) : null}
+                    </div>
+                    <div className={conversationDensityClassNames.userBubble}>
+                      <LinkifiedText
+                        text={message.contentMarkdown}
+                        className={conversationDensityClassNames.userText}
+                      />
+                    </div>
                   </div>
                   {attachments.length > 0 ? (
                     <div className={conversationDensityClassNames.userAttachmentList}>
@@ -913,6 +949,16 @@ export function ConversationSession({
                         />
                       ))}
                     </div>
+                  ) : null}
+                  {actionStatusByMessage[message.id] ? (
+                    <p
+                      className={cn(
+                        conversationDensityClassNames.actionStatus,
+                        "max-w-[min(100%,42rem)] justify-self-end",
+                      )}
+                    >
+                      {actionStatusByMessage[message.id]}
+                    </p>
                   ) : null}
                 </div>
               </article>
