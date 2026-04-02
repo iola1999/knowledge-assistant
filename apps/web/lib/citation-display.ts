@@ -326,14 +326,15 @@ export type CitationPreviewModel = {
 
 export function buildCitationLinkTarget(input: {
   citation: ConversationMessageCitation;
-  sourceLinksEnabled: boolean;
+  documentLinksEnabled: boolean;
   workspaceId?: string | null;
 }): CitationLinkTarget | null {
-  if (!input.sourceLinksEnabled) {
-    return null;
-  }
-
-  if (input.workspaceId && input.citation.documentId && input.citation.anchorId) {
+  if (
+    input.documentLinksEnabled &&
+    input.workspaceId &&
+    input.citation.documentId &&
+    input.citation.anchorId
+  ) {
     return {
       href: `/workspaces/${input.workspaceId}/documents/${input.citation.documentId}?anchorId=${input.citation.anchorId}`,
     };

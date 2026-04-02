@@ -119,7 +119,7 @@ describe("buildCitationLinkTarget", () => {
   test("opens knowledge-base citations with a workspace document link", () => {
     expect(
       buildCitationLinkTarget({
-        sourceLinksEnabled: true,
+        documentLinksEnabled: true,
         workspaceId: "workspace-1",
         citation: {
           id: "citation-1",
@@ -139,7 +139,7 @@ describe("buildCitationLinkTarget", () => {
   test("falls back to source urls for web citations", () => {
     expect(
       buildCitationLinkTarget({
-        sourceLinksEnabled: true,
+        documentLinksEnabled: true,
         citation: {
           id: "citation-2",
           messageId: "assistant-1",
@@ -152,5 +152,41 @@ describe("buildCitationLinkTarget", () => {
     ).toEqual({
       href: "https://example.com/report",
     });
+  });
+
+  test("keeps web citations clickable when document links are disabled", () => {
+    expect(
+      buildCitationLinkTarget({
+        documentLinksEnabled: false,
+        citation: {
+          id: "citation-3",
+          messageId: "assistant-1",
+          label: "网页来源",
+          quoteText: "摘录",
+          sourceScope: "web",
+          sourceUrl: "https://example.com/report",
+        },
+      }),
+    ).toEqual({
+      href: "https://example.com/report",
+    });
+  });
+
+  test("disables workspace document jumps when document links are disabled", () => {
+    expect(
+      buildCitationLinkTarget({
+        documentLinksEnabled: false,
+        workspaceId: "workspace-1",
+        citation: {
+          id: "citation-4",
+          messageId: "assistant-1",
+          label: "资料A",
+          quoteText: "摘录",
+          sourceScope: "workspace_private",
+          documentId: "document-1",
+          anchorId: "anchor-9",
+        },
+      }),
+    ).toBeNull();
   });
 });

@@ -158,7 +158,7 @@ export default async function SharedConversationPage({
               sourceTitle: citation.sourceTitle,
             }))}
             streamEnabled={false}
-            sourceLinksEnabled={false}
+            documentLinksEnabled={false}
             readOnly
             emptyStateMessage="当前会话还没有可分享的消息"
           />
@@ -168,7 +168,7 @@ export default async function SharedConversationPage({
       {/* Footer */}
       <footer className="border-t border-app-border/50 py-5">
         <p className="mx-auto max-w-[1080px] px-6 text-[12px] text-app-muted md:px-8">
-          本页面由 {workspaceBranding.productName} 生成，仅供查看，资料引用不提供跳转
+          本页面由 {workspaceBranding.productName} 生成，仅供查看；外部网页链接可打开，本地资料引用不提供跳转
         </p>
       </footer>
     </div>

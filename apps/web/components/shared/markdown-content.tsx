@@ -26,16 +26,16 @@ import { cn, textSelectionStyles } from "../../lib/ui";
 
 function InlineCitationPreviewEntry({
   citation,
-  sourceLinksEnabled,
+  documentLinksEnabled,
   workspaceId,
 }: {
   citation: ConversationMessageCitation;
-  sourceLinksEnabled: boolean;
+  documentLinksEnabled: boolean;
   workspaceId?: string | null;
 }) {
   const target = buildCitationLinkTarget({
     citation,
-    sourceLinksEnabled,
+    documentLinksEnabled,
     workspaceId,
   });
   const preview = buildCitationPreviewModel(citation);
@@ -126,12 +126,12 @@ function InlineCitationGroup({
 function InlineCitationMarker({
   citations,
   indices,
-  sourceLinksEnabled,
+  documentLinksEnabled,
   workspaceId,
 }: {
   citations: ConversationMessageCitation[];
   indices: number[];
-  sourceLinksEnabled: boolean;
+  documentLinksEnabled: boolean;
   workspaceId?: string | null;
 }) {
   if (citations.length === 0) {
@@ -166,7 +166,7 @@ function InlineCitationMarker({
             <span key={citation.id} className="block">
               <InlineCitationPreviewEntry
                 citation={citation}
-                sourceLinksEnabled={sourceLinksEnabled}
+                documentLinksEnabled={documentLinksEnabled}
                 workspaceId={workspaceId}
               />
               {position < citations.length - 1 ? (
@@ -186,14 +186,14 @@ export function MarkdownContent({
   streaming = false,
   citations = [],
   workspaceId,
-  sourceLinksEnabled = true,
+  documentLinksEnabled = true,
 }: {
   content: string;
   className?: string;
   streaming?: boolean;
   citations?: ConversationMessageCitation[];
   workspaceId?: string | null;
-  sourceLinksEnabled?: boolean;
+  documentLinksEnabled?: boolean;
 }) {
   const renderedContent = renderInlineCitationMarkers(content);
   return createElement(XMarkdown, {
@@ -220,7 +220,7 @@ export function MarkdownContent({
           <InlineCitationMarker
             citations={indices.map((index) => citations[index - 1]).filter(Boolean)}
             indices={indices}
-            sourceLinksEnabled={sourceLinksEnabled}
+            documentLinksEnabled={documentLinksEnabled}
             workspaceId={workspaceId}
           />
         );
