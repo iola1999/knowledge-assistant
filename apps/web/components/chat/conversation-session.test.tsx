@@ -128,6 +128,41 @@ describe("ConversationSession", () => {
     );
   });
 
+  test("shows the streaming status only once when there are no process steps yet", () => {
+    act(() => {
+      root.render(
+        createElement(ConversationSession, {
+          conversationId: "conversation-1",
+          workspaceId: "workspace-1",
+          assistantMessageId: "assistant-1",
+          assistantStatus: MESSAGE_STATUS.STREAMING,
+          streamEnabled: false,
+          initialMessages: [
+            {
+              id: "assistant-1",
+              role: MESSAGE_ROLE.ASSISTANT,
+              status: MESSAGE_STATUS.STREAMING,
+              contentMarkdown: "",
+              structuredJson: {
+                run_id: "run-1",
+                run_started_at: "2026-04-02T10:00:00.000Z",
+                run_last_heartbeat_at: "2026-04-02T10:00:00.000Z",
+                run_lease_expires_at: "2026-04-02T10:00:45.000Z",
+                phase: "analyzing",
+                status_text: "助手正在分析问题并准备回答...",
+              },
+            },
+          ],
+        }),
+      );
+    });
+
+    const matches =
+      container.textContent?.match(/助手正在分析问题并准备回答\.\.\./g) ?? [];
+
+    expect(matches).toHaveLength(1);
+  });
+
   test("keeps the process timeline compact after answer drafting starts", () => {
     act(() => {
       root.render(
@@ -210,7 +245,7 @@ describe("ConversationSession", () => {
     });
 
     expect(container.querySelector('details[data-thinking-panel="assistant-1"]')).toBeNull();
-    expect(container.textContent).toContain("已完成");
+    expect(container.textContent).toContain("助手正在生成回答... · 1 个步骤");
   });
 
   test("interleaves thinking and tool rows inside one process list", () => {

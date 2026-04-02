@@ -458,12 +458,6 @@ export function ConversationTimeline({
           ))}
         </div>
       ) : null}
-
-      {open && timelineEntries.length === 0 && runtimeStatus ? (
-        <p className="mt-2 border-t border-app-border/55 pt-2 text-[11px] leading-4.5 text-app-muted-strong">
-          {runtimeStatus}
-        </p>
-      ) : null}
     </div>
   );
 }
