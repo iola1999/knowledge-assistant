@@ -71,8 +71,59 @@ function readStringArray(value: unknown) {
     .filter((item): item is string => Boolean(item));
 }
 
+function parseJsonRecord(text: string) {
+  try {
+    const parsed = JSON.parse(text) as unknown;
+    return readRecord(parsed);
+  } catch {
+    return null;
+  }
+}
+
+function findToolPayloadText(value: unknown) {
+  const blocks = Array.isArray(value)
+    ? value
+    : isRecord(value) && Array.isArray(value.content)
+      ? value.content
+      : null;
+
+  if (!blocks) {
+    if (isRecord(value) && typeof value.text === "string" && value.text.trim()) {
+      return value.text;
+    }
+
+    return null;
+  }
+
+  for (const item of blocks) {
+    const record = readRecord(item);
+    if (!record) {
+      continue;
+    }
+
+    if (
+      typeof record.text === "string" &&
+      record.text.trim() &&
+      (record.type == null || record.type === "text")
+    ) {
+      return record.text;
+    }
+  }
+
+  return null;
+}
+
+function normalizeToolPayload(value: unknown) {
+  const payloadText = findToolPayloadText(value);
+  if (!payloadText) {
+    return value;
+  }
+
+  return parseJsonRecord(payloadText) ?? value;
+}
+
 function readToolFailureMessage(output: unknown) {
-  const record = readRecord(output);
+  const record = readRecord(normalizeToolPayload(output));
   if (!record || record.ok !== false) {
     return null;
   }
@@ -258,7 +309,7 @@ function buildSearchArguments(input: TimelineRecord | null) {
 }
 
 function buildToolArguments(entry: AssistantProcessTimelineEntry) {
-  const input = readRecord(entry.input);
+  const input = readRecord(normalizeToolPayload(entry.input));
   if (!entry.toolName || !input) {
     return [];
   }
@@ -318,13 +369,21 @@ function buildToolArguments(entry: AssistantProcessTimelineEntry) {
 }
 
 function buildWebSearchPreview(output: TimelineRecord | null) {
+  if (!output) {
+    return {
+      previewSummary: null,
+      previewItems: [],
+    };
+  }
+
+  const hasResultsField = Array.isArray(output.results);
   const results = readArray(output?.results)
     .map((item) => readRecord(item))
     .filter((item): item is TimelineRecord => Boolean(item));
 
   if (results.length === 0) {
     return {
-      previewSummary: "未命中候选链接",
+      previewSummary: hasResultsField ? "未命中候选链接" : null,
       previewItems: [],
     };
   }
@@ -342,13 +401,21 @@ function buildWebSearchPreview(output: TimelineRecord | null) {
 }
 
 function buildStatutesPreview(output: TimelineRecord | null) {
+  if (!output) {
+    return {
+      previewSummary: null,
+      previewItems: [],
+    };
+  }
+
+  const hasResultsField = Array.isArray(output.results);
   const results = readArray(output?.results)
     .map((item) => readRecord(item))
     .filter((item): item is TimelineRecord => Boolean(item));
 
   if (results.length === 0) {
     return {
-      previewSummary: "未命中法规结果",
+      previewSummary: hasResultsField ? "未命中法规结果" : null,
       previewItems: [],
     };
   }
@@ -368,13 +435,21 @@ function buildStatutesPreview(output: TimelineRecord | null) {
 }
 
 function buildKnowledgePreview(output: TimelineRecord | null, noun: string) {
+  if (!output) {
+    return {
+      previewSummary: null,
+      previewItems: [],
+    };
+  }
+
+  const hasResultsField = Array.isArray(output.results);
   const results = readArray(output?.results)
     .map((item) => readRecord(item))
     .filter((item): item is TimelineRecord => Boolean(item));
 
   if (results.length === 0) {
     return {
-      previewSummary: `未命中${noun}`,
+      previewSummary: hasResultsField ? `未命中${noun}` : null,
       previewItems: [],
     };
   }
@@ -400,10 +475,17 @@ function buildKnowledgePreview(output: TimelineRecord | null, noun: string) {
 }
 
 function buildFetchSourcePreview(output: TimelineRecord | null) {
+  if (!output || !("source" in output)) {
+    return {
+      previewSummary: null,
+      previewItems: [],
+    };
+  }
+
   const source = readRecord(output?.source);
   if (!source) {
     return {
-      previewSummary: "已抓取网页正文",
+      previewSummary: null,
       previewItems: [],
     };
   }
@@ -440,6 +522,15 @@ function buildFetchSourcePreview(output: TimelineRecord | null) {
 }
 
 function buildFetchSourcesPreview(output: TimelineRecord | null) {
+  if (!output) {
+    return {
+      previewSummary: null,
+      previewItems: [],
+    };
+  }
+
+  const hasSourcesField = Array.isArray(output.sources);
+  const hasFailuresField = Array.isArray(output.failures);
   const sources = readArray(output?.sources)
     .map((item) => readRecord(item))
     .filter((item): item is TimelineRecord => Boolean(item));
@@ -447,9 +538,9 @@ function buildFetchSourcesPreview(output: TimelineRecord | null) {
     .map((item) => readRecord(item))
     .filter((item): item is TimelineRecord => Boolean(item));
 
-  if (sources.length === 0 && failures.length === 0) {
+  if (!hasSourcesField && !hasFailuresField) {
     return {
-      previewSummary: "未返回网页内容",
+      previewSummary: null,
       previewItems: [],
     };
   }
@@ -473,9 +564,11 @@ function buildFetchSourcesPreview(output: TimelineRecord | null) {
   }
 
   const summary =
-    failures.length > 0
-      ? `已抓取 ${sources.length} 个网页，${failures.length} 个失败`
-      : `已抓取 ${sources.length} 个网页`;
+    sources.length === 0 && failures.length === 0
+      ? null
+      : failures.length > 0
+        ? `已抓取 ${sources.length} 个网页，${failures.length} 个失败`
+        : `已抓取 ${sources.length} 个网页`;
 
   return {
     previewSummary: summary,
@@ -484,10 +577,17 @@ function buildFetchSourcesPreview(output: TimelineRecord | null) {
 }
 
 function buildAttachmentRangePreview(output: TimelineRecord | null) {
+  if (!output || !("document" in output)) {
+    return {
+      previewSummary: null,
+      previewItems: [],
+    };
+  }
+
   const document = readRecord(output?.document);
   if (!document) {
     return {
-      previewSummary: "已读取附件页段",
+      previewSummary: null,
       previewItems: [],
     };
   }
@@ -514,10 +614,17 @@ function buildAttachmentRangePreview(output: TimelineRecord | null) {
 }
 
 function buildCitationAnchorPreview(output: TimelineRecord | null) {
+  if (!output || !("anchor" in output)) {
+    return {
+      previewSummary: null,
+      previewItems: [],
+    };
+  }
+
   const anchor = readRecord(output?.anchor);
   if (!anchor) {
     return {
-      previewSummary: "已读取引用上下文",
+      previewSummary: null,
       previewItems: [],
     };
   }
@@ -543,6 +650,13 @@ function buildCitationAnchorPreview(output: TimelineRecord | null) {
 }
 
 function buildReportOutlinePreview(output: TimelineRecord | null) {
+  if (!output || !("outline" in output)) {
+    return {
+      previewSummary: null,
+      previewItems: [],
+    };
+  }
+
   const outline = readRecord(output?.outline);
   const sections = readArray(outline?.sections)
     .map((item) => readRecord(item))
@@ -550,7 +664,7 @@ function buildReportOutlinePreview(output: TimelineRecord | null) {
 
   if (sections.length === 0) {
     return {
-      previewSummary: "已生成报告大纲",
+      previewSummary: null,
       previewItems: [],
     };
   }
@@ -567,6 +681,13 @@ function buildReportOutlinePreview(output: TimelineRecord | null) {
 }
 
 function buildReportSectionPreview(output: TimelineRecord | null) {
+  if (!output || !("section" in output)) {
+    return {
+      previewSummary: null,
+      previewItems: [],
+    };
+  }
+
   const section = readRecord(output?.section);
   const markdown = stripMarkdown(readString(section?.markdown));
   const citations = readArray(section?.citations);
@@ -591,7 +712,7 @@ function buildReportSectionPreview(output: TimelineRecord | null) {
   }
 
   return {
-    previewSummary: "已生成章节草稿",
+    previewSummary: previewItems.length > 0 ? "已生成章节草稿" : null,
     previewItems,
   };
 }
@@ -627,7 +748,7 @@ function buildGenericPreview(entry: AssistantProcessTimelineEntry) {
     };
   }
 
-  const output = readRecord(entry.output);
+  const output = readRecord(normalizeToolPayload(entry.output));
 
   switch (entry.toolName) {
     case ASSISTANT_TOOL.SEARCH_WEB_GENERAL:

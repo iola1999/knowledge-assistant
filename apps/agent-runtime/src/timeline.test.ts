@@ -111,4 +111,52 @@ describe("buildToolTimelineMessage", () => {
       status: MESSAGE_STATUS.COMPLETED,
     });
   });
+
+  it("normalizes completed tool responses shaped as plain text block arrays", () => {
+    expect(
+      buildToolTimelineMessage({
+        assistantMessageId: "assistant-1",
+        assistantRunId: "run-1",
+        toolName: ASSISTANT_TOOL.SEARCH_WEB_GENERAL,
+        state: TOOL_TIMELINE_STATE.COMPLETED,
+        toolInput: { query: "Alibaba earnings" },
+        toolResponse: [
+          {
+            text: JSON.stringify({
+              ok: true,
+              results: [
+                {
+                  title: "Alibaba Investor Relations",
+                  url: "https://www.alibabagroup.com/en-US/ir-financial-results",
+                },
+              ],
+            }),
+          },
+        ],
+        toolUseId: "tool-4",
+      }),
+    ).toEqual({
+      contentMarkdown: `工具执行完成：${ASSISTANT_TOOL.SEARCH_WEB_GENERAL}`,
+      structuredJson: {
+        assistant_message_id: "assistant-1",
+        assistant_run_id: "run-1",
+        timeline_event: TIMELINE_EVENT.TOOL_FINISHED,
+        tool_name: ASSISTANT_TOOL.SEARCH_WEB_GENERAL,
+        tool_input: {
+          query: "Alibaba earnings",
+        },
+        tool_response: {
+          ok: true,
+          results: [
+            {
+              title: "Alibaba Investor Relations",
+              url: "https://www.alibabagroup.com/en-US/ir-financial-results",
+            },
+          ],
+        },
+        tool_use_id: "tool-4",
+      },
+      status: MESSAGE_STATUS.COMPLETED,
+    });
+  });
 });

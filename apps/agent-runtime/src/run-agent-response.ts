@@ -119,9 +119,21 @@ export function parseToolPayload(value: unknown) {
   const content = Array.isArray(value)
     ? (value as Array<{ type?: string; text?: string }>)
     : value && typeof value === "object"
-      ? (value as { content?: Array<{ type?: string; text?: string }> }).content
+      ? (value as { content?: Array<{ type?: string; text?: string }>; text?: string }).content
       : null;
-  const text = content?.find((item) => item.type === "text")?.text;
+  const text =
+    content?.find(
+      (item) =>
+        typeof item?.text === "string" &&
+        item.text.trim() &&
+        (item.type == null || item.type === "text"),
+    )?.text ??
+    (value &&
+    typeof value === "object" &&
+    typeof (value as { text?: string }).text === "string" &&
+    (value as { text: string }).text.trim()
+      ? (value as { text: string }).text
+      : null);
   if (!text) {
     return null;
   }

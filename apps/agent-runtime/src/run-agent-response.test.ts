@@ -161,4 +161,22 @@ describe("parseToolPayload", () => {
       results: [],
     });
   });
+
+  test("parses content block arrays even when the text block omits its type field", () => {
+    expect(
+      parseToolPayload([
+        {
+          text: "{\"ok\":true,\"results\":[{\"title\":\"Alibaba Investor Relations\",\"url\":\"https://www.alibabagroup.com/en-US/ir-financial-results\"}]}",
+        },
+      ]),
+    ).toEqual({
+      ok: true,
+      results: [
+        {
+          title: "Alibaba Investor Relations",
+          url: "https://www.alibabagroup.com/en-US/ir-financial-results",
+        },
+      ],
+    });
+  });
 });

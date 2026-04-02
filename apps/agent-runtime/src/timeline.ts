@@ -15,10 +15,22 @@ function normalizeToolTimelineValue(value: unknown) {
     return value;
   }
 
-  const content = (value as { content?: Array<{ type?: string; text?: string }> }).content;
-  const text = Array.isArray(content)
-    ? content.find((item) => item?.type === "text")?.text
-    : null;
+  const content = Array.isArray(value)
+    ? (value as Array<{ type?: string; text?: string }>)
+    : (value as { content?: Array<{ type?: string; text?: string }>; text?: string }).content;
+  const text =
+    (Array.isArray(content)
+      ? content.find(
+          (item) =>
+            typeof item?.text === "string" &&
+            item.text.trim() &&
+            (item.type == null || item.type === "text"),
+        )?.text
+      : null) ??
+    (typeof (value as { text?: string }).text === "string" &&
+    (value as { text: string }).text.trim()
+      ? (value as { text: string }).text
+      : null);
 
   if (typeof text === "string" && text.trim()) {
     try {

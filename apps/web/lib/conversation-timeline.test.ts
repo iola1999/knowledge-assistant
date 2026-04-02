@@ -71,6 +71,59 @@ describe("buildConversationTimelineEntryView", () => {
     ]);
   });
 
+  test("parses wrapped SDK tool payloads before building search previews", () => {
+    const view = buildConversationTimelineEntryView({
+      ...baseEntry,
+      toolName: "search_web_general",
+      input: {
+        query: "Alibaba latest earnings report",
+      },
+      output: [
+        {
+          text: JSON.stringify({
+            ok: true,
+            results: [
+              {
+                title: "Financial Reports - Alibaba Investor Relations",
+                url: "https://www.alibabagroup.com/en-US/ir-financial-results",
+                domain: "alibabagroup.com",
+              },
+            ],
+          }),
+        },
+      ],
+    });
+
+    expect(view.previewSummary).toBe("命中 1 条候选链接");
+    expect(view.previewItems).toEqual([
+      {
+        label: "结果 1",
+        value: "Financial Reports - Alibaba Investor Relations",
+        meta: "alibabagroup.com",
+        tone: "default",
+        href: "https://www.alibabagroup.com/en-US/ir-financial-results",
+      },
+    ]);
+  });
+
+  test("hides search evaluations when the payload shape cannot be judged confidently", () => {
+    const view = buildConversationTimelineEntryView({
+      ...baseEntry,
+      toolName: "search_web_general",
+      input: {
+        query: "Alibaba earnings",
+      },
+      output: [
+        {
+          text: "not-json",
+        },
+      ],
+    });
+
+    expect(view.previewSummary).toBeNull();
+    expect(view.previewItems).toEqual([]);
+  });
+
   test("surfaces the fetched URL and page excerpt for single-source reads", () => {
     const view = buildConversationTimelineEntryView({
       ...baseEntry,
@@ -111,6 +164,24 @@ describe("buildConversationTimelineEntryView", () => {
         tone: "default",
       },
     ]);
+  });
+
+  test("hides fetch summaries when batch fetch output is not parseable", () => {
+    const view = buildConversationTimelineEntryView({
+      ...baseEntry,
+      toolName: "fetch_sources",
+      input: {
+        urls: ["https://www.example.com/a", "https://www.example.com/b"],
+      },
+      output: [
+        {
+          text: "not-json",
+        },
+      ],
+    });
+
+    expect(view.previewSummary).toBeNull();
+    expect(view.previewItems).toEqual([]);
   });
 
   test("shows attachment page ranges directly but keeps internal document identifiers hidden", () => {
