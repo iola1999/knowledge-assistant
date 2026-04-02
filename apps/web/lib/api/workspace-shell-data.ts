@@ -1,8 +1,10 @@
 import { and, desc, eq, isNull } from "drizzle-orm";
 import { notFound } from "next/navigation";
+import { MESSAGE_ROLE, MESSAGE_STATUS } from "@anchordesk/contracts";
 
 import { auth } from "@/auth";
-import { conversations, getDb, workspaces } from "@anchordesk/db";
+import { conversations, getDb, messages, workspaces } from "@anchordesk/db";
+import { applyConversationRespondingState } from "@/lib/api/conversations";
 
 export async function loadWorkspaceShellData(workspaceId: string) {
   const session = await auth();
@@ -10,7 +12,8 @@ export async function loadWorkspaceShellData(workspaceId: string) {
   const user = session?.user;
   const db = getDb();
 
-  const [workspaceList, workspaceRows, conversationList] = await Promise.all([
+  const [workspaceList, workspaceRows, conversationList, respondingConversationRows] =
+    await Promise.all([
     db
       .select({
         id: workspaces.id,
@@ -40,6 +43,19 @@ export async function loadWorkspaceShellData(workspaceId: string) {
       .from(conversations)
       .where(eq(conversations.workspaceId, workspaceId))
       .orderBy(desc(conversations.updatedAt), desc(conversations.createdAt)),
+    db
+      .select({
+        conversationId: messages.conversationId,
+      })
+      .from(messages)
+      .innerJoin(conversations, eq(messages.conversationId, conversations.id))
+      .where(
+        and(
+          eq(conversations.workspaceId, workspaceId),
+          eq(messages.role, MESSAGE_ROLE.ASSISTANT),
+          eq(messages.status, MESSAGE_STATUS.STREAMING),
+        ),
+      ),
   ]);
 
   const workspace = workspaceRows[0];
@@ -50,7 +66,12 @@ export async function loadWorkspaceShellData(workspaceId: string) {
   return {
     workspace,
     workspaceList,
-    conversationList,
+    conversationList: applyConversationRespondingState({
+      conversations: conversationList,
+      respondingConversationIds: respondingConversationRows.map(
+        (conversation) => conversation.conversationId,
+      ),
+    }),
     user,
   };
 }

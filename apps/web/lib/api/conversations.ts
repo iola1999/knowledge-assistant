@@ -19,6 +19,7 @@ export type WorkspaceConversationListItem = {
   title: string;
   status: ConversationStatus;
   modelProfileId?: string | null;
+  isResponding?: boolean;
   updatedAt: Date;
 };
 
@@ -81,6 +82,7 @@ export function applySubmittedConversationToList(input: {
     title:
       existingConversation?.title ?? buildConversationTitleFromPrompt(input.promptContent),
     status: existingConversation?.status ?? CONVERSATION_STATUS.ACTIVE,
+    isResponding: true,
     ...(resolvedModelProfileId === undefined
       ? {}
       : { modelProfileId: resolvedModelProfileId ?? null }),
@@ -111,6 +113,7 @@ export function applySubmittedTurnToConversationMeta(input: {
       id: input.conversationId,
       title: buildConversationTitleFromPrompt(input.promptContent),
       status: CONVERSATION_STATUS.ACTIVE,
+      isResponding: true,
       ...(resolvedModelProfileId === undefined
         ? {}
         : { modelProfileId: resolvedModelProfileId ?? null }),
@@ -123,6 +126,7 @@ export function applySubmittedTurnToConversationMeta(input: {
 
   return {
     ...input.current,
+    isResponding: true,
     ...(resolvedModelProfileId === undefined
       ? {}
       : { modelProfileId: resolvedModelProfileId ?? null }),
@@ -148,6 +152,7 @@ export function markConversationActivityInList(input: {
   return sortConversationsByUpdatedAt([
     {
       ...existingConversation,
+      isResponding: false,
       updatedAt: input.now ?? new Date(),
     },
     ...input.conversations.filter(
@@ -167,8 +172,21 @@ export function markConversationMetaActivity(input: {
 
   return {
     ...input.current,
+    isResponding: false,
     updatedAt: input.now ?? new Date(),
   };
+}
+
+export function applyConversationRespondingState<T extends WorkspaceConversationListItem>(input: {
+  conversations: T[];
+  respondingConversationIds: Iterable<string>;
+}) {
+  const respondingConversationIds = new Set(input.respondingConversationIds);
+
+  return input.conversations.map((conversation) => ({
+    ...conversation,
+    isResponding: respondingConversationIds.has(conversation.id),
+  }));
 }
 
 export function resolveActiveConversationDisplay(input: {
@@ -190,6 +208,7 @@ export function resolveActiveConversationDisplay(input: {
 
   return {
     ...input.current,
+    isResponding: listItem?.isResponding ?? input.current.isResponding ?? false,
     title: listItem?.title ?? input.current.title,
     status: listItem?.status ?? input.current.status,
     updatedAt: listItem?.updatedAt ?? input.current.updatedAt,

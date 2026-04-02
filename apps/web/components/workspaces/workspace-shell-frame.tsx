@@ -35,6 +35,7 @@ type ConversationListItem = {
   id: string;
   title: string;
   status: ConversationStatus;
+  isResponding?: boolean;
   updatedAt: Date;
 };
 

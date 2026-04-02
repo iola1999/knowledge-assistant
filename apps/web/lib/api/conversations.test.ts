@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 import { CONVERSATION_STATUS } from "@anchordesk/contracts";
 
 import {
+  applyConversationRespondingState,
   applySubmittedConversationToList,
   applySubmittedTurnToConversationMeta,
   appendCurrentConversationBreadcrumb,
@@ -286,12 +287,14 @@ describe("conversation helpers", () => {
             id: "conversation-1",
             title: "较早会话",
             status: CONVERSATION_STATUS.ACTIVE,
+            isResponding: false,
             updatedAt: new Date("2026-03-30T10:00:00.000Z"),
           },
           {
             id: "conversation-2",
             title: "当前会话",
             status: CONVERSATION_STATUS.ACTIVE,
+            isResponding: false,
             updatedAt: new Date("2026-03-30T09:00:00.000Z"),
           },
         ],
@@ -307,12 +310,14 @@ describe("conversation helpers", () => {
         id: "conversation-2",
         title: "当前会话",
         status: CONVERSATION_STATUS.ACTIVE,
+        isResponding: true,
         updatedAt: "2026-03-30T11:00:00.000Z",
       },
       {
         id: "conversation-1",
         title: "较早会话",
         status: CONVERSATION_STATUS.ACTIVE,
+        isResponding: false,
         updatedAt: "2026-03-30T10:00:00.000Z",
       },
     ]);
@@ -326,6 +331,7 @@ describe("conversation helpers", () => {
             id: "conversation-1",
             title: "已有会话",
             status: CONVERSATION_STATUS.ACTIVE,
+            isResponding: false,
             updatedAt: new Date("2026-03-30T10:00:00.000Z"),
           },
         ],
@@ -341,12 +347,14 @@ describe("conversation helpers", () => {
         id: "conversation-2",
         title: "请总结新版发布流程的关键变化",
         status: CONVERSATION_STATUS.ACTIVE,
+        isResponding: true,
         updatedAt: "2026-03-30T11:00:00.000Z",
       },
       {
         id: "conversation-1",
         title: "已有会话",
         status: CONVERSATION_STATUS.ACTIVE,
+        isResponding: false,
         updatedAt: "2026-03-30T10:00:00.000Z",
       },
     ]);
@@ -359,6 +367,7 @@ describe("conversation helpers", () => {
           id: "conversation-1",
           title: "当前会话",
           status: CONVERSATION_STATUS.ACTIVE,
+          isResponding: false,
           createdAt: new Date("2026-03-30T09:00:00.000Z"),
           updatedAt: new Date("2026-03-30T10:00:00.000Z"),
           messageCount: 4,
@@ -373,6 +382,7 @@ describe("conversation helpers", () => {
       id: "conversation-1",
       title: "当前会话",
       status: CONVERSATION_STATUS.ACTIVE,
+      isResponding: true,
       createdAt: new Date("2026-03-30T09:00:00.000Z"),
       updatedAt: new Date("2026-03-30T11:00:00.000Z"),
       messageCount: 6,
@@ -393,6 +403,7 @@ describe("conversation helpers", () => {
       id: "conversation-2",
       title: "请总结新版发布流程的关键变化",
       status: CONVERSATION_STATUS.ACTIVE,
+      isResponding: true,
       createdAt: new Date("2026-03-30T11:00:00.000Z"),
       updatedAt: new Date("2026-03-30T11:00:00.000Z"),
       messageCount: 2,
@@ -408,12 +419,14 @@ describe("conversation helpers", () => {
             id: "conversation-1",
             title: "较新会话",
             status: CONVERSATION_STATUS.ACTIVE,
+            isResponding: false,
             updatedAt: new Date("2026-03-30T10:30:00.000Z"),
           },
           {
             id: "conversation-2",
             title: "当前会话",
             status: CONVERSATION_STATUS.ACTIVE,
+            isResponding: true,
             updatedAt: new Date("2026-03-30T10:00:00.000Z"),
           },
         ],
@@ -428,12 +441,14 @@ describe("conversation helpers", () => {
         id: "conversation-2",
         title: "当前会话",
         status: CONVERSATION_STATUS.ACTIVE,
+        isResponding: false,
         updatedAt: "2026-03-30T11:00:00.000Z",
       },
       {
         id: "conversation-1",
         title: "较新会话",
         status: CONVERSATION_STATUS.ACTIVE,
+        isResponding: false,
         updatedAt: "2026-03-30T10:30:00.000Z",
       },
     ]);
@@ -446,6 +461,7 @@ describe("conversation helpers", () => {
           id: "conversation-2",
           title: "当前会话",
           status: CONVERSATION_STATUS.ACTIVE,
+          isResponding: true,
           createdAt: new Date("2026-03-30T09:00:00.000Z"),
           updatedAt: new Date("2026-03-30T10:00:00.000Z"),
           messageCount: 6,
@@ -458,6 +474,7 @@ describe("conversation helpers", () => {
       id: "conversation-2",
       title: "当前会话",
       status: CONVERSATION_STATUS.ACTIVE,
+      isResponding: false,
       createdAt: new Date("2026-03-30T09:00:00.000Z"),
       updatedAt: new Date("2026-03-30T11:00:00.000Z"),
       messageCount: 6,
@@ -470,6 +487,7 @@ describe("conversation helpers", () => {
       id: "conversation-1",
       title: "其他会话",
       status: CONVERSATION_STATUS.ACTIVE,
+      isResponding: false,
       createdAt: new Date("2026-03-30T09:00:00.000Z"),
       updatedAt: new Date("2026-03-30T10:00:00.000Z"),
       messageCount: 4,
@@ -494,12 +512,14 @@ describe("conversation helpers", () => {
             id: "conversation-1",
             title: "其他会话",
             status: CONVERSATION_STATUS.ACTIVE,
+            isResponding: false,
             updatedAt: new Date("2026-03-30T10:00:00.000Z"),
           },
           {
             id: "conversation-2",
             title: "新的会话标题",
             status: CONVERSATION_STATUS.ARCHIVED,
+            isResponding: true,
             updatedAt: new Date("2026-03-30T11:00:00.000Z"),
           },
         ],
@@ -507,6 +527,7 @@ describe("conversation helpers", () => {
           id: "conversation-2",
           title: "旧的会话标题",
           status: CONVERSATION_STATUS.ACTIVE,
+          isResponding: false,
           createdAt: new Date("2026-03-30T09:00:00.000Z"),
           updatedAt: new Date("2026-03-30T10:30:00.000Z"),
           messageCount: 6,
@@ -517,6 +538,7 @@ describe("conversation helpers", () => {
       id: "conversation-2",
       title: "新的会话标题",
       status: CONVERSATION_STATUS.ARCHIVED,
+      isResponding: true,
       createdAt: new Date("2026-03-30T09:00:00.000Z"),
       updatedAt: new Date("2026-03-30T11:00:00.000Z"),
       messageCount: 6,
@@ -533,6 +555,7 @@ describe("conversation helpers", () => {
             id: "conversation-2",
             title: "当前会话",
             status: CONVERSATION_STATUS.ACTIVE,
+            isResponding: false,
             updatedAt: new Date("2026-03-30T11:00:00.000Z"),
           },
         ],
@@ -540,6 +563,7 @@ describe("conversation helpers", () => {
           id: "conversation-1",
           title: "其他会话",
           status: CONVERSATION_STATUS.ACTIVE,
+          isResponding: false,
           createdAt: new Date("2026-03-30T09:00:00.000Z"),
           updatedAt: new Date("2026-03-30T10:30:00.000Z"),
           messageCount: 6,
@@ -547,5 +571,39 @@ describe("conversation helpers", () => {
         },
       }),
     ).toBeNull();
+  });
+
+  test("applies responding state from a streaming conversation id set", () => {
+    expect(
+      applyConversationRespondingState({
+        conversations: [
+          {
+            id: "conversation-1",
+            title: "已完成会话",
+            status: CONVERSATION_STATUS.ACTIVE,
+            updatedAt: new Date("2026-03-30T10:00:00.000Z"),
+          },
+          {
+            id: "conversation-2",
+            title: "正在生成",
+            status: CONVERSATION_STATUS.ACTIVE,
+            updatedAt: new Date("2026-03-30T11:00:00.000Z"),
+          },
+        ],
+        respondingConversationIds: new Set(["conversation-2"]),
+      }).map((item) => ({
+        id: item.id,
+        isResponding: item.isResponding,
+      })),
+    ).toEqual([
+      {
+        id: "conversation-1",
+        isResponding: false,
+      },
+      {
+        id: "conversation-2",
+        isResponding: true,
+      },
+    ]);
   });
 });

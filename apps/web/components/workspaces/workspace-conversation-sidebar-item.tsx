@@ -22,12 +22,25 @@ type WorkspaceConversationSidebarItemProps = {
   conversation: {
     id: string;
     title: string;
+    isResponding?: boolean;
     updatedAt: Date;
   };
   activeConversationId?: string;
   onNavigate?: () => void;
   alwaysShowMenu?: boolean;
 };
+
+function ConversationSidebarRespondingIndicator() {
+  return (
+    <span
+      role="status"
+      aria-label="会话生成中"
+      className="inline-flex size-4 items-center justify-center"
+    >
+      <span className="size-[14px] rounded-full border-[1.5px] border-app-border-strong/30 border-r-app-muted-strong border-t-app-muted-strong motion-safe:animate-spin" />
+    </span>
+  );
+}
 
 export function WorkspaceConversationSidebarItem({
   workspaceId,
@@ -173,13 +186,17 @@ export function WorkspaceConversationSidebarItem({
 
         <span
           className={cn(
-            "pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-right text-[11px] text-app-muted transition duration-150",
+            "pointer-events-none absolute right-4 top-1/2 inline-flex -translate-y-1/2 items-center justify-end text-right text-[11px] text-app-muted transition duration-150",
             isMenuOpen || alwaysShowMenu
               ? "opacity-0"
               : "opacity-100 group-hover:opacity-0 group-focus-within:opacity-0",
           )}
         >
-          {formatConversationSidebarUpdatedAt(conversation.updatedAt)}
+          {conversation.isResponding ? (
+            <ConversationSidebarRespondingIndicator />
+          ) : (
+            formatConversationSidebarUpdatedAt(conversation.updatedAt)
+          )}
         </span>
 
         <button

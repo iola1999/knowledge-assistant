@@ -1,6 +1,6 @@
 import { and, asc, desc, eq, inArray, isNull } from "drizzle-orm";
 import { notFound } from "next/navigation";
-import { MESSAGE_ROLE } from "@anchordesk/contracts";
+import { MESSAGE_ROLE, MESSAGE_STATUS } from "@anchordesk/contracts";
 
 import {
   conversationAttachments,
@@ -16,7 +16,10 @@ import {
 import { auth } from "@/auth";
 import { WorkspaceChatView } from "@/components/chat/workspace-chat-view";
 import { groupAssistantProcessMessages } from "@/lib/api/conversation-process";
-import { chooseWorkspaceConversationWithMeta } from "@/lib/api/conversations";
+import {
+  applyConversationRespondingState,
+  chooseWorkspaceConversationWithMeta,
+} from "@/lib/api/conversations";
 import {
   applyConversationMessageAttachments,
   readConversationMessageAttachments,
@@ -38,7 +41,7 @@ export default async function WorkspacePage({
   const user = session?.user;
   const db = getDb();
 
-  const [workspaceList, workspaceRows, conversationList, availableModelProfiles] =
+  const [workspaceList, workspaceRows, conversationListRows, respondingConversationRows, availableModelProfiles] =
     await Promise.all([
     db
       .select({
@@ -71,8 +74,28 @@ export default async function WorkspacePage({
       .from(conversations)
       .where(eq(conversations.workspaceId, workspaceId))
       .orderBy(desc(conversations.updatedAt), desc(conversations.createdAt)),
+    db
+      .select({
+        conversationId: messages.conversationId,
+      })
+      .from(messages)
+      .innerJoin(conversations, eq(messages.conversationId, conversations.id))
+      .where(
+        and(
+          eq(conversations.workspaceId, workspaceId),
+          eq(messages.role, MESSAGE_ROLE.ASSISTANT),
+          eq(messages.status, MESSAGE_STATUS.STREAMING),
+        ),
+      ),
     listEnabledModelProfiles(db),
   ]);
+
+  const conversationList = applyConversationRespondingState({
+    conversations: conversationListRows,
+    respondingConversationIds: respondingConversationRows.map(
+      (conversation) => conversation.conversationId,
+    ),
+  });
 
   const workspace = workspaceRows[0];
   if (!workspace || !user) {
@@ -171,6 +194,7 @@ export default async function WorkspacePage({
               id: activeConversation.id,
               title: activeConversation.title,
               status: activeConversation.status,
+              isResponding: activeConversation.isResponding,
               modelProfileId: activeConversation.modelProfileId,
               createdAt: activeConversation.createdAt,
               updatedAt: activeConversation.updatedAt,
