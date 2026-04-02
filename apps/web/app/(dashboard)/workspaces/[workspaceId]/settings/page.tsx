@@ -38,7 +38,7 @@ export default async function WorkspaceSettingsPage({
         { label: "设置" },
       ]}
     >
-      <div className="mx-auto flex w-full max-w-[980px] flex-col gap-4">
+      <div className="flex w-full min-w-0 flex-col gap-4">
         <header className="grid gap-3 px-1 pb-0.5">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="grid gap-1">

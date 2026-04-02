@@ -13,10 +13,14 @@ export function buildWorkspaceUserPanelState({
   sessionUser,
   initialUser,
   canAccessSystemSettings,
+  accountHref,
+  systemManagementHref,
 }: {
   sessionUser?: WorkspaceUserPanelUser | null;
   initialUser: WorkspaceUserPanelUser;
   canAccessSystemSettings: boolean;
+  accountHref?: string;
+  systemManagementHref?: string;
 }) {
   const username =
     pickNonEmptyText(sessionUser?.username, initialUser.username) ?? "user";
@@ -26,7 +30,7 @@ export function buildWorkspaceUserPanelState({
   const actions: WorkspaceUserPanelAction[] = [
     {
       key: "account",
-      href: "/account",
+      href: accountHref ?? "/account",
       label: "账号与安全",
     },
   ];
@@ -34,7 +38,7 @@ export function buildWorkspaceUserPanelState({
   if (canAccessSystemSettings) {
     actions.push({
       key: "system-management",
-      href: "/admin/models",
+      href: systemManagementHref ?? "/admin/models",
       label: "系统管理",
     });
   }

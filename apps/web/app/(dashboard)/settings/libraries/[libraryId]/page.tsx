@@ -1,14 +1,10 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { getDb } from "@anchordesk/db";
 
 import { GlobalLibraryMetadataForm } from "@/components/settings/global-library-metadata-form";
-import {
-  SettingsShell,
-  SettingsShellSidebar,
-} from "@/components/shared/settings-shell";
-import { ArrowLeftIcon } from "@/components/icons";
+import { SystemManagementSidebar } from "@/components/settings/system-management-sidebar";
+import { SettingsShell } from "@/components/shared/settings-shell";
 import { KnowledgeBaseExplorer } from "@/components/workspaces/knowledge-base-explorer";
 import {
   findManagedKnowledgeLibrary,
@@ -48,26 +44,9 @@ export default async function GlobalLibraryDetailPage({
 
   return (
     <SettingsShell
-      sidebar={
-        <SettingsShellSidebar>
-          <Link
-            href="/settings/libraries"
-            className="inline-flex items-center gap-1.5 self-start rounded-full px-1.5 py-1 text-[13px] text-app-muted-strong transition hover:bg-white/82 hover:text-app-text"
-          >
-            <ArrowLeftIcon />
-            返回资料库列表
-          </Link>
-
-          <div className="grid gap-1 px-1">
-            <h1 className="text-[1.25rem] font-semibold text-app-text">{library.title}</h1>
-            <p className="text-[13px] leading-6 text-app-muted-strong">
-              上传文档、整理目录，并控制该资料库是否允许工作空间订阅
-            </p>
-          </div>
-        </SettingsShellSidebar>
-      }
+      sidebar={<SystemManagementSidebar activeSection="libraries" />}
     >
-      <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-4">
+      <div className="flex w-full min-w-0 flex-col gap-4">
         <GlobalLibraryMetadataForm
           library={{
             id: library.id,

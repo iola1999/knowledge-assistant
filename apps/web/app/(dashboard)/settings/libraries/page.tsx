@@ -1,12 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { SystemManagementSidebar } from "@/components/settings/system-management-sidebar";
 import { GlobalLibraryCreateForm } from "@/components/settings/global-library-create-form";
-import {
-  SettingsShell,
-  SettingsShellSidebar,
-} from "@/components/shared/settings-shell";
-import { ArrowLeftIcon } from "@/components/icons";
+import { SettingsShell } from "@/components/shared/settings-shell";
 import { listManagedKnowledgeLibrariesWithStats } from "@/lib/api/admin-knowledge-libraries";
 import {
   formatKnowledgeLibraryStatus,
@@ -25,26 +22,9 @@ export default async function GlobalLibrariesPage() {
 
   return (
     <SettingsShell
-      sidebar={
-        <SettingsShellSidebar>
-          <Link
-            href="/workspaces"
-            className="inline-flex items-center gap-1.5 self-start rounded-full px-1.5 py-1 text-[13px] text-app-muted-strong transition hover:bg-white/82 hover:text-app-text"
-          >
-            <ArrowLeftIcon />
-            返回工作台
-          </Link>
-
-          <div className="grid gap-1 px-1">
-            <h1 className="text-[1.25rem] font-semibold text-app-text">全局资料库</h1>
-            <p className="text-[13px] leading-6 text-app-muted-strong">
-              创建、归档并维护可被工作空间订阅的共享资料
-            </p>
-          </div>
-        </SettingsShellSidebar>
-      }
+      sidebar={<SystemManagementSidebar activeSection="libraries" />}
     >
-      <div className="mx-auto flex w-full max-w-[1040px] flex-col gap-4">
+      <div className="flex w-full min-w-0 flex-col gap-4">
         <GlobalLibraryCreateForm />
 
         <section className={ui.sectionPanel}>

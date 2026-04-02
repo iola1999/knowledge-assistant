@@ -14,12 +14,16 @@ describe("buildWorkspaceUserPanelState", () => {
         username: "initial-user",
       },
       canAccessSystemSettings: false,
+      accountHref: "/account?returnTo=%2Fworkspaces%2Fworkspace-1",
     });
 
     expect(state.displayName).toBe("项目助手");
     expect(state.username).toBe("assistant");
     expect(state.actions.map((action) => action.key)).toEqual(["account", "logout"]);
     expect(state.accountActions.map((action) => action.key)).toEqual(["account"]);
+    expect(state.accountActions[0]).toMatchObject({
+      href: "/account?returnTo=%2Fworkspaces%2Fworkspace-1",
+    });
     expect(state.adminActions).toEqual([]);
     expect(state.logoutAction?.key).toBe("logout");
   });
@@ -35,6 +39,8 @@ describe("buildWorkspaceUserPanelState", () => {
         username: "founder",
       },
       canAccessSystemSettings: true,
+      accountHref: "/account?returnTo=%2Fworkspaces%2Fworkspace-1%3FconversationId%3Dconversation-1",
+      systemManagementHref: "/admin/models?returnTo=%2Fworkspaces%2Fworkspace-1",
     });
 
     expect(state.displayName).toBe("founder");
@@ -45,9 +51,12 @@ describe("buildWorkspaceUserPanelState", () => {
       "logout",
     ]);
     expect(state.accountActions.map((action) => action.key)).toEqual(["account"]);
+    expect(state.accountActions[0]).toMatchObject({
+      href: "/account?returnTo=%2Fworkspaces%2Fworkspace-1%3FconversationId%3Dconversation-1",
+    });
     expect(state.adminActions.map((action) => action.key)).toEqual(["system-management"]);
     expect(state.adminActions[0]).toMatchObject({
-      href: "/admin/models",
+      href: "/admin/models?returnTo=%2Fworkspaces%2Fworkspace-1",
       label: "系统管理",
     });
     expect(state.logoutAction?.key).toBe("logout");

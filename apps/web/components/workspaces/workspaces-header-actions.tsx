@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import { useEffect, useId, useState } from "react";
 
@@ -9,6 +9,10 @@ import {
   ChevronDownIcon,
   SlidersIcon,
 } from "@/components/icons";
+import {
+  buildAccountSettingsHref,
+  buildAccountSettingsReturnTo,
+} from "@/lib/account-settings";
 import {
   Popover,
   PopoverContent,
@@ -19,6 +23,10 @@ import {
   buildWorkspaceUserPanelState,
   type WorkspaceUserPanelAction,
 } from "@/lib/workspace-user-panel";
+import {
+  buildSystemManagementSectionHref,
+  resolveWorkspaceSystemManagementReturnTo,
+} from "@/lib/system-management";
 import { buttonStyles, cn, menuItemStyles, ui } from "@/lib/ui";
 
 type WorkspacesHeaderActionsProps = {
@@ -34,17 +42,26 @@ export function WorkspacesHeaderActions({
   canAccessSystemSettings,
 }: WorkspacesHeaderActionsProps) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { data: session } = useSession();
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [openMenu, setOpenMenu] = useState<"account" | "admin" | null>(null);
   const accountMenuId = useId();
   const adminMenuId = useId();
+  const accountHref = buildAccountSettingsHref({
+    returnTo: buildAccountSettingsReturnTo(pathname, searchParams),
+  });
+  const systemManagementHref = buildSystemManagementSectionHref("models", {
+    returnTo: resolveWorkspaceSystemManagementReturnTo(pathname),
+  });
 
   const { accountActions, adminActions, avatarLabel, displayName, logoutAction, username } =
     buildWorkspaceUserPanelState({
       sessionUser: session?.user,
       initialUser,
       canAccessSystemSettings,
+      accountHref,
+      systemManagementHref,
     });
 
   useEffect(() => {

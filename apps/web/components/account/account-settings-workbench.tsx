@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 
@@ -14,6 +15,7 @@ import {
   SettingsShellSidebar,
 } from "@/components/shared/settings-shell";
 import {
+  resolveAccountSettingsReturnHref,
   buildAccountSettingsNavGroups,
   resolveDefaultAccountSettingsSectionId,
   type AccountSettingsSectionId,
@@ -31,10 +33,12 @@ type AccountSettingsWorkbenchProps = {
 export function AccountSettingsWorkbench({
   currentUser,
 }: AccountSettingsWorkbenchProps) {
+  const searchParams = useSearchParams();
   const navGroups = buildAccountSettingsNavGroups();
   const defaultSectionId = resolveDefaultAccountSettingsSectionId(navGroups);
   const [activeSectionId, setActiveSectionId] =
     useState<AccountSettingsSectionId>(defaultSectionId);
+  const returnHref = resolveAccountSettingsReturnHref(searchParams.get("returnTo"));
 
   const displayName = currentUser.name ?? currentUser.username;
 
@@ -67,7 +71,7 @@ export function AccountSettingsWorkbench({
       sidebar={
         <SettingsShellSidebar>
           <Link
-            href="/workspaces"
+            href={returnHref}
             className="inline-flex items-center gap-1.5 self-start rounded-full px-1.5 py-1 text-[13px] text-app-muted-strong transition hover:bg-white/82 hover:text-app-text"
           >
             <ArrowLeftIcon />

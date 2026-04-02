@@ -1,14 +1,10 @@
 "use client";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useDeferredValue, useEffect, useState, useTransition } from "react";
 
-import { ArrowLeftIcon } from "@/components/icons";
 import { useMessage } from "@/components/shared/message-provider";
-import {
-  SettingsShell,
-  SettingsShellSidebar,
-} from "@/components/shared/settings-shell";
+import { SystemManagementSidebar } from "@/components/settings/system-management-sidebar";
+import { SettingsShell } from "@/components/shared/settings-shell";
 import {
   filterSystemSettingSections,
   type SystemSettingRow,
@@ -93,77 +89,29 @@ export function SystemSettingsForm({
   return (
     <form onSubmit={onSubmit}>
       <SettingsShell
-        sidebar={
-          <SettingsShellSidebar>
-            <Link
-              href="/workspaces"
-              className="inline-flex items-center gap-1.5 self-start rounded-full px-1.5 py-1 text-[13px] text-app-muted-strong transition hover:bg-white/82 hover:text-app-text"
-            >
-              <ArrowLeftIcon />
-              返回工作台
-            </Link>
+        sidebar={<SystemManagementSidebar activeSection="settings" />}
+      >
+        <div className="flex w-full min-w-0 flex-col gap-4">
+          <div className="sticky top-4 z-20 -mx-1 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-app-border/70 bg-white/90 px-4 py-3 shadow-soft backdrop-blur-sm">
+            <h2 className="text-[1.25rem] font-semibold text-app-text">运行时参数</h2>
 
-            <div className="grid gap-4">
-              <div className="px-1">
-                <h1 className="text-[1.25rem] font-semibold text-app-text">系统参数</h1>
-              </div>
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+              <label className="w-full sm:w-[280px]">
+                <span className="sr-only">搜索系统参数</span>
+                <input
+                  autoComplete="off"
+                  className={inputStyles({ size: "compact" })}
+                  placeholder="搜 key、说明、provider"
+                  type="search"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                />
+              </label>
 
-              {hasSettings ? (
-                <div className="rounded-2xl border border-app-border bg-app-sidebar/50 p-2">
-                  <nav className="grid gap-0.5" aria-label="系统参数分组导航">
-                    {visibleSections.map((section) => {
-                      const totalItems = sections.find(
-                        (candidate) => candidate.id === section.id,
-                      )?.items.length;
-
-                      return (
-                        <a
-                          key={section.id}
-                          href={`#${section.id}`}
-                          className="flex items-center justify-between gap-3 rounded-xl px-2.5 py-2 text-left text-sm text-app-muted-strong transition hover:bg-white hover:text-app-text"
-                        >
-                          <span className="min-w-0 truncate text-[14px] font-medium text-app-text">
-                            {section.title}
-                          </span>
-                          <span className="shrink-0 text-xs text-app-muted">
-                            {section.items.length}
-                            {typeof totalItems === "number" && totalItems !== section.items.length
-                              ? `/${totalItems}`
-                              : ""}
-                          </span>
-                        </a>
-                      );
-                    })}
-                  </nav>
-                </div>
-              ) : null}
-            </div>
-
-            <div className="mt-auto grid gap-2">
-              <button className={buttonStyles({ block: true })} disabled={isPending} type="submit">
+              <button className={buttonStyles({ size: "sm" })} disabled={isPending} type="submit">
                 {isPending ? "刷新中..." : "保存系统参数"}
               </button>
             </div>
-          </SettingsShellSidebar>
-        }
-      >
-        <div className="mx-auto flex w-full max-w-[980px] flex-col gap-4">
-          <div className="sticky top-4 z-20 -mx-1 flex items-center justify-between gap-4 rounded-2xl border border-app-border/70 bg-white/90 px-4 py-3 shadow-soft backdrop-blur-sm">
-            <h2 className="text-[1.25rem] font-semibold text-app-text">
-              运行时参数
-            </h2>
-
-            <label className="w-full max-w-[280px]">
-              <span className="sr-only">搜索系统参数</span>
-              <input
-                autoComplete="off"
-                className={inputStyles({ size: "compact" })}
-                placeholder="搜 key、说明、provider"
-                type="search"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-              />
-            </label>
           </div>
 
           {!hasSettings ? (

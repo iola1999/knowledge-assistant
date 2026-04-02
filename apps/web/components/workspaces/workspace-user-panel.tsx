@@ -1,6 +1,6 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import { useEffect, useId, useState } from "react";
 
@@ -10,6 +10,14 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/shared/popover";
+import {
+  buildAccountSettingsHref,
+  buildAccountSettingsReturnTo,
+} from "@/lib/account-settings";
+import {
+  buildSystemManagementSectionHref,
+  resolveWorkspaceSystemManagementReturnTo,
+} from "@/lib/system-management";
 import { WorkspaceUserMenuContent } from "@/components/workspaces/workspace-user-menu-content";
 import { buildWorkspaceUserPanelState } from "@/lib/workspace-user-panel";
 import { cn } from "@/lib/ui";
@@ -27,16 +35,25 @@ export function WorkspaceUserPanel({
   canAccessSystemSettings,
 }: WorkspaceUserPanelProps) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { data: session } = useSession();
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const menuId = useId();
+  const accountHref = buildAccountSettingsHref({
+    returnTo: buildAccountSettingsReturnTo(pathname, searchParams),
+  });
+  const systemManagementHref = buildSystemManagementSectionHref("models", {
+    returnTo: resolveWorkspaceSystemManagementReturnTo(pathname),
+  });
 
   const { accountActions, adminActions, avatarLabel, displayName, logoutAction, username } =
     buildWorkspaceUserPanelState({
       sessionUser: session?.user,
       initialUser,
       canAccessSystemSettings,
+      accountHref,
+      systemManagementHref,
     });
   const menuActions = [...accountActions, ...adminActions];
 

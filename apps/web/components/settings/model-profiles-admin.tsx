@@ -1,15 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 
-import { ArrowLeftIcon } from "@/components/icons";
 import { useMessage } from "@/components/shared/message-provider";
-import {
-  SettingsShell,
-  SettingsShellSidebar,
-} from "@/components/shared/settings-shell";
+import { SystemManagementSidebar } from "@/components/settings/system-management-sidebar";
+import { SettingsShell } from "@/components/shared/settings-shell";
 import {
   describeModelProfileApiType,
   formatEnabledModelProfileLabel,
@@ -172,251 +168,220 @@ export function ModelProfilesAdmin({
   return (
     <form onSubmit={handleSubmit}>
       <SettingsShell
-        sidebar={
-          <SettingsShellSidebar>
-            <Link
-              href="/workspaces"
-              className="inline-flex items-center gap-1.5 self-start rounded-full px-1.5 py-1 text-[13px] text-app-muted-strong transition hover:bg-white/82 hover:text-app-text"
-            >
-              <ArrowLeftIcon />
-              返回工作台
-            </Link>
-
-            <div className="grid gap-4">
-              <div className="px-1">
-                <h1 className="text-[1.25rem] font-semibold text-app-text">系统管理</h1>
-              </div>
-
-              <div className="rounded-2xl border border-app-border bg-app-sidebar/50 p-2">
-                <nav className="grid gap-0.5" aria-label="系统管理导航">
-                  <Link
-                    href="/admin/models"
-                    className="rounded-xl bg-white px-2.5 py-2 text-[14px] font-medium text-app-text shadow-soft"
-                  >
-                    模型管理
-                  </Link>
-                  <Link
-                    href="/settings/libraries"
-                    className="rounded-xl px-2.5 py-2 text-[14px] text-app-muted-strong transition hover:bg-white hover:text-app-text"
-                  >
-                    全局资料库
-                  </Link>
-                  <Link
-                    href="/settings"
-                    className="rounded-xl px-2.5 py-2 text-[14px] text-app-muted-strong transition hover:bg-white hover:text-app-text"
-                  >
-                    系统参数
-                  </Link>
-                </nav>
-              </div>
-
-              <div className={cn(ui.subpanel, "grid gap-2")}>
-                <div className="flex items-center justify-between gap-3">
-                  <span className="text-[13px] font-medium text-app-text">已配置模型</span>
-                  <span className={ui.chipSoft}>{items.length}</span>
-                </div>
-                <button
-                  type="button"
-                  className={buttonStyles({ block: true, size: "sm" })}
-                  onClick={() => handleSelectProfile(null)}
-                >
-                  新建模型
-                </button>
-              </div>
-            </div>
-          </SettingsShellSidebar>
-        }
+        sidebar={<SystemManagementSidebar activeSection="models" />}
       >
-        <div className="mx-auto grid w-full max-w-[1180px] gap-5 xl:grid-cols-[320px_minmax(0,1fr)]">
-          <section className={cn(ui.sectionPanel, "grid content-start gap-3")}>
-            <div className="flex items-center justify-between gap-3">
-              <div className="grid gap-0.5">
-                <h2 className="text-[1.1rem] font-semibold text-app-text">模型列表</h2>
-                <p className={ui.mutedStrong}>默认模型会用于新会话和报告生成。</p>
-              </div>
-            </div>
+        <div className="flex w-full min-w-0 flex-col gap-4">
+          <div className="grid w-full min-w-0 gap-5 xl:grid-cols-[320px_minmax(0,1fr)]">
+            <section className={cn(ui.sectionPanel, "grid content-start gap-3")}>
+              <div className="grid gap-3">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="grid gap-0.5">
+                    <h2 className="text-[1.1rem] font-semibold text-app-text">模型列表</h2>
+                    <p className={ui.mutedStrong}>默认模型会用于新会话和报告生成。</p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className={cn(ui.chipSoft, "min-h-8 px-3 text-[13px]")}>
+                      已配置 {items.length} 个模型
+                    </span>
+                    <button
+                      type="button"
+                      className={buttonStyles({
+                        variant: "secondary",
+                        size: "xs",
+                        shape: "pill",
+                      })}
+                      onClick={() => handleSelectProfile(null)}
+                    >
+                      新建模型
+                    </button>
+                  </div>
+                </div>
 
-            {items.length === 0 ? (
-              <div className={cn(ui.subpanel, "grid gap-1.5")}>
-                <strong className="text-[14px] font-semibold text-app-text">还没有模型</strong>
-                <span className="text-[13px] text-app-muted">
-                  先创建一个默认模型。
-                </span>
+                <div className="h-px bg-app-border/70" />
               </div>
-            ) : (
-              items.map((profile) => {
-                const selected = profile.id === selectedId;
 
-                return (
-                  <button
-                    key={profile.id}
-                    type="button"
-                    className={cn(
-                      "grid gap-2 rounded-2xl border px-4 py-3 text-left transition",
-                      selected
-                        ? "border-app-border-strong bg-white shadow-soft"
-                        : "border-app-border bg-app-surface-soft/76 hover:border-app-border-strong hover:bg-white",
-                    )}
-                    onClick={() => handleSelectProfile(profile.id)}
+              {items.length === 0 ? (
+                <div className={cn(ui.subpanel, "grid gap-1.5")}>
+                  <strong className="text-[14px] font-semibold text-app-text">还没有模型</strong>
+                  <span className="text-[13px] text-app-muted">
+                    先创建一个默认模型。
+                  </span>
+                </div>
+              ) : (
+                items.map((profile) => {
+                  const selected = profile.id === selectedId;
+
+                  return (
+                    <button
+                      key={profile.id}
+                      type="button"
+                      className={cn(
+                        "grid gap-2 rounded-2xl border px-4 py-3 text-left transition",
+                        selected
+                          ? "border-app-border-strong bg-white shadow-soft"
+                          : "border-app-border bg-app-surface-soft/76 hover:border-app-border-strong hover:bg-white",
+                      )}
+                      onClick={() => handleSelectProfile(profile.id)}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 grid gap-1">
+                          <strong className="truncate text-[14px] font-semibold text-app-text">
+                            {formatEnabledModelProfileLabel(profile)}
+                          </strong>
+                          <span className="truncate text-[12px] text-app-muted">
+                            {describeModelProfileApiType(profile.apiType)}
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap justify-end gap-1.5">
+                          {profile.isDefault ? <span className={ui.chipSoft}>默认</span> : null}
+                          <span className={profile.enabled ? ui.chipSoft : ui.chip}>
+                            {profile.enabled ? "启用" : "停用"}
+                          </span>
+                        </div>
+                      </div>
+                      <code className="truncate text-[12px] text-app-muted-strong">
+                        {profile.modelName}
+                      </code>
+                    </button>
+                  );
+                })
+              )}
+            </section>
+
+            <section className={cn(ui.sectionPanel, "grid gap-5")}>
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="grid gap-1">
+                  <h2 className="text-[1.2rem] font-semibold text-app-text">
+                    {selectedProfile ? "编辑模型" : "新建模型"}
+                  </h2>
+                  <p className={ui.mutedStrong}>
+                    {selectedProfile
+                      ? formatEnabledModelProfileLabel(selectedProfile)
+                      : "新增一个可供用户选择的模型。"}
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  <span className={ui.chipSoft}>Claude Compatible</span>
+                  {draft.isDefault ? <span className={ui.chipSoft}>默认</span> : null}
+                  <span className={draft.enabled ? ui.chipSoft : ui.chip}>
+                    {draft.enabled ? "启用" : "停用"}
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <label className={ui.label}>
+                  <span>显示名称</span>
+                  <input
+                    className={inputStyles()}
+                    value={draft.displayName}
+                    onChange={(event) =>
+                      setDraft((current) => ({
+                        ...current,
+                        displayName: event.target.value,
+                      }))
+                    }
+                  />
+                </label>
+
+                <label className={ui.label}>
+                  <span>模型名称</span>
+                  <input
+                    className={inputStyles()}
+                    value={draft.modelName}
+                    onChange={(event) =>
+                      setDraft((current) => ({
+                        ...current,
+                        modelName: event.target.value,
+                      }))
+                    }
+                  />
+                </label>
+              </div>
+
+              <label className={ui.label}>
+                <span>Base URL</span>
+                <input
+                  className={inputStyles()}
+                  value={draft.baseUrl}
+                  onChange={(event) =>
+                    setDraft((current) => ({
+                      ...current,
+                      baseUrl: event.target.value,
+                    }))
+                  }
+                />
+              </label>
+
+              <label className={ui.label}>
+                <span>API Key</span>
+                <input
+                  className={inputStyles()}
+                  type="password"
+                  value={draft.apiKey}
+                  onChange={(event) =>
+                    setDraft((current) => ({
+                      ...current,
+                      apiKey: event.target.value,
+                    }))
+                  }
+                />
+              </label>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <label className={ui.label}>
+                  <span>可用状态</span>
+                  <select
+                    className={selectStyles()}
+                    value={draft.enabled ? "true" : "false"}
+                    onChange={(event) =>
+                      setDraft((current) => ({
+                        ...current,
+                        enabled: event.target.value === "true",
+                      }))
+                    }
                   >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0 grid gap-1">
-                        <strong className="truncate text-[14px] font-semibold text-app-text">
-                          {formatEnabledModelProfileLabel(profile)}
-                        </strong>
-                        <span className="truncate text-[12px] text-app-muted">
-                          {describeModelProfileApiType(profile.apiType)}
-                        </span>
-                      </div>
-                      <div className="flex flex-wrap justify-end gap-1.5">
-                        {profile.isDefault ? <span className={ui.chipSoft}>默认</span> : null}
-                        <span className={profile.enabled ? ui.chipSoft : ui.chip}>
-                          {profile.enabled ? "启用" : "停用"}
-                        </span>
-                      </div>
-                    </div>
-                    <code className="truncate text-[12px] text-app-muted-strong">
-                      {profile.modelName}
-                    </code>
+                    <option value="true">启用</option>
+                    <option value="false">停用</option>
+                  </select>
+                </label>
+
+                <label className={ui.label}>
+                  <span>默认模型</span>
+                  <select
+                    className={selectStyles()}
+                    value={draft.isDefault ? "true" : "false"}
+                    onChange={(event) =>
+                      setDraft((current) => ({
+                        ...current,
+                        isDefault: event.target.value === "true",
+                      }))
+                    }
+                  >
+                    <option value="false">普通</option>
+                    <option value="true">设为默认</option>
+                  </select>
+                </label>
+              </div>
+
+              <div className="flex items-center justify-end gap-2">
+                {selectedProfile ? (
+                  <button
+                    type="button"
+                    className={buttonStyles({ variant: "ghost", size: "sm" })}
+                    onClick={() =>
+                      setDraft(buildDraft(selectedProfile, { shouldDefault: false }))
+                    }
+                  >
+                    还原
                   </button>
-                );
-              })
-            )}
-          </section>
-
-          <section className={cn(ui.sectionPanel, "grid gap-5")}>
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div className="grid gap-1">
-                <h2 className="text-[1.2rem] font-semibold text-app-text">
-                  {selectedProfile ? "编辑模型" : "新建模型"}
-                </h2>
-                <p className={ui.mutedStrong}>
-                  {selectedProfile
-                    ? formatEnabledModelProfileLabel(selectedProfile)
-                    : "新增一个可供用户选择的模型。"}
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                <span className={ui.chipSoft}>Claude Compatible</span>
-                {draft.isDefault ? <span className={ui.chipSoft}>默认</span> : null}
-                <span className={draft.enabled ? ui.chipSoft : ui.chip}>
-                  {draft.enabled ? "启用" : "停用"}
-                </span>
-              </div>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <label className={ui.label}>
-                <span>显示名称</span>
-                <input
-                  className={inputStyles()}
-                  value={draft.displayName}
-                  onChange={(event) =>
-                    setDraft((current) => ({
-                      ...current,
-                      displayName: event.target.value,
-                    }))
-                  }
-                />
-              </label>
-
-              <label className={ui.label}>
-                <span>模型名称</span>
-                <input
-                  className={inputStyles()}
-                  value={draft.modelName}
-                  onChange={(event) =>
-                    setDraft((current) => ({
-                      ...current,
-                      modelName: event.target.value,
-                    }))
-                  }
-                />
-              </label>
-            </div>
-
-            <label className={ui.label}>
-              <span>Base URL</span>
-              <input
-                className={inputStyles()}
-                value={draft.baseUrl}
-                onChange={(event) =>
-                  setDraft((current) => ({
-                    ...current,
-                    baseUrl: event.target.value,
-                  }))
-                }
-              />
-            </label>
-
-            <label className={ui.label}>
-              <span>API Key</span>
-              <input
-                className={inputStyles()}
-                type="password"
-                value={draft.apiKey}
-                onChange={(event) =>
-                  setDraft((current) => ({
-                    ...current,
-                    apiKey: event.target.value,
-                  }))
-                }
-              />
-            </label>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <label className={ui.label}>
-                <span>可用状态</span>
-                <select
-                  className={selectStyles()}
-                  value={draft.enabled ? "true" : "false"}
-                  onChange={(event) =>
-                    setDraft((current) => ({
-                      ...current,
-                      enabled: event.target.value === "true",
-                    }))
-                  }
-                >
-                  <option value="true">启用</option>
-                  <option value="false">停用</option>
-                </select>
-              </label>
-
-              <label className={ui.label}>
-                <span>默认模型</span>
-                <select
-                  className={selectStyles()}
-                  value={draft.isDefault ? "true" : "false"}
-                  onChange={(event) =>
-                    setDraft((current) => ({
-                      ...current,
-                      isDefault: event.target.value === "true",
-                    }))
-                  }
-                >
-                  <option value="false">普通</option>
-                  <option value="true">设为默认</option>
-                </select>
-              </label>
-            </div>
-
-            <div className="flex items-center justify-end gap-2">
-              {selectedProfile ? (
-                <button
-                  type="button"
-                  className={buttonStyles({ variant: "ghost", size: "sm" })}
-                  onClick={() =>
-                    setDraft(buildDraft(selectedProfile, { shouldDefault: false }))
-                  }
-                >
-                  还原
+                ) : null}
+                <button className={buttonStyles()} disabled={isPending} type="submit">
+                  {isPending ? "刷新中..." : selectedProfile ? "保存模型" : "创建模型"}
                 </button>
-              ) : null}
-              <button className={buttonStyles()} disabled={isPending} type="submit">
-                {isPending ? "刷新中..." : selectedProfile ? "保存模型" : "创建模型"}
-              </button>
-            </div>
-          </section>
+              </div>
+            </section>
+          </div>
         </div>
       </SettingsShell>
     </form>
