@@ -1,7 +1,7 @@
 # 实施跟踪
 
-版本：v0.12
-日期：2026-04-02
+版本：v0.13
+日期：2026-04-03
 
 > 本文件是项目的执行跟踪文档。
 >
@@ -53,11 +53,15 @@
 - `search_workspace_knowledge`、文档阅读授权和 citation 跳转都已切到 library scope；默认召回 workspace 私有库 + 已激活且开启检索的全局订阅库。
 - `/api/conversations/[conversationId]/stream` 现在会先发数据库快照，再转发 Redis Streams live event；前端会实时接收 `assistant_status` / `assistant_thinking_delta` / `tool_progress` / `tool_message` / `answer_delta` / `answer_done` / `run_failed`。
 - assistant 正文现已具备 token 级流式：主回答只生成一次，SSE 会持续推送同一条答案的增量，而不是先出草稿再二次重写。
-- 当 Claude Agent SDK/模型返回 thinking delta 时，会话页现在也会直接展示 raw thinking 文本；该内容会随 streaming assistant 的 `structured_json` 一起更新，SSE 重连后可恢复。
+- 当 Claude Agent SDK/模型返回 thinking delta 时，会话页现在会把 raw thinking、tool 事件和 runtime status 合流成统一 process timeline；thinking 内容会随 streaming assistant 的 `structured_json` 一起更新，SSE 重连后可恢复。
+- process timeline 当前会优先展示稳定可解释的参数、进度和结果摘录；对无法可靠判定的 tool summary 不再猜测性生成结果文案。
 - 当前 live stream 已改为 `assistant_message_id + run_id` 作用域；retry 同一 assistant turn 时会生成新的 `run_id`，旧 run 的 Redis event、BullMQ job 和 tool timeline 不会再回灌到新一轮。
 - 无论当前是否已经进入会话，发送成功后前端都会先本地插入 user message 和 assistant placeholder，再由 SSE 接上后续工具时间线与回答流式更新；首条消息创建新会话时会同时在后台补上 URL 切换。
+- 用户现在可在 assistant 回复中框选一段内容发起引用式 follow-up；引用片段会以 `follow_up_quote` snapshot 写入 user message，quote-only 追问和失败回答重试都会沿用这段上下文。
 - 当前会话在本地提交后，侧栏会话列表也会立即同步最新会话标题、更新时间和选中态，不再只能等下一次服务端刷新。
+- 当前侧栏还会对正在回答的会话显示 responding/loading 态，并在终态事件到达后同步收口。
 - 当前会话页头的标题、最后更新时间、消息数与附件数也会在本地提交后立即更新，不再只能等服务端重新返回当前页。
+- user turn 左侧已补 hover copy action，便于快速复制原始提问文本且不打断当前线程。
 - `answer_done` / `run_failed` 事件现在会附带最终 assistant 内容、structured state 和当前 message citations；前端会直接切到本地最终态，并同步更新当前会话页头与侧栏活动时间，不再依赖这一步的整页刷新。
 - 如果终态 `run_failed` 事件没有带回 `message_id`，前端也会把当前本地 streaming assistant 收口为 failed，避免界面停在“仍在生成”。
 - streaming 期间输入区主动作会切换为“停止生成”；调用 `/api/conversations/[conversationId]/stop` 后，前端会保留已生成片段并结束当前 assistant streaming，`agent-runtime` 会在发现该消息不再处于 streaming 时协作停止后续落库。
@@ -95,73 +99,24 @@
 
 ## 2. 最近完成
 
-- `48ddb3b` Add conversation attachment preload and range reads
-- `29178a4` Add `/admin/models` management and conversation-scoped model profile selection
-- `391d70b` Prioritize local knowledge when searchable docs exist
-- `8034566` Prefer local knowledge before external legal search
-- `769d42e` Set Brave as default web search provider in system settings defaults
-- `working tree` Add stop action in composer and let `/api/conversations/[conversationId]/stop` finalize the active streaming assistant with its partial content
-- `working tree` Remove the second grounded-answer pass and switch conversations to a single streamed answer with runtime citation ids and `[[cite:N]]` markers
-- `working tree` Replace DB-polled assistant draft streaming with Redis Streams live transport, assistant status/tool progress events, and single-answer token streaming
-- `working tree` Add super-admin global library CRUD pages, upload/file-manager APIs, and shared library explorer support
-- `working tree` Add workspace global-library subscription API and settings UI with active / paused / revoked states
-- `working tree` Mount subscribed global libraries read-only in workspace knowledge-base root and reuse explorer across private/global scopes
-- `working tree` Surface citation source badges for workspace vs global-library evidence in conversation and share views
-- `working tree` Allow global-library ingest and retry flows to run on library-only jobs without requiring a workspace id
-- `working tree` Stop relying on a terminal-event page refresh; `answer_done` / `run_failed` now update current conversation meta and sidebar activity locally
-- `working tree` When terminal `run_failed` arrives without `message_id`, close the local streaming assistant into a failed state instead of leaving the thread stuck in streaming
-- `working tree` Sync conversation page header meta locally after submit, including title, updated time, message count and attachment count
-- `working tree` Sync sidebar conversation ordering, latest title and active selection locally when a submitted turn creates or advances a conversation
-- `working tree` Let first-message conversation creation switch locally into the new thread immediately after submit, then sync the URL in background
-- `working tree` Let existing conversations append the new user turn and assistant placeholder locally right after submit, then continue with SSE streaming without an immediate hard refresh
-- `working tree` Add executed regression tests for agent-runtime completion/failure handling and conversation message/retry enqueue failure responses
-- `working tree` Add configurable `conversation.respond` worker concurrency and bounded batch web fetching via `fetch_sources`
-- `working tree` Let failed-answer retry resume locally into streaming state, clear stale citations/tool timeline, and hand control back to SSE without waiting for an immediate hard refresh
-- `working tree` Surface persisted citation excerpts in conversation/share source cards and extend terminal SSE citation payload with `quote_text`
-- `working tree` Unify grounded evidence for workspace anchors and fetched web pages, and persist web citations into `message_citations`
-- `working tree` Add application-level inline citation markers in assistant answers and render them as正文角标 with shared source cards
-- `working tree` Add citation-chain debugging guide and richer agent-runtime citation logs
-- `working tree` Consolidate assistant/tool failed message payloads into shared contracts helpers across enqueue, retry, stale-run expiration, and worker failure paths
-- `working tree` Refine streaming runtime status copy so SSE reconnects show retrying instead of forcing an immediate hard refresh
-- `working tree` Consolidate runtime config to bootstrap env + DB system_settings; app services load settings at startup via initRuntimeSettings()
-- `working tree` Switch uploaded source objects to direct content-addressed blobs, verify claimed SHA256 in worker, and avoid deleting shared blobs still referenced by other versions
-- `working tree` Materialize workspace knowledge-base directories, add file-manager table layout, batch operations, zip download, and drag-to-directory flow
-- `working tree` Add Redis-backed JWT session allowlist and revoke all sessions on password change
-- `working tree` Add retry entry for the latest failed assistant turn in workspace conversations
-- `working tree` Hydrate conversation terminal SSE events with final assistant payload and citations before refresh
-- `working tree` Remove workspace archive controls and switch workspace delete to soft delete
-- `working tree` Add account security page with password change and logout
-- `working tree` Add read-only conversation sharing with revocable share links and public share page
-- `working tree` Align upload scope with OCR-disabled policy and reject image/scanned uploads early
-- `working tree` Remove workspace mode toggles and fix answer strategy to knowledge-first plus web search
-- `working tree` 去法律化重定位
-  - 产品定位改成通用知识库助手
-  - 保留 `search_statutes` 专项工具
-  - package scope、默认 bucket、默认 collection 与 MCP namespace 改为通用命名
-  - 文档类型 taxonomy 改成通用分类
-- `working tree` Move system config into database-backed settings
-- `working tree` Redesign workspace shell around assistant-first flow
-- `working tree` Migrate web styling to Tailwind design system
-- `working tree` Add Docker infra commands and dev guide
-- `working tree` Add local development startup scripts
-- `working tree` Add PDF viewer and upload job feedback
-- `working tree` Finish workspace conversation management
-- `working tree` Implement document management CRUD
-- `working tree` Document implementation snapshot and current gap assessment
-- `working tree` Finish de-legalization brand cleanup for workspace shell and add regression guard
-- `working tree` Add DashScope OCR for scanned/no-text PDFs, surface parser OCR failures in worker job state, and expose parser OCR runtime settings
-- `working tree` Add BM25 scoring over dense retrieval candidates with regression tests
-- `working tree` Remove unsupported citation confidence metadata from conversation answers
-- `working tree` Expire stale streaming assistant runs when agent-runtime stops heartbeating
-- `working tree` Replace empty-state helper copy with temporary attachment upload entry and parse-only conversation attachment flow
-- `working tree` Persist tool timeline into conversation messages and stream it over SSE
-- `f0e431a` Prioritize DashScope retrieval providers
-- `70aa665` Add parser OCR fallback and citation validation baseline
+- `e017bf9` 为 user turn 增加 hover copy action，复制原始提问时给出轻量确认态。
+- `723a0de` 公开分享页在禁用本地文档跳转时，继续允许外部网页 citation 打开 `source_url`。
+- `d1466f3` 会话支持从 assistant 回复中框选文本发起引用式 follow-up；quote-only 追问与失败回答重试都可沿用该上下文。
+- `27eacb2` 侧栏会话列表可直接显示正在回答的 responding/loading 态。
+- `c5f5d19` process timeline 不再为不确定的 tool payload 猜测结果摘要，降低误导性文案。
+- `853a599` thinking、tool 事件与 runtime status 已合并为统一 process timeline 视图。
+- `23cf410` `pnpm dev` 会在 parser `requirements.txt` 变化时自动刷新 `.venv`。
+- `46d5a8e` OCR 默认 provider 切到 `dashscope`，用于无原生文本且页面含图的 PDF 页。
+- `e005e34` `web -> queue -> agent-runtime/worker -> parser` 已贯通 W3C Trace Context。
+- `48ddb3b` 会话级临时资料支持 prompt 预载与按页范围读取。
+- `29178a4` 新增 `/admin/models` 与 conversation-scoped 模型选择。
+- `391d70b` / `8034566` 当 workspace 存在可检索本地资料时，agent 编排会更明确地优先本地知识与附件，再决定是否走法规/外网搜索。
 
 ## 3. 活跃待办
 
 - 主会话链路完成态收口
   - 当前已能展示 `assistant_status`、tool start / progress / completed / failed、assistant `answer_delta`、`answer_done`、`run_failed`
+  - thinking / tool / status 已合并为统一 process timeline；后续仍需继续收口 raw thinking 的噪音控制与展示边界
   - assistant placeholder 到 completed/failed 的本地状态切换已补齐；当前会话继续发送、首条消息创建新会话、主动停止生成与最新失败回答重试都已支持直接本地恢复或收口 streaming
   - 侧栏与页头的核心 conversation meta 已能跟随本地提交即时更新
   - 当前“停止生成”仍是基于数据库状态的协作式 stop，不是 provider-side cancel；更完整的中断语义仍待后续收口

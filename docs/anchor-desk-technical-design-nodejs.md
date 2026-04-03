@@ -1,7 +1,7 @@
 # AnchorDesk技术设计（Node.js / Next.js / Claude Agent SDK）
 
-版本：v0.12
-日期：2026-04-02
+版本：v0.13
+日期：2026-04-03
 
 > 文档角色说明：
 >
@@ -118,9 +118,12 @@ flowchart LR
 - live conversation stream 已进一步收口为 `assistant_message_id + run_id` 作用域：重试同一条 assistant message 时会生成新的 `run_id`，Redis Streams、BullMQ job、tool timeline 和 SSE fallback 都只消费当前 run，避免旧 run 事件或旧 tool timeline 回灌到新一轮回答。
 - 当本地缺少 `ANTHROPIC_API_KEY` 时，`Agent Runtime` 会直接失败，并通过既有 `run_failed` / assistant failed 链路把错误返回前端。
 - Agent 工具调用事件仍会以 `messages.role = "tool"` 持久化到数据库；但 `/api/conversations/[conversationId]/stream` 现已切到“DB 快照 + Redis Streams live transport”模型，不再以数据库轮询作为主流式通道。同一路 SSE 会推送 `assistant_status` / `assistant_thinking_delta` / `tool_progress` / `tool_message` / `answer_delta` / `answer_done` / `run_failed`。
-- 当前前端在 assistant 还没开始输出最终回答时，也会直接展示已接收到的 raw thinking 文本；thinking 内容会跟随 streaming assistant snapshot 持久化到 `structured_json`，便于 SSE 重连或页面刷新后恢复。
+- 当前前端会把 assistant raw thinking 与 tool/status event 合流为同一条 process timeline；thinking 内容会跟随 streaming assistant snapshot 持久化到 `structured_json`，便于 SSE 重连或页面刷新后恢复。
+- process timeline 当前优先展示稳定可解释的参数、进度和结果摘录；对无法可靠判定的 tool summary 不再猜测性生成文案，避免把不确定内容误展示成结果。
 - 发送新消息后，前端会先本地插入新的 user turn 与 assistant placeholder，然后再由 SSE 接上工具时间线和回答流式更新；如果这是首条消息创建新会话，前端会先切进本地线程，再在后台补上 URL 切换。
+- 用户现在可在 assistant 回复中框选一段内容发起 follow-up；引用片段会以 `follow_up_quote` snapshot 写入对应 user message 的 `structured_json`，quote-only 追问和失败回答重试都会沿用这段上下文。
 - 当前会话在本地提交后，侧栏会话列表也会立即同步最新会话标题、更新时间和选中态，而不是只能等页面刷新后才对齐。
+- 侧栏会话列表当前还会在 assistant 运行期间显示 responding/loading 态，与本地 placeholder 和终态事件同步收口。
 - 当前会话页头的标题、最后更新时间、消息数与附件数也会在本地提交后即时更新，不再只能依赖服务端返回当前页。
 - `answer_done` / `run_failed` 终态事件现在会附带最终 assistant 内容、structured state 和当前 message citations；前端会直接切到本地最终态，并同步更新当前会话页头与侧栏活动时间，不再依赖这一步的整页刷新。
 - 会话页和共享页当前都会直接展示持久化的 citation `quote_text`，让终态证据展示不再只停留在标签层。

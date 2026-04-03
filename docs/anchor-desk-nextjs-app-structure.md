@@ -1,7 +1,7 @@
 # AnchorDesk Next.js App Router 结构
 
-版本：v0.7
-日期：2026-04-01
+版本：v0.8
+日期：2026-04-03
 
 > 文档角色说明：
 >
@@ -40,7 +40,7 @@
 - `/workspaces/[workspaceId]/reports/[reportId]`
   - 报告结果页
 - `/share/[shareToken]`
-  - 公开只读会话分享页，不要求登录
+  - 公开只读会话分享页，不要求登录；本地资料不可跳转，但外部网页 citation 仍可打开
 
 ## 3. 主要 API
 
@@ -78,6 +78,7 @@
   - 创建会话时可附带 `modelProfileId`，并持久化到 `conversations.model_profile_id`
 - `/api/conversations/[conversationId]/messages`
   - 写入 user message
+  - 若请求携带 `quote`，会把 follow-up quote snapshot 写入 user message `structured_json`，并把该引用拼进本轮 prompt 作为追问焦点
   - 创建 assistant placeholder
   - 入队 `conversation.respond`
 - `/api/conversations/[conversationId]/stream`
@@ -86,7 +87,7 @@
   - 推送 `assistant_status` / `assistant_thinking_delta` / `tool_progress` / `tool_message` / `answer_delta` / `answer_done` / `run_failed`
   - `answer_done` / `run_failed` 终态事件会附带最终 assistant 内容、structured state 和当前 message citations，供前端直接切到本地最终态，并同步更新当前会话的本地 meta
 - `/api/conversations/[conversationId]/retry`
-  - 当最新 assistant 消息为 failed 时，复用上一条 user prompt 重新入队当前回答
+  - 当最新 assistant 消息为 failed 时，复用上一条 user prompt 与 follow-up quote snapshot 重新入队当前回答
 - `/api/conversations/[conversationId]/stop`
   - 将当前 streaming assistant 收口为 completed，并保留已生成片段
   - `agent-runtime` 会在发现该 assistant 不再处于 streaming 时协作停止后续持久化
@@ -111,8 +112,8 @@ Server Components：
 Client Components：
 
 - AccountPasswordForm
-- Composer（含 conversation-scoped model picker 与 stop action）
-- ConversationSession
+- Composer（含 conversation-scoped model picker、stop action 与 quoted follow-up state）
+- ConversationSession（含 unified process timeline、assistant excerpt follow-up 与 user-message copy）
 - ConversationTimeline
 - ConversationSharePopover
 - ModelProfilesAdmin
