@@ -4,6 +4,14 @@ export function canRetryDocumentJob(input: { status: string }) {
   return input.status === RUN_STATUS.FAILED;
 }
 
+export function canForceReparseDocumentJob(input: { status: string }) {
+  return (
+    input.status === RUN_STATUS.COMPLETED ||
+    input.status === RUN_STATUS.FAILED ||
+    input.status === RUN_STATUS.CANCELLED
+  );
+}
+
 export function describeDocumentJobFailure(input: {
   stage: string;
   errorCode?: string | null;

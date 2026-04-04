@@ -1,12 +1,16 @@
 import { RUN_STATUS } from "@anchordesk/contracts";
 
-import { canRetryDocumentJob, describeDocumentJobFailure } from "@/lib/api/document-jobs";
+import {
+  canForceReparseDocumentJob,
+  canRetryDocumentJob,
+  describeDocumentJobFailure,
+} from "@/lib/api/document-jobs";
 import { RetryDocumentJobButton } from "@/components/workspaces/retry-document-job-button";
 import { ManualRefreshButton } from "@/components/workspaces/manual-refresh-button";
-import { cn, ui } from "@/lib/ui";
 
 export function DocumentJobPanel({
   job,
+  showForceReparse = false,
 }: {
   job: {
     id: string;
@@ -19,6 +23,7 @@ export function DocumentJobPanel({
     startedAt?: Date | null;
     finishedAt?: Date | null;
   } | null;
+  showForceReparse?: boolean;
 }) {
   if (!job) {
     return null;
@@ -64,9 +69,16 @@ export function DocumentJobPanel({
           </div>
         ) : null}
       </div>
-      {canRetryDocumentJob(job) ? (
-        <div className="pt-2">
-           <RetryDocumentJobButton jobId={job.id} />
+      {canRetryDocumentJob(job) || (showForceReparse && canForceReparseDocumentJob(job)) ? (
+        <div className="flex flex-wrap gap-2 pt-2">
+           {canRetryDocumentJob(job) ? <RetryDocumentJobButton jobId={job.id} /> : null}
+           {showForceReparse && canForceReparseDocumentJob(job) ? (
+             <RetryDocumentJobButton
+               forceReparse
+               jobId={job.id}
+               label="强制重新解析"
+             />
+           ) : null}
         </div>
       ) : null}
     </div>

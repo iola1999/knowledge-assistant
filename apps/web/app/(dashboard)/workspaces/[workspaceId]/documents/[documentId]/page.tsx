@@ -234,7 +234,7 @@ export default async function DocumentPage({
   const detailsPanels = (
     <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(320px,360px)]">
       <div className="grid content-start gap-5">
-        <DocumentJobPanel job={latestJob} />
+        <DocumentJobPanel job={latestJob} showForceReparse={isWorkspaceOwnedDocument} />
         {metadataPanel}
       </div>
       <div className="grid content-start gap-5">

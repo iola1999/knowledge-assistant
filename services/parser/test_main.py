@@ -196,6 +196,48 @@ class ParserMainTestCase(unittest.TestCase):
         self.assertEqual(result["source"]["ocr_provider"], "mock")
         self.assertEqual([page["text_length"] for page in result["pages"]], [5, 10])
 
+    def test_parse_pdf_document_preserves_native_text_when_ocr_provider_returns_empty_other_pages(self):
+        with patch(
+            "main.extract_pdf_page_texts",
+            return_value=[
+                {
+                    "page_no": 1,
+                    "width": 612.0,
+                    "height": 792.0,
+                    "text": "原生文本页",
+                    "has_image": True,
+                },
+                {
+                    "page_no": 2,
+                    "width": 612.0,
+                    "height": 792.0,
+                    "text": "",
+                    "has_image": True,
+                },
+            ],
+        ), patch("main.get_ocr_provider") as get_ocr_provider:
+            provider = get_ocr_provider.return_value
+            provider.name = "mock"
+            provider.extract_pdf_pages.return_value = [
+                {
+                    "page_no": 1,
+                    "width": 612.0,
+                    "height": 792.0,
+                    "text": "",
+                },
+                {
+                    "page_no": 2,
+                    "width": 612.0,
+                    "height": 792.0,
+                    "text": "OCR 补回的第二页",
+                },
+            ]
+
+            result = parse_pdf_document(b"%PDF-mock%")
+
+        self.assertEqual([page["text_length"] for page in result["pages"]], [5, 10])
+        self.assertEqual([block["text"] for block in result["blocks"]], ["原生文本页", "OCR 补回的第二页"])
+
     def test_parse_document_reads_storage_and_dispatches_by_logical_path(self):
         request = ParseRequest(
             workspace_id="ws_123",

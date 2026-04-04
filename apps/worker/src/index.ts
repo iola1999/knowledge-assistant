@@ -280,11 +280,18 @@ async function ensureVersionFingerprint(documentVersionId: string) {
   };
 }
 
-async function parseDocument(documentVersionId: string) {
+async function parseDocument(
+  documentVersionId: string,
+  options?: {
+    forceReparse?: boolean;
+  },
+) {
+  const forceReparse = options?.forceReparse === true;
   const stageLogger = createStageLogger(PARSE_STATUS.PARSING_LAYOUT, documentVersionId);
   stageLogger.info(
     {
       parserServiceUrl: getParserServiceUrl(),
+      forceReparse,
     },
     "starting parse stage",
   );
@@ -294,6 +301,7 @@ async function parseDocument(documentVersionId: string) {
     workspaceId: version.workspaceId,
     documentId: version.documentId,
     documentPath: version.documentPath,
+    forceReparse,
   });
 
   const cached = await db
@@ -302,7 +310,7 @@ async function parseDocument(documentVersionId: string) {
     .where(eq(parseArtifacts.sha256, version.sha256))
     .limit(1);
 
-  if (cached[0]) {
+  if (cached[0] && !forceReparse) {
     const cachedArtifact =
       (await getJson<ParseArtifact>(cached[0].artifactStorageKey)) ?? null;
     versionLogger.info(
@@ -364,7 +372,15 @@ async function parseDocument(documentVersionId: string) {
       parseScoreBp: artifact.parse_score_bp,
       parserVersion: "parser-service-v1",
     })
-    .onConflictDoNothing();
+    .onConflictDoUpdate({
+      target: parseArtifacts.sha256,
+      set: {
+        artifactStorageKey,
+        pageCount: artifact.page_count,
+        parseScoreBp: artifact.parse_score_bp,
+        parserVersion: "parser-service-v1",
+      },
+    });
 
   const [artifactRecord] = await db
     .select()
@@ -390,6 +406,7 @@ async function parseDocument(documentVersionId: string) {
       parseScoreBp: artifact.parse_score_bp,
       parseSourceMode: artifact.source?.mode ?? null,
       ocrProvider: artifact.source?.ocr_provider ?? null,
+      forceReparse,
     },
     "parse stage completed",
   );
@@ -768,7 +785,10 @@ async function main() {
             document_version_id: job.data.documentVersionId,
           },
         },
-        async () => parseDocument(job.data.documentVersionId),
+        async () =>
+          parseDocument(job.data.documentVersionId, {
+            forceReparse: job.data.forceReparse === true,
+          }),
       );
     },
     { connection },

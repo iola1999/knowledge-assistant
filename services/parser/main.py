@@ -344,7 +344,14 @@ def parse_pdf_document(data: bytes):
             "page_no": page["page_no"],
             "width": page.get("width"),
             "height": page.get("height"),
-            "text": ocr_page_text_by_page_no.get(page["page_no"], page.get("text") or ""),
+            "text": (
+                ocr_page_text_by_page_no[page["page_no"]]
+                if (
+                    page["page_no"] in ocr_page_text_by_page_no
+                    and ocr_page_text_by_page_no[page["page_no"]]
+                )
+                else (page.get("text") or "")
+            ),
         }
         for page in page_texts
     ]
