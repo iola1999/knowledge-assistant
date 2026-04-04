@@ -6,6 +6,7 @@ import {
 
 import { auth } from "@/auth";
 import { hasVerifiedContentAddressedBlob } from "@/lib/api/content-addressed-storage";
+import { DOCUMENT_UPLOAD_PRESIGN_EXPIRES_IN_SECONDS } from "@/lib/api/document-upload";
 import { requireOwnedWorkspace } from "@/lib/guards/workspace";
 import { validateUploadSupport } from "@/lib/api/upload-policy";
 
@@ -67,7 +68,11 @@ export async function POST(
     });
   }
 
-  const presigned = await createPresignedUploadUrl({ key, contentType });
+  const presigned = await createPresignedUploadUrl({
+    key,
+    contentType,
+    expiresInSeconds: DOCUMENT_UPLOAD_PRESIGN_EXPIRES_IN_SECONDS,
+  });
 
   return Response.json({
     uploadUrl: presigned.url,

@@ -12,8 +12,19 @@ import { RUN_STATUS } from "@anchordesk/contracts";
 
 import { RetryDocumentJobButton } from "@/components/workspaces/retry-document-job-button";
 import { ModalShell } from "@/components/shared/modal-shell";
+import {
+  createDocumentUploadItems,
+  DOCUMENT_UPLOAD_REQUEST_TIMEOUT_MS,
+  DOCUMENT_UPLOAD_STEP,
+  getDocumentUploadStepLabel,
+  getRetryableDocumentUploadItems,
+  summarizeDocumentUploadItems,
+  type DocumentUploadItem,
+  updateDocumentUploadItem,
+} from "@/lib/api/document-upload";
 import { describeDocumentJobFailure } from "@/lib/api/document-jobs";
 import { computeFileSha256 } from "@/lib/api/file-digests";
+import { uploadFileWithProgress } from "@/lib/api/upload-file-request";
 import {
   SUPPORTED_UPLOAD_ACCEPT,
   SUPPORTED_UPLOAD_TYPES_LABEL,
@@ -98,6 +109,7 @@ type DragPayload = {
 };
 
 type UploadFileIssue = {
+  itemId: string;
   file: File;
   code: "image_requires_ocr" | "unsupported_type";
   message: string;
@@ -184,6 +196,10 @@ function buildPathHref(
   params.set("path", path);
 
   return `${pathname}?${params.toString()}`;
+}
+
+function readUploadErrorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback;
 }
 
 function SelectionCheckbox({
@@ -365,7 +381,7 @@ export function KnowledgeBaseExplorer({
   const [directoryName, setDirectoryName] = useState("");
   const [targetDirectoryId, setTargetDirectoryId] = useState(currentDirectoryId);
   const [operationError, setOperationError] = useState<string | null>(null);
-  const [uploadFiles, setUploadFiles] = useState<File[]>([]);
+  const [uploadItems, setUploadItems] = useState<DocumentUploadItem[]>([]);
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [activeDragPayload, setActiveDragPayload] = useState<DragPayload | null>(null);
@@ -417,23 +433,33 @@ export function KnowledgeBaseExplorer({
   const invalidUploadFiles = useMemo<UploadFileIssue[]>(
     () =>
       collectUnsupportedUploads(
-        uploadFiles.map((file) => ({
-          file,
-          filename: file.name,
-          contentType: file.type,
+        uploadItems.map((item) => ({
+          file: item.file,
+          itemId: item.id,
+          filename: item.file.name,
+          contentType: item.file.type,
         })),
       ).map(({ input, code, message }) => ({
+        itemId: input.itemId,
         file: input.file,
         code,
         message,
       })),
-    [uploadFiles],
+    [uploadItems],
   );
-  const validUploadFiles = useMemo(() => {
-    const invalidFiles = new Set(invalidUploadFiles.map((issue) => issue.file));
+  const validUploadItems = useMemo(() => {
+    const invalidUploadIds = new Set(invalidUploadFiles.map((issue) => issue.itemId));
 
-    return uploadFiles.filter((file) => !invalidFiles.has(file));
-  }, [invalidUploadFiles, uploadFiles]);
+    return uploadItems.filter((item) => !invalidUploadIds.has(item.id));
+  }, [invalidUploadFiles, uploadItems]);
+  const pendingUploadItems = useMemo(
+    () => validUploadItems.filter((item) => item.step === DOCUMENT_UPLOAD_STEP.PENDING),
+    [validUploadItems],
+  );
+  const failedUploadItems = useMemo(
+    () => getRetryableDocumentUploadItems(validUploadItems),
+    [validUploadItems],
+  );
   const uploadValidationMessage = useMemo(() => {
     if (invalidUploadFiles.length === 0) {
       return null;
@@ -446,6 +472,10 @@ export function KnowledgeBaseExplorer({
 
     return `所选文件包含不支持的格式：${preview}${suffix}。${reasons.join(" ")}`;
   }, [invalidUploadFiles]);
+  const uploadSummary = useMemo(
+    () => summarizeDocumentUploadItems(validUploadItems),
+    [validUploadItems],
+  );
 
   const entries = useMemo(() => {
     const nextEntries = [
@@ -603,7 +633,7 @@ export function KnowledgeBaseExplorer({
   const dropzone = useDropzone({
     multiple: true,
     onDrop(acceptedFiles) {
-      setUploadFiles(acceptedFiles);
+      setUploadItems(createDocumentUploadItems(acceptedFiles));
       setUploadStatus(null);
     },
   });
@@ -641,6 +671,20 @@ export function KnowledgeBaseExplorer({
     startTransition(() => {
       router.refresh();
     });
+  }
+
+  function resetUploadSelection() {
+    setUploadItems([]);
+    setUploadStatus(null);
+  }
+
+  function closeUploadModal() {
+    if (isUploading) {
+      return;
+    }
+
+    setIsUploadOpen(false);
+    resetUploadSelection();
   }
 
   async function runJsonOperation(body: Record<string, unknown>) {
@@ -798,40 +842,88 @@ export function KnowledgeBaseExplorer({
     URL.revokeObjectURL(url);
   }
 
-  async function handleUpload() {
-    if (uploadFiles.length === 0 || isUploading) {
+  async function runUploadBatch(targetItems: DocumentUploadItem[]) {
+    if (targetItems.length === 0 || isUploading) {
       return;
     }
 
-    if (invalidUploadFiles.length > 0 || validUploadFiles.length === 0) {
+    if (invalidUploadFiles.length > 0) {
       setUploadStatus(uploadValidationMessage ?? `当前仅支持 ${SUPPORTED_UPLOAD_TYPES_LABEL} 上传。`);
       return;
     }
 
+    const validUploadIds = new Set(validUploadItems.map((item) => item.id));
+    let nextUploadItems = uploadItems;
+    const applyUploadItemPatch = (
+      itemId: string,
+      patch: Partial<DocumentUploadItem>,
+    ) => {
+      nextUploadItems = updateDocumentUploadItem(nextUploadItems, itemId, patch);
+      setUploadItems(nextUploadItems);
+    };
+
     setIsUploading(true);
-    setUploadStatus("正在上传...");
+    setUploadStatus(`正在处理 1 / ${targetItems.length} 个文件。`);
 
     try {
-      for (const file of validUploadFiles) {
-        setUploadStatus(`正在计算 ${file.name} 的指纹...`);
-        const sha256 = await computeFileSha256(file).catch((error: unknown) => {
-          setUploadStatus(error instanceof Error ? error.message : `计算 ${file.name} 指纹失败`);
-          return null;
-        });
+      for (const [index, targetItem] of targetItems.entries()) {
+        const currentItem =
+          nextUploadItems.find((item) => item.id === targetItem.id) ?? targetItem;
+        const file = currentItem.file;
+        const contentType = file.type || "application/octet-stream";
+
+        setUploadStatus(`正在处理 ${index + 1} / ${targetItems.length}：${file.name}`);
+
+        let sha256 = currentItem.sha256;
         if (!sha256) {
-          return;
+          applyUploadItemPatch(currentItem.id, {
+            step: DOCUMENT_UPLOAD_STEP.FINGERPRINTING,
+            progress: 0,
+            errorMessage: null,
+          });
+          sha256 = await computeFileSha256(file).catch((error: unknown) => {
+            applyUploadItemPatch(currentItem.id, {
+              step: DOCUMENT_UPLOAD_STEP.FAILED,
+              progress: 0,
+              errorMessage: readUploadErrorMessage(error, `计算 ${file.name} 指纹失败。`),
+            });
+            return null;
+          });
         }
 
-        const presignResponse = await fetch(presignEndpoint, {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            filename: file.name,
-            contentType: file.type || "application/octet-stream",
-            directoryPath: currentPath,
-            sha256,
-          }),
+        if (!sha256) {
+          continue;
+        }
+
+        applyUploadItemPatch(currentItem.id, {
+          step: DOCUMENT_UPLOAD_STEP.PRESIGNING,
+          progress: 0,
+          errorMessage: null,
+          sha256,
         });
+
+        let presignResponse: Response;
+        try {
+          presignResponse = await fetch(presignEndpoint, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              filename: file.name,
+              contentType,
+              directoryPath: currentPath,
+              sha256,
+            }),
+          });
+        } catch (error) {
+          applyUploadItemPatch(currentItem.id, {
+            step: DOCUMENT_UPLOAD_STEP.FAILED,
+            progress: 0,
+            errorMessage: readUploadErrorMessage(error, "申请上传地址失败。"),
+            sha256,
+          });
+          continue;
+        }
+
         const presignBody = (await presignResponse.json().catch(() => null)) as
           | {
               uploadUrl: string | null;
@@ -842,58 +934,162 @@ export function KnowledgeBaseExplorer({
           | null;
 
         if (!presignResponse.ok || !presignBody?.key) {
-          setUploadStatus(presignBody?.error ?? "申请上传地址失败");
-          return;
+          applyUploadItemPatch(currentItem.id, {
+            step: DOCUMENT_UPLOAD_STEP.FAILED,
+            progress: 0,
+            errorMessage: presignBody?.error ?? "申请上传地址失败。",
+            sha256,
+          });
+          continue;
         }
+
+        const storageKey = presignBody.key;
 
         if (!presignBody.alreadyExists) {
           if (!presignBody.uploadUrl) {
-            setUploadStatus("申请上传地址失败");
-            return;
+            applyUploadItemPatch(currentItem.id, {
+              step: DOCUMENT_UPLOAD_STEP.FAILED,
+              progress: 0,
+              errorMessage: "申请上传地址失败。",
+              sha256,
+              storageKey,
+            });
+            continue;
           }
 
-          const uploadResponse = await fetch(presignBody.uploadUrl, {
-            method: "PUT",
-            headers: {
-              "content-type": file.type || "application/octet-stream",
-            },
-            body: file,
+          applyUploadItemPatch(currentItem.id, {
+            step: DOCUMENT_UPLOAD_STEP.UPLOADING,
+            progress: 0,
+            errorMessage: null,
+            sha256,
+            storageKey,
           });
 
-          if (!uploadResponse.ok) {
-            setUploadStatus(`上传文件失败：${file.name}`);
-            return;
+          try {
+            await uploadFileWithProgress({
+              url: presignBody.uploadUrl,
+              file,
+              contentType,
+              timeoutMs: DOCUMENT_UPLOAD_REQUEST_TIMEOUT_MS,
+              onProgress(progress: number) {
+                applyUploadItemPatch(currentItem.id, {
+                  step: DOCUMENT_UPLOAD_STEP.UPLOADING,
+                  progress,
+                  errorMessage: null,
+                  sha256,
+                  storageKey,
+                });
+              },
+            });
+          } catch (error) {
+            applyUploadItemPatch(currentItem.id, {
+              step: DOCUMENT_UPLOAD_STEP.FAILED,
+              progress: 0,
+              errorMessage: readUploadErrorMessage(error, `上传文件失败：${file.name}`),
+              sha256,
+              storageKey,
+            });
+            continue;
           }
         }
 
-        const documentResponse = await fetch(documentsEndpoint, {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            storageKey: presignBody.key,
-            sha256,
-            sourceFilename: file.name,
-            mimeType: file.type || "application/octet-stream",
-            directoryPath: currentPath,
-          }),
+        applyUploadItemPatch(currentItem.id, {
+          step: DOCUMENT_UPLOAD_STEP.CREATING_DOCUMENT,
+          progress: 100,
+          errorMessage: null,
+          sha256,
+          storageKey,
         });
+
+        let documentResponse: Response;
+        try {
+          documentResponse = await fetch(documentsEndpoint, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              storageKey,
+              sha256,
+              sourceFilename: file.name,
+              mimeType: contentType,
+              directoryPath: currentPath,
+            }),
+          });
+        } catch (error) {
+          applyUploadItemPatch(currentItem.id, {
+            step: DOCUMENT_UPLOAD_STEP.FAILED,
+            progress: 100,
+            errorMessage: readUploadErrorMessage(error, `创建任务失败：${file.name}`),
+            sha256,
+            storageKey,
+          });
+          continue;
+        }
+
         const documentBody = (await documentResponse.json().catch(() => null)) as
-          | { error?: string }
+          | {
+              error?: string;
+              document?: { id?: string };
+              documentVersion?: { id?: string };
+              documentJob?: { id?: string };
+            }
           | null;
 
         if (!documentResponse.ok) {
-          setUploadStatus(documentBody?.error ?? `创建任务失败：${file.name}`);
-          return;
+          applyUploadItemPatch(currentItem.id, {
+            step: DOCUMENT_UPLOAD_STEP.FAILED,
+            progress: 100,
+            errorMessage: documentBody?.error ?? `创建任务失败：${file.name}`,
+            sha256,
+            storageKey,
+          });
+          continue;
         }
-      }
 
-      setUploadStatus(`已提交 ${validUploadFiles.length} 个文件`);
-      setUploadFiles([]);
-      setIsUploadOpen(false);
-      await refreshPage();
+        applyUploadItemPatch(currentItem.id, {
+          step: DOCUMENT_UPLOAD_STEP.SUCCEEDED,
+          progress: 100,
+          errorMessage: null,
+          sha256,
+          storageKey,
+          documentId: documentBody?.document?.id ?? null,
+          documentVersionId: documentBody?.documentVersion?.id ?? null,
+          documentJobId: documentBody?.documentJob?.id ?? null,
+        });
+      }
     } finally {
       setIsUploading(false);
     }
+
+    const finalValidItems = nextUploadItems.filter((item) => validUploadIds.has(item.id));
+    const finalSummary = summarizeDocumentUploadItems(finalValidItems);
+    const failedItemsAfterBatch = getRetryableDocumentUploadItems(finalValidItems);
+
+    setUploadStatus(finalSummary);
+
+    if (finalValidItems.some((item) => item.step === DOCUMENT_UPLOAD_STEP.SUCCEEDED)) {
+      await refreshPage();
+    }
+
+    if (finalValidItems.length > 0 && failedItemsAfterBatch.length === 0) {
+      setIsUploadOpen(false);
+      resetUploadSelection();
+    }
+  }
+
+  async function handleUpload() {
+    if (pendingUploadItems.length === 0) {
+      return;
+    }
+
+    await runUploadBatch(pendingUploadItems);
+  }
+
+  async function handleRetryFailedUploads() {
+    if (failedUploadItems.length === 0) {
+      return;
+    }
+
+    await runUploadBatch(failedUploadItems);
   }
 
   function handleDragStart(event: DragStartEvent) {
@@ -983,7 +1179,7 @@ export function KnowledgeBaseExplorer({
                   className={toolbarButtonClass}
                   onClick={() => {
                     setUploadStatus(null);
-                    setUploadFiles([]);
+                    setUploadItems([]);
                     setIsUploading(false);
                     setIsUploadOpen(true);
                   }}
@@ -1173,7 +1369,7 @@ export function KnowledgeBaseExplorer({
         title="上传资料"
         description={`当前目录：${currentPath}`}
         width="lg"
-        onClose={() => setIsUploadOpen(false)}
+        onClose={closeUploadModal}
       >
         <div className="grid gap-4">
           <button
@@ -1189,24 +1385,64 @@ export function KnowledgeBaseExplorer({
               </span>
             </div>
           </button>
-          {validUploadFiles.length > 0 ? (
+          {validUploadItems.length > 0 ? (
             <div className="grid gap-2 rounded-[22px] border border-app-border bg-white p-4">
-              {validUploadFiles.map((file) => (
-                <div
-                  key={`${file.name}-${file.lastModified}`}
-                  className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 text-sm"
-                >
-                  <span
-                    className="min-w-0 truncate text-app-text"
-                    title={file.name}
+              {validUploadItems.map((item) => {
+                const isFailed = item.step === DOCUMENT_UPLOAD_STEP.FAILED;
+                const isSucceeded = item.step === DOCUMENT_UPLOAD_STEP.SUCCEEDED;
+                const progressToneClass = isFailed
+                  ? "bg-red-500"
+                  : isSucceeded
+                    ? "bg-emerald-500"
+                    : "bg-app-primary";
+
+                return (
+                  <div
+                    key={item.id}
+                    className={cn(
+                      "grid gap-2 rounded-[18px] border px-3 py-3",
+                      isFailed
+                        ? "border-red-200 bg-red-50/60"
+                        : isSucceeded
+                          ? "border-emerald-200 bg-emerald-50/40"
+                          : "border-app-border bg-app-surface-soft/35",
+                    )}
                   >
-                    {file.name}
-                  </span>
-                  <span className="shrink-0 tabular-nums text-app-muted">
-                    {formatFileSize(file.size)}
-                  </span>
-                </div>
-              ))}
+                    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 text-sm">
+                      <span className="min-w-0 truncate text-app-text" title={item.file.name}>
+                        {item.file.name}
+                      </span>
+                      <span className="shrink-0 tabular-nums text-app-muted">
+                        {formatFileSize(item.file.size)}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between gap-3 text-[12px]">
+                      <span
+                        className={cn(
+                          "min-w-0 truncate",
+                          isFailed
+                            ? "text-red-600"
+                            : isSucceeded
+                              ? "text-emerald-800"
+                              : "text-app-muted-strong",
+                        )}
+                        title={getDocumentUploadStepLabel(item)}
+                      >
+                        {getDocumentUploadStepLabel(item)}
+                      </span>
+                      <span className="shrink-0 tabular-nums text-app-muted">
+                        {item.progress}%
+                      </span>
+                    </div>
+                    <div className="h-1.5 overflow-hidden rounded-full bg-app-surface-strong/70">
+                      <div
+                        className={cn("h-full rounded-full transition-[width]", progressToneClass)}
+                        style={{ width: `${item.progress}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           ) : null}
           {invalidUploadFiles.length > 0 ? (
@@ -1230,20 +1466,44 @@ export function KnowledgeBaseExplorer({
             </div>
           ) : null}
           {uploadValidationMessage ? <p className={ui.error}>{uploadValidationMessage}</p> : null}
-          {uploadStatus && !uploadValidationMessage ? <p className={ui.muted}>{uploadStatus}</p> : null}
+          {!uploadValidationMessage && (uploadStatus ?? uploadSummary) ? (
+            <p
+              className={
+                failedUploadItems.length > 0 && !isUploading ? ui.error : ui.muted
+              }
+            >
+              {uploadStatus ?? uploadSummary}
+            </p>
+          ) : null}
           <div className="flex justify-end gap-2">
             <button
               type="button"
               className={buttonStyles({ variant: "secondary" })}
               disabled={isUploading}
-              onClick={() => setIsUploadOpen(false)}
+              onClick={closeUploadModal}
             >
               取消
             </button>
+            {failedUploadItems.length > 0 ? (
+              <button
+                type="button"
+                className={buttonStyles({ variant: "secondary" })}
+                disabled={isUploading}
+                onClick={() => void handleRetryFailedUploads()}
+              >
+                {isUploading
+                  ? "重试中..."
+                  : `重试失败项${failedUploadItems.length > 1 ? `（${failedUploadItems.length}）` : ""}`}
+              </button>
+            ) : null}
             <button
               type="button"
               className={buttonStyles()}
-              disabled={uploadFiles.length === 0 || invalidUploadFiles.length > 0 || isUploading}
+              disabled={
+                pendingUploadItems.length === 0 ||
+                invalidUploadFiles.length > 0 ||
+                isUploading
+              }
               onClick={() => void handleUpload()}
             >
               {isUploading ? "上传中..." : "提交上传"}

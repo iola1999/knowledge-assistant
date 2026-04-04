@@ -42,6 +42,7 @@ export function getBucketName() {
 export async function createPresignedUploadUrl(input: {
   key: string;
   contentType: string;
+  expiresInSeconds?: number;
 }) {
   const command = new PutObjectCommand({
     Bucket: getBucketName(),
@@ -50,7 +51,7 @@ export async function createPresignedUploadUrl(input: {
   });
 
   const url = await getSignedUrl(getS3Client(), command, {
-    expiresIn: 60 * 15,
+    expiresIn: input.expiresInSeconds ?? 60 * 15,
   });
 
   return { url, key: input.key, bucket: getBucketName() };

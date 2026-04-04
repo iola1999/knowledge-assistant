@@ -7,6 +7,7 @@ import {
 import { auth } from "@/auth";
 import { findManagedKnowledgeLibrary } from "@/lib/api/admin-knowledge-libraries";
 import { hasVerifiedContentAddressedBlob } from "@/lib/api/content-addressed-storage";
+import { DOCUMENT_UPLOAD_PRESIGN_EXPIRES_IN_SECONDS } from "@/lib/api/document-upload";
 import { validateUploadSupport } from "@/lib/api/upload-policy";
 import { isSuperAdmin } from "@/lib/auth/super-admin";
 
@@ -71,7 +72,11 @@ export async function POST(
     });
   }
 
-  const presigned = await createPresignedUploadUrl({ key, contentType });
+  const presigned = await createPresignedUploadUrl({
+    key,
+    contentType,
+    expiresInSeconds: DOCUMENT_UPLOAD_PRESIGN_EXPIRES_IN_SECONDS,
+  });
 
   return Response.json({
     uploadUrl: presigned.url,
