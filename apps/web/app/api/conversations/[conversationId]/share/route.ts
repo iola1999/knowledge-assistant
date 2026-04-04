@@ -7,6 +7,7 @@ import {
   buildConversationShareUrl,
   generateConversationShareToken,
   isConversationShareActive,
+  resolveConversationShareOrigin,
 } from "@/lib/api/conversation-share";
 import { requireOwnedConversation } from "@/lib/guards/resources";
 
@@ -35,7 +36,10 @@ function serializeShare(
 
   return {
     isActive: true,
-    shareUrl: buildConversationShareUrl(new URL(request.url).origin, share.shareToken),
+    shareUrl: buildConversationShareUrl(
+      resolveConversationShareOrigin(request),
+      share.shareToken,
+    ),
     createdAt: share.createdAt.toISOString(),
     updatedAt: share.updatedAt.toISOString(),
     revokedAt: null,

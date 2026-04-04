@@ -5,6 +5,7 @@ import {
   buildConversationShareUrl,
   generateConversationShareToken,
   isConversationShareActive,
+  resolveConversationShareOrigin,
 } from "./conversation-share";
 
 describe("conversation share helpers", () => {
@@ -16,6 +17,24 @@ describe("conversation share helpers", () => {
     expect(buildConversationSharePath("token-123")).toBe("/share/token-123");
     expect(buildConversationShareUrl("https://example.com/app", "token-123")).toBe(
       "https://example.com/share/token-123",
+    );
+  });
+
+  test("prefers APP_URL when resolving the share origin", () => {
+    const request = new Request("http://0.0.0.0:3000/api/conversations/conversation-1/share");
+
+    expect(
+      resolveConversationShareOrigin(request, {
+        APP_URL: " https://anchordesk.678234.xyz ",
+      }),
+    ).toBe("https://anchordesk.678234.xyz");
+  });
+
+  test("falls back to the request origin when APP_URL is missing", () => {
+    const request = new Request("https://anchordesk.678234.xyz/api/conversations/conversation-1/share");
+
+    expect(resolveConversationShareOrigin(request, {})).toBe(
+      "https://anchordesk.678234.xyz",
     );
   });
 

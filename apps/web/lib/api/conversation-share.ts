@@ -22,3 +22,15 @@ export function buildConversationSharePath(shareToken: string) {
 export function buildConversationShareUrl(origin: string, shareToken: string) {
   return new URL(buildConversationSharePath(shareToken), origin).toString();
 }
+
+export function resolveConversationShareOrigin(
+  request: Request,
+  env: Readonly<Record<string, string | undefined>> = process.env,
+) {
+  const configuredAppUrl = env.APP_URL?.trim();
+  if (configuredAppUrl) {
+    return configuredAppUrl;
+  }
+
+  return new URL(request.url).origin;
+}
