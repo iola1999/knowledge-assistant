@@ -21,6 +21,7 @@ export type IngestJobPayload = {
   documentId: string;
   documentVersionId: string;
   indexingMode?: DocumentIndexingMode;
+  forceReparse?: boolean;
   traceContext?: TraceContextHeaders | null;
 };
 

@@ -17,6 +17,7 @@ import { enqueueIngestFlow } from "@anchordesk/queue";
 import { withProducerSpan } from "@anchordesk/tracing";
 
 import { auth } from "@/auth";
+import { canForceReparseDocumentJob } from "@/lib/api/document-jobs";
 import {
   requireOwnedDocumentJob,
   requireSuperAdminManagedDocumentJob,
@@ -30,6 +31,10 @@ export async function POST(
   { params }: { params: Promise<{ jobId: string }> },
 ) {
   const { jobId } = await params;
+  const body = (await request.json().catch(() => null)) as
+    | { forceReparse?: boolean }
+    | null;
+  const forceReparse = body?.forceReparse === true;
   const session = await auth();
   if (!session?.user?.id) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
@@ -44,8 +49,14 @@ export async function POST(
     return Response.json({ error: "Job not found" }, { status: 404 });
   }
 
-  if (job.status !== RUN_STATUS.FAILED) {
+  if (!forceReparse && job.status !== RUN_STATUS.FAILED) {
     return Response.json({ error: "Only failed jobs can be retried" }, { status: 400 });
+  }
+  if (forceReparse && !canForceReparseDocumentJob(job)) {
+    return Response.json(
+      { error: "Only completed, failed, or cancelled jobs can be reparsed" },
+      { status: 400 },
+    );
   }
 
   const db = getDb();
@@ -103,6 +114,7 @@ export async function POST(
         documentId: job.documentId,
         documentVersionId: job.documentVersionId,
         indexingMode,
+        forceReparse,
       }),
   );
 
