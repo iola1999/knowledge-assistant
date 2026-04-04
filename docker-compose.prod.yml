@@ -92,7 +92,12 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
-    command: ["sh", "-lc", "node packages/db/scripts/run-upgrades.mjs --mode=check && node apps/web/server.js"]
+    command:
+      [
+        "sh",
+        "-lc",
+        "node packages/db/scripts/run-upgrades.mjs --mode=check && node packages/db/scripts/start-web-server.mjs",
+      ]
     ports:
       - "3000:3000"
     healthcheck:

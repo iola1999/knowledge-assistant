@@ -44,7 +44,7 @@ COPY --from=web-build /app/apps/web/.next/standalone /app/
 COPY --from=web-build /app/apps/web/.next/static /app/apps/web/.next/static
 COPY --from=db-check-deploy /deploy/packages/db /app/packages/db
 COPY --from=workspace /app/scripts /app/scripts
-CMD ["node", "apps/web/server.js"]
+CMD ["node", "packages/db/scripts/start-web-server.mjs"]
 
 FROM base AS worker-runtime
 ENV NODE_ENV=production
