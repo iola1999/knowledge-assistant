@@ -129,7 +129,7 @@ services:
         condition: service_healthy
     command: ["sh", "-lc", "node packages/db/scripts/run-upgrades.mjs --mode=check && node --import tsx src/index.ts"]
     ports:
-      - "4002:4002"
+      - "34002:4002"
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:4002/health"]
       interval: 10s
@@ -160,7 +160,7 @@ services:
         "node packages/db/scripts/run-upgrades.mjs --mode=check && node --import tsx src/index.ts",
       ]
     ports:
-      - "4001:4001"
+      - "34001:4001"
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:4001/health"]
       interval: 10s
@@ -177,7 +177,7 @@ services:
       minio:
         condition: service_healthy
     ports:
-      - "8001:8001"
+      - "38001:8001"
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8001/health"]
       interval: 10s
