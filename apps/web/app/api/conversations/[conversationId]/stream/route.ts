@@ -29,14 +29,11 @@ import {
   buildAssistantTerminalStreamEvent,
   buildToolMessageStreamEvent,
 } from "@/lib/api/conversation-stream";
+import { createSseWriter } from "@/lib/api/sse-writer";
 import { requireOwnedConversation } from "@/lib/guards/resources";
 import { buildRequestLogContext, logger, resolveRequestId } from "@/lib/server/logger";
 
 export const runtime = "nodejs";
-
-function encodeSse(event: string, data: unknown, id?: string | null) {
-  return `${id ? `id: ${id}\n` : ""}event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
-}
 
 function buildAssistantStatusSignature(event: Extract<
   ConversationStreamEvent,
@@ -193,6 +190,7 @@ export async function GET(
   const stream = new ReadableStream({
     async start(controller) {
       const encoder = new TextEncoder();
+      const writer = createSseWriter(controller, encoder);
       const redis = createRedisClient();
       const emittedMessageIds = new Set<string>();
       let lastAssistantContent = "";
@@ -214,7 +212,7 @@ export async function GET(
       );
 
       function enqueueEvent(event: ConversationStreamEvent, id?: string | null) {
-        controller.enqueue(encoder.encode(encodeSse(event.type, event, id)));
+        return writer.event(event.type, event, id);
       }
 
       function applyLiveEventState(event: ConversationStreamEvent) {
@@ -335,7 +333,9 @@ export async function GET(
 
         if (expiredRun?.toolMessage && !emittedMessageIds.has(expiredRun.toolMessage.id)) {
           emittedMessageIds.add(expiredRun.toolMessage.id);
-          enqueueEvent(buildToolMessageStreamEvent(expiredRun.toolMessage));
+          if (!enqueueEvent(buildToolMessageStreamEvent(expiredRun.toolMessage))) {
+            return true;
+          }
         }
 
         const toolMessageFilters = [
@@ -367,16 +367,20 @@ export async function GET(
           }
 
           emittedMessageIds.add(message.id);
-          enqueueEvent(
-            buildToolMessageStreamEvent({
-              id: message.id,
-              status: message.status,
-              contentMarkdown: message.contentMarkdown,
-              createdAt: message.createdAt,
-              structuredJson:
-                (message.structuredJson as Record<string, unknown> | null | undefined) ?? null,
-            }),
-          );
+          if (
+            !enqueueEvent(
+              buildToolMessageStreamEvent({
+                id: message.id,
+                status: message.status,
+                contentMarkdown: message.contentMarkdown,
+                createdAt: message.createdAt,
+                structuredJson:
+                  (message.structuredJson as Record<string, unknown> | null | undefined) ?? null,
+              }),
+            )
+          ) {
+            return true;
+          }
         }
 
         const assistantStatusEvent =
@@ -396,7 +400,9 @@ export async function GET(
           const signature = buildAssistantStatusSignature(assistantStatusEvent);
           if (signature !== lastAssistantStatus) {
             lastAssistantStatus = signature;
-            enqueueEvent(assistantStatusEvent);
+            if (!enqueueEvent(assistantStatusEvent)) {
+              return true;
+            }
           }
         }
 
@@ -418,7 +424,9 @@ export async function GET(
           assistantThinkingEvent.thinking_text !== lastAssistantThinking
         ) {
           lastAssistantThinking = assistantThinkingEvent.thinking_text;
-          enqueueEvent(assistantThinkingEvent);
+          if (!enqueueEvent(assistantThinkingEvent)) {
+            return true;
+          }
         }
 
         if (
@@ -427,17 +435,21 @@ export async function GET(
           effectiveAssistantMessage.contentMarkdown !== lastAssistantContent
         ) {
           lastAssistantContent = effectiveAssistantMessage.contentMarkdown;
-          enqueueEvent(
-            buildAssistantDeltaStreamEvent({
-              conversationId,
-              assistantMessage: {
-                id: effectiveAssistantMessage.id,
-                status: effectiveAssistantMessage.status,
-                contentMarkdown: effectiveAssistantMessage.contentMarkdown,
-                structuredJson: effectiveAssistantMessage.structuredJson,
-              },
-            }),
-          );
+          if (
+            !enqueueEvent(
+              buildAssistantDeltaStreamEvent({
+                conversationId,
+                assistantMessage: {
+                  id: effectiveAssistantMessage.id,
+                  status: effectiveAssistantMessage.status,
+                  contentMarkdown: effectiveAssistantMessage.contentMarkdown,
+                  structuredJson: effectiveAssistantMessage.structuredJson,
+                },
+              }),
+            )
+          ) {
+            return true;
+          }
         }
 
         if (!streamCursor) {
@@ -490,7 +502,7 @@ export async function GET(
             "conversation stream completed from database snapshot",
           );
           enqueueEvent(terminalEvent);
-          controller.close();
+          writer.close();
           return true;
         }
 
@@ -505,7 +517,9 @@ export async function GET(
         while (!request.signal.aborted) {
           if (!currentRunId) {
             await new Promise((resolve) => setTimeout(resolve, 5000));
-            controller.enqueue(encoder.encode(": keepalive\n\n"));
+            if (!writer.comment("keepalive")) {
+              return;
+            }
 
             if (await syncFromDatabase()) {
               return;
@@ -523,7 +537,9 @@ export async function GET(
           });
 
           if (events.length === 0) {
-            controller.enqueue(encoder.encode(": keepalive\n\n"));
+            if (!writer.comment("keepalive")) {
+              return;
+            }
 
             if (await syncFromDatabase()) {
               return;
@@ -534,7 +550,9 @@ export async function GET(
           for (const record of events) {
             streamCursor = record.id;
             applyLiveEventState(record.event);
-            enqueueEvent(record.event, record.id);
+            if (!enqueueEvent(record.event, record.id)) {
+              return;
+            }
 
             if (
               record.event.type === CONVERSATION_STREAM_EVENT.ANSWER_DONE ||
@@ -549,7 +567,7 @@ export async function GET(
                 },
                 "conversation stream completed from live events",
               );
-              controller.close();
+              writer.close();
               return;
             }
           }
@@ -563,7 +581,9 @@ export async function GET(
           },
           "conversation stream failed",
         );
-        controller.error(error);
+        if (!writer.isClosed()) {
+          writer.error(error);
+        }
         return;
       } finally {
         if (!terminalEventType) {
