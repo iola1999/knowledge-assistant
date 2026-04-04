@@ -14,6 +14,11 @@ describe("resolveRespondWorkerConcurrency", () => {
     );
   });
 
+  test("defaults to 5 concurrent respond workers", () => {
+    expect(DEFAULT_AGENT_RUNTIME_RESPOND_WORKER_CONCURRENCY).toBe(5);
+    expect(resolveRespondWorkerConcurrency({})).toBe(5);
+  });
+
   test("accepts a configured positive integer", () => {
     expect(
       resolveRespondWorkerConcurrency({

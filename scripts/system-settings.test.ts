@@ -52,7 +52,7 @@ describe("buildSystemSettingSeedRows", () => {
       rows.find((row) => row.settingKey === "agent_runtime_respond_worker_concurrency"),
     ).toMatchObject({
       settingKey: "agent_runtime_respond_worker_concurrency",
-      valueText: "1",
+      valueText: "5",
       isSecret: false,
     });
     expect(rows.find((row) => row.settingKey === "fetch_source_max_concurrency")).toMatchObject({

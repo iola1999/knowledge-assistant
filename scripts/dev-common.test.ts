@@ -98,6 +98,7 @@ describe("loadResolvedSystemEnvironment", () => {
 
     expect(resolved).toMatchObject({
       REDIS_URL: "redis://localhost:6379",
+      AGENT_RUNTIME_RESPOND_WORKER_CONCURRENCY: "5",
       ANTHROPIC_FINAL_ANSWER_MAX_TOKENS: "1400",
     });
   });
