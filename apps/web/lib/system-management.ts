@@ -1,4 +1,4 @@
-export type SystemManagementSectionId = "models" | "libraries" | "settings";
+export type SystemManagementSectionId = "models" | "runtime" | "libraries" | "settings";
 
 export type SystemManagementNavItem = {
   id: SystemManagementSectionId;
@@ -14,6 +14,11 @@ const SYSTEM_MANAGEMENT_NAV_ITEMS = [
     id: "models",
     label: "模型管理",
     href: "/admin/models",
+  },
+  {
+    id: "runtime",
+    label: "运行状况",
+    href: "/admin/runtime",
   },
   {
     id: "libraries",
@@ -67,6 +72,10 @@ export function buildSystemManagementSectionHref(
 }
 
 export function resolveSystemManagementSection(pathname: string): SystemManagementSectionId {
+  if (pathname.startsWith("/admin/runtime")) {
+    return "runtime";
+  }
+
   if (pathname.startsWith("/settings/libraries")) {
     return "libraries";
   }

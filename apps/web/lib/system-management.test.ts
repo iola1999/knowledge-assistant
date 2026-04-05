@@ -14,20 +14,23 @@ describe("buildSystemManagementNavItems", () => {
 
     expect(items.map((item) => item.id)).toEqual([
       "models",
+      "runtime",
       "libraries",
       "settings",
     ]);
     expect(items.map((item) => item.label)).toEqual([
       "模型管理",
+      "运行状况",
       "全局资料库",
       "系统参数",
     ]);
     expect(items.map((item) => item.href)).toEqual([
       "/admin/models",
+      "/admin/runtime",
       "/settings/libraries",
       "/settings",
     ]);
-    expect(items.map((item) => item.selected)).toEqual([true, false, false]);
+    expect(items.map((item) => item.selected)).toEqual([true, false, false, false]);
   });
 
   test("preserves returnTo across system management section switches", () => {
@@ -37,6 +40,7 @@ describe("buildSystemManagementNavItems", () => {
 
     expect(items.map((item) => item.href)).toEqual([
       "/admin/models?returnTo=%2Fworkspaces%2Fworkspace-1",
+      "/admin/runtime?returnTo=%2Fworkspaces%2Fworkspace-1",
       "/settings/libraries?returnTo=%2Fworkspaces%2Fworkspace-1",
       "/settings?returnTo=%2Fworkspaces%2Fworkspace-1",
     ]);
@@ -52,6 +56,7 @@ describe("resolveSystemManagementSection", () => {
 
   test("maps exact section routes to their matching section ids", () => {
     expect(resolveSystemManagementSection("/admin/models")).toBe("models");
+    expect(resolveSystemManagementSection("/admin/runtime")).toBe("runtime");
     expect(resolveSystemManagementSection("/settings")).toBe("settings");
   });
 
