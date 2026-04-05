@@ -8,7 +8,12 @@ vi.mock("@anchordesk/tracing", () => ({
   injectTraceContextHeaders: mocks.injectTraceContextHeaders,
 }));
 
-import { buildQueueJobId, sanitizeQueueJobIdPart, withEnqueuedTraceContext } from "./index";
+import {
+  buildIngestQueueJobId,
+  buildQueueJobId,
+  sanitizeQueueJobIdPart,
+  withEnqueuedTraceContext,
+} from "./index";
 
 describe("sanitizeQueueJobIdPart", () => {
   test("replaces unsupported bullmq colon delimiters", () => {
@@ -20,6 +25,18 @@ describe("buildQueueJobId", () => {
   test("joins sanitized queue job id parts with a stable separator", () => {
     expect(buildQueueJobId("assistant:message", "respond")).toBe(
       "assistant_message--respond",
+    );
+  });
+});
+
+describe("buildIngestQueueJobId", () => {
+  test("builds stable stage job ids for the default ingest flow", () => {
+    expect(buildIngestQueueJobId("version-1", "parse")).toBe("version-1--parse");
+  });
+
+  test("adds a run identifier for re-enqueued ingest flows", () => {
+    expect(buildIngestQueueJobId("version-1", "parse", "rerun-1")).toBe(
+      "version-1--rerun-1--parse",
     );
   });
 });

@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+
 import { eq } from "drizzle-orm";
 import {
   DEFAULT_PARSE_STATUS,
@@ -13,7 +15,7 @@ import {
   documents,
   getDb,
 } from "@anchordesk/db";
-import { enqueueIngestFlow } from "@anchordesk/queue";
+import { buildIngestQueueJobId, enqueueIngestFlow } from "@anchordesk/queue";
 import { withProducerSpan } from "@anchordesk/tracing";
 
 import { auth } from "@/auth";
@@ -60,9 +62,11 @@ export async function POST(
   }
 
   const db = getDb();
+  const queueRunId = randomUUID();
   await db
     .update(documentJobs)
     .set({
+      queueJobId: buildIngestQueueJobId(job.documentVersionId, "parse", queueRunId),
       stage: DEFAULT_PARSE_STATUS,
       status: RUN_STATUS.QUEUED,
       progress: 0,
@@ -115,6 +119,7 @@ export async function POST(
         documentVersionId: job.documentVersionId,
         indexingMode,
         forceReparse,
+        queueRunId,
       }),
   );
 

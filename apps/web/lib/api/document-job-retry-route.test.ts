@@ -66,9 +66,13 @@ vi.mock("@anchordesk/db", () => ({
   getDb: () => mocks.db,
 }));
 
-vi.mock("@anchordesk/queue", () => ({
-  enqueueIngestFlow: mocks.enqueueIngestFlow,
-}));
+vi.mock("@anchordesk/queue", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@anchordesk/queue")>();
+  return {
+    ...actual,
+    enqueueIngestFlow: mocks.enqueueIngestFlow,
+  };
+});
 
 vi.mock("@anchordesk/tracing", () => ({
   withProducerSpan: mocks.withProducerSpan,
@@ -164,6 +168,7 @@ describe("POST /api/document-jobs/[jobId]/retry", () => {
             stage: DEFAULT_PARSE_STATUS,
             status: RUN_STATUS.QUEUED,
             progress: 0,
+            queueJobId: expect.stringMatching(/^version-2--.+--parse$/),
           }),
         }),
         expect.objectContaining({
@@ -180,6 +185,17 @@ describe("POST /api/document-jobs/[jobId]/retry", () => {
         }),
       ]),
     );
+    const documentJobUpdate = mocks.updates.find(
+      (entry) => entry.table === mocks.tables.documentJobs,
+    );
+    const queueRunId = mocks.enqueueIngestFlow.mock.calls[0]?.[0]?.queueRunId;
+
+    expect(queueRunId).toEqual(expect.any(String));
+    expect(documentJobUpdate?.values).toEqual(
+      expect.objectContaining({
+        queueJobId: `version-2--${queueRunId}--parse`,
+      }),
+    );
     expect(mocks.enqueueIngestFlow).toHaveBeenCalledWith({
       workspaceId: "workspace-2",
       libraryId: "library-2",
@@ -187,6 +203,7 @@ describe("POST /api/document-jobs/[jobId]/retry", () => {
       documentVersionId: "version-2",
       indexingMode: "full",
       forceReparse: true,
+      queueRunId: expect.any(String),
     });
   });
 });

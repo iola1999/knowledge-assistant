@@ -238,6 +238,70 @@ class ParserMainTestCase(unittest.TestCase):
         self.assertEqual([page["text_length"] for page in result["pages"]], [5, 10])
         self.assertEqual([block["text"] for block in result["blocks"]], ["原生文本页", "OCR 补回的第二页"])
 
+    def test_parse_pdf_document_logs_native_and_ocr_summary(self):
+        with patch(
+            "main.extract_pdf_page_texts",
+            return_value=[
+                {
+                    "page_no": 1,
+                    "width": 612.0,
+                    "height": 792.0,
+                    "text": "原生文本页",
+                    "has_image": True,
+                },
+                {
+                    "page_no": 2,
+                    "width": 612.0,
+                    "height": 792.0,
+                    "text": "",
+                    "has_image": True,
+                },
+                {
+                    "page_no": 3,
+                    "width": 612.0,
+                    "height": 792.0,
+                    "text": "",
+                    "has_image": False,
+                },
+            ],
+        ), patch("main.get_ocr_provider") as get_ocr_provider, patch("main.log_event") as log_event:
+            provider = get_ocr_provider.return_value
+            provider.name = "mock"
+            provider.extract_pdf_pages.return_value = [
+                {
+                    "page_no": 2,
+                    "width": 612.0,
+                    "height": 792.0,
+                    "text": "OCR 补回的第二页",
+                }
+            ]
+
+            result = parse_pdf_document(b"%PDF-mock%")
+
+        self.assertEqual(result["source"]["mode"], "ocr")
+        log_messages = [call.args[1] for call in log_event.call_args_list]
+        self.assertIn("pdf native extraction completed", log_messages)
+        self.assertIn("pdf ocr started", log_messages)
+        self.assertIn("pdf ocr completed", log_messages)
+        self.assertIn("pdf parse completed", log_messages)
+
+        native_log = next(
+            call for call in log_event.call_args_list if call.args[1] == "pdf native extraction completed"
+        )
+        self.assertEqual(native_log.kwargs["page_count"], 3)
+        self.assertEqual(native_log.kwargs["native_text_page_count"], 1)
+        self.assertEqual(native_log.kwargs["ocr_candidate_page_count"], 1)
+        self.assertEqual(native_log.kwargs["ocr_candidate_page_numbers"], [2])
+
+        final_log = next(
+            call for call in log_event.call_args_list if call.args[1] == "pdf parse completed"
+        )
+        self.assertEqual(final_log.kwargs["source_mode"], "ocr")
+        self.assertEqual(final_log.kwargs["ocr_provider"], "mock")
+        self.assertEqual(final_log.kwargs["page_count"], 3)
+        self.assertEqual(final_log.kwargs["non_empty_page_count"], 2)
+        self.assertEqual(final_log.kwargs["block_count"], 2)
+
     def test_parse_document_reads_storage_and_dispatches_by_logical_path(self):
         request = ParseRequest(
             workspace_id="ws_123",

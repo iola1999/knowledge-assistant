@@ -17,7 +17,7 @@ import {
   documentVersions,
   getDb,
 } from "@anchordesk/db";
-import { enqueueIngestFlow } from "@anchordesk/queue";
+import { buildIngestQueueJobId, enqueueIngestFlow } from "@anchordesk/queue";
 import { withProducerSpan } from "@anchordesk/tracing";
 
 import { auth } from "@/auth";
@@ -206,7 +206,7 @@ export async function POST(
     .insert(documentJobs)
     .values({
       documentVersionId: documentVersion.id,
-      queueJobId: `${documentVersion.id}:parse`,
+      queueJobId: buildIngestQueueJobId(documentVersion.id, "parse"),
       stage: DEFAULT_PARSE_STATUS,
       status: RUN_STATUS.QUEUED,
       progress: 0,

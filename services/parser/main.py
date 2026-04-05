@@ -111,6 +111,39 @@ def log_event(level: int, message: str, **fields):
     logger.log(level, json.dumps(payload, ensure_ascii=False))
 
 
+def summarize_pdf_native_extraction(page_texts: list[dict]):
+    ocr_candidate_page_numbers = [
+        page["page_no"]
+        for page in page_texts
+        if not (page.get("text") or "").strip() and page.get("has_image") is True
+    ]
+
+    return {
+        "page_count": len(page_texts),
+        "native_text_page_count": sum(
+            1 for page in page_texts if (page.get("text") or "").strip()
+        ),
+        "image_page_count": sum(1 for page in page_texts if page.get("has_image") is True),
+        "ocr_candidate_page_count": len(ocr_candidate_page_numbers),
+        "ocr_candidate_page_numbers": ocr_candidate_page_numbers,
+    }
+
+
+def summarize_document_result(result: dict):
+    pages = result.get("pages", [])
+    source = result.get("source") or {}
+    return {
+        "page_count": result.get("page_count"),
+        "non_empty_page_count": sum(
+            1 for page in pages if int(page.get("text_length") or 0) > 0
+        ),
+        "block_count": len(result.get("blocks", [])),
+        "parse_score_bp": result.get("parse_score_bp"),
+        "source_mode": source.get("mode"),
+        "ocr_provider": source.get("ocr_provider"),
+    }
+
+
 def get_required_env(name: str) -> str:
     value = os.getenv(name)
     if not value:
@@ -307,8 +340,10 @@ def extract_pdf_page_texts(data: bytes):
     return page_texts
 
 
-def parse_pdf_document(data: bytes):
+def parse_pdf_document(data: bytes, *, log_fields: dict | None = None):
     page_texts = extract_pdf_page_texts(data)
+    extraction_summary = summarize_pdf_native_extraction(page_texts)
+    log_event(logging.INFO, "pdf native extraction completed", **(log_fields or {}), **extraction_summary)
     ocr_page_numbers = [
         page["page_no"]
         for page in page_texts
@@ -318,8 +353,21 @@ def parse_pdf_document(data: bytes):
     if not ocr_page_numbers:
         result = build_document_from_page_texts(page_texts, source_mode="native")
         if result["parse_score_bp"] > 0 and result["blocks"]:
+            log_event(
+                logging.INFO,
+                "pdf parse completed",
+                **(log_fields or {}),
+                **summarize_document_result(result),
+            )
             return result
 
+        log_event(
+            logging.WARNING,
+            "pdf parse failed",
+            **(log_fields or {}),
+            error_code="pdf_no_extractable_content",
+            **summarize_document_result(result),
+        )
         raise HTTPException(
             status_code=422,
             detail={
@@ -331,10 +379,40 @@ def parse_pdf_document(data: bytes):
         )
 
     provider = get_ocr_provider()
+    log_event(
+        logging.INFO,
+        "pdf ocr started",
+        **(log_fields or {}),
+        ocr_provider=provider.name,
+        ocr_candidate_page_count=len(ocr_page_numbers),
+        ocr_candidate_page_numbers=ocr_page_numbers,
+    )
     try:
         ocr_page_texts = provider.extract_pdf_pages(data, page_numbers=ocr_page_numbers)
     except OCRProviderError as error:
+        log_event(
+            logging.WARNING,
+            "pdf ocr failed",
+            **(log_fields or {}),
+            ocr_provider=provider.name,
+            error_code=error.code,
+            ocr_candidate_page_count=len(ocr_page_numbers),
+            ocr_candidate_page_numbers=ocr_page_numbers,
+        )
         raise HTTPException(status_code=422, detail=error.to_detail()) from error
+
+    log_event(
+        logging.INFO,
+        "pdf ocr completed",
+        **(log_fields or {}),
+        ocr_provider=provider.name,
+        ocr_candidate_page_count=len(ocr_page_numbers),
+        ocr_candidate_page_numbers=ocr_page_numbers,
+        ocr_result_page_count=len(ocr_page_texts),
+        ocr_non_empty_page_count=sum(
+            1 for page in ocr_page_texts if (page.get("text") or "").strip()
+        ),
+    )
 
     ocr_page_text_by_page_no = {
         page["page_no"]: (page.get("text") or "").strip() for page in ocr_page_texts
@@ -362,6 +440,13 @@ def parse_pdf_document(data: bytes):
         ocr_provider=provider.name,
     )
     if ocr_result["parse_score_bp"] <= 0 or not ocr_result["blocks"]:
+        log_event(
+            logging.WARNING,
+            "pdf parse failed",
+            **(log_fields or {}),
+            error_code="ocr_no_text",
+            **summarize_document_result(ocr_result),
+        )
         raise HTTPException(
             status_code=422,
             detail={
@@ -372,6 +457,12 @@ def parse_pdf_document(data: bytes):
             },
         )
 
+    log_event(
+        logging.INFO,
+        "pdf parse completed",
+        **(log_fields or {}),
+        **summarize_document_result(ocr_result),
+    )
     return ocr_result
 
 
@@ -383,9 +474,17 @@ def health():
 def parse_document(request: ParseRequest):
     file_kind = infer_file_kind(request.storage_key, request.logical_path)
     data = get_object_bytes(request.storage_key)
+    log_fields = {
+        "document_version_id": request.document_version_id,
+        "file_kind": file_kind,
+        "library_id": request.library_id,
+        "logical_path": request.logical_path,
+        "storage_key": request.storage_key,
+        "workspace_id": request.workspace_id,
+    }
 
     if file_kind == "pdf":
-        return parse_pdf_document(data)
+        return parse_pdf_document(data, log_fields=log_fields)
     if file_kind == "docx":
         return parse_docx_document(data)
     if file_kind == "text":
@@ -430,5 +529,8 @@ def parse_document_route(request: ParseRequest, http_request: FastAPIRequest):
             document_version_id=request.document_version_id,
             file_kind=file_kind,
             page_count=result.get("page_count"),
+            parse_score_bp=result.get("parse_score_bp"),
+            source_mode=(result.get("source") or {}).get("mode"),
+            ocr_provider=(result.get("source") or {}).get("ocr_provider"),
         )
         return result

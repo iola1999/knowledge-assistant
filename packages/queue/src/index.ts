@@ -22,6 +22,7 @@ export type IngestJobPayload = {
   documentVersionId: string;
   indexingMode?: DocumentIndexingMode;
   forceReparse?: boolean;
+  queueRunId?: string;
   traceContext?: TraceContextHeaders | null;
 };
 
@@ -60,6 +61,18 @@ export function buildQueueJobId(...parts: string[]) {
     .join("--");
 }
 
+export type IngestQueueJobStage = "parse" | "chunk" | "embed" | "index";
+
+export function buildIngestQueueJobId(
+  documentVersionId: string,
+  stage: IngestQueueJobStage,
+  queueRunId?: string | null,
+) {
+  return queueRunId
+    ? buildQueueJobId(documentVersionId, queueRunId, stage)
+    : buildQueueJobId(documentVersionId, stage);
+}
+
 export function getRedisConnection() {
   return {
     url: process.env.REDIS_URL ?? "redis://localhost:6379",
@@ -95,7 +108,11 @@ export async function enqueueIngestFlow(
       indexingMode,
     },
     opts: {
-      jobId: buildQueueJobId(payload.documentVersionId, "index"),
+      jobId: buildIngestQueueJobId(
+        payload.documentVersionId,
+        "index",
+        payload.queueRunId,
+      ),
       removeOnComplete: DEFAULT_QUEUE_JOB_RETENTION_LIMIT,
       removeOnFail: DEFAULT_QUEUE_JOB_RETENTION_LIMIT,
       ...options,
@@ -111,7 +128,11 @@ export async function enqueueIngestFlow(
                 indexingMode,
               },
               opts: {
-                jobId: buildQueueJobId(payload.documentVersionId, "chunk"),
+                jobId: buildIngestQueueJobId(
+                  payload.documentVersionId,
+                  "chunk",
+                  payload.queueRunId,
+                ),
                 removeOnComplete: DEFAULT_QUEUE_JOB_RETENTION_LIMIT,
                 removeOnFail: DEFAULT_QUEUE_JOB_RETENTION_LIMIT,
               },
@@ -124,7 +145,11 @@ export async function enqueueIngestFlow(
                     indexingMode,
                   },
                   opts: {
-                    jobId: buildQueueJobId(payload.documentVersionId, "parse"),
+                    jobId: buildIngestQueueJobId(
+                      payload.documentVersionId,
+                      "parse",
+                      payload.queueRunId,
+                    ),
                     removeOnComplete: DEFAULT_QUEUE_JOB_RETENTION_LIMIT,
                     removeOnFail: DEFAULT_QUEUE_JOB_RETENTION_LIMIT,
                   },
@@ -141,7 +166,11 @@ export async function enqueueIngestFlow(
                 indexingMode,
               },
               opts: {
-                jobId: buildQueueJobId(payload.documentVersionId, "embed"),
+                jobId: buildIngestQueueJobId(
+                  payload.documentVersionId,
+                  "embed",
+                  payload.queueRunId,
+                ),
                 removeOnComplete: DEFAULT_QUEUE_JOB_RETENTION_LIMIT,
                 removeOnFail: DEFAULT_QUEUE_JOB_RETENTION_LIMIT,
               },
@@ -154,7 +183,11 @@ export async function enqueueIngestFlow(
                     indexingMode,
                   },
                   opts: {
-                    jobId: buildQueueJobId(payload.documentVersionId, "chunk"),
+                    jobId: buildIngestQueueJobId(
+                      payload.documentVersionId,
+                      "chunk",
+                      payload.queueRunId,
+                    ),
                     removeOnComplete: DEFAULT_QUEUE_JOB_RETENTION_LIMIT,
                     removeOnFail: DEFAULT_QUEUE_JOB_RETENTION_LIMIT,
                   },
@@ -167,7 +200,11 @@ export async function enqueueIngestFlow(
                         indexingMode,
                       },
                       opts: {
-                        jobId: buildQueueJobId(payload.documentVersionId, "parse"),
+                        jobId: buildIngestQueueJobId(
+                          payload.documentVersionId,
+                          "parse",
+                          payload.queueRunId,
+                        ),
                         removeOnComplete: DEFAULT_QUEUE_JOB_RETENTION_LIMIT,
                         removeOnFail: DEFAULT_QUEUE_JOB_RETENTION_LIMIT,
                       },
