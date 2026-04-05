@@ -21,9 +21,10 @@ import { DocumentJobPanel } from "@/components/documents/document-job-panel";
 import { DocumentMetadataForm } from "@/components/documents/document-metadata-form";
 import { PdfViewer } from "@/components/documents/pdf-viewer";
 import { readCitationLocator } from "@/lib/api/document-metadata";
+import { resolveDocumentPreviewBackTarget } from "@/lib/api/document-page-navigation";
 import { buildDocumentViewerPages } from "@/lib/api/document-view";
 import { documentTypeOptions } from "@/lib/api/document-metadata";
-import { cn, textSelectionStyles, ui } from "@/lib/ui";
+import { buttonStyles, cn, textSelectionStyles, ui } from "@/lib/ui";
 
 export default async function DocumentPage({
   params,
@@ -168,6 +169,7 @@ export default async function DocumentPage({
     anchors: pageAnchors,
     highlightedAnchorId: anchorId,
   });
+  const backTarget = resolveDocumentPreviewBackTarget(workspaceId);
   const requestedPage = Number.parseInt(page ?? "", 10);
   const docTypeLabel =
     documentTypeOptions.find((item) => item.value === doc.docType)?.label ?? doc.docType;
@@ -378,6 +380,24 @@ export default async function DocumentPage({
     <div className={cn(ui.page, "max-w-[1680px]")}>
       {/* 顶部标题区，去除了笨重的 panelLarge，改为通栏透明底带底边框 */}
       <div className="mb-2 grid gap-5 border-b border-app-border/40 pb-6">
+        <div className="flex items-center justify-start">
+          <Link
+            href={backTarget.href}
+            className={cn(buttonStyles({ variant: "secondary", size: "sm" }), "gap-2")}
+          >
+            <svg
+              aria-hidden="true"
+              className="size-4 shrink-0"
+              fill="none"
+              viewBox="0 0 20 20"
+              stroke="currentColor"
+              strokeWidth="1.8"
+            >
+              <path d="M11.75 4.75 6.5 10l5.25 5.25" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            {backTarget.label}
+          </Link>
+        </div>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="grid gap-1.5">
             <h1 className="text-2xl font-semibold tracking-tight text-app-text">{doc.title}</h1>

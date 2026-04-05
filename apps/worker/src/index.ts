@@ -60,6 +60,10 @@ import {
   ParserServiceError,
   requestParseArtifact,
 } from "./parser-client";
+import {
+  CURRENT_PARSER_ARTIFACT_VERSION,
+  shouldReuseCachedParseArtifact,
+} from "./parse-artifact-cache";
 
 type EmbeddingArtifact = {
   generated_at: string;
@@ -310,7 +314,13 @@ async function parseDocument(
     .where(eq(parseArtifacts.sha256, version.sha256))
     .limit(1);
 
-  if (cached[0] && !forceReparse) {
+  if (
+    cached[0] &&
+    shouldReuseCachedParseArtifact({
+      forceReparse,
+      parserVersion: cached[0].parserVersion,
+    })
+  ) {
     const cachedArtifact =
       (await getJson<ParseArtifact>(cached[0].artifactStorageKey)) ?? null;
     versionLogger.info(
@@ -334,6 +344,17 @@ async function parseDocument(
       .where(eq(documentVersions.id, documentVersionId));
 
     return cached[0].artifactStorageKey;
+  }
+
+  if (cached[0] && !forceReparse) {
+    versionLogger.info(
+      {
+        parseArtifactId: cached[0].id,
+        cachedParserVersion: cached[0].parserVersion,
+        expectedParserVersion: CURRENT_PARSER_ARTIFACT_VERSION,
+      },
+      "skipping stale cached parse artifact",
+    );
   }
 
   const artifact = await withClientSpan(
@@ -370,7 +391,7 @@ async function parseDocument(
       artifactStorageKey,
       pageCount: artifact.page_count,
       parseScoreBp: artifact.parse_score_bp,
-      parserVersion: "parser-service-v1",
+      parserVersion: CURRENT_PARSER_ARTIFACT_VERSION,
     })
     .onConflictDoUpdate({
       target: parseArtifacts.sha256,
@@ -378,7 +399,7 @@ async function parseDocument(
         artifactStorageKey,
         pageCount: artifact.page_count,
         parseScoreBp: artifact.parse_score_bp,
-        parserVersion: "parser-service-v1",
+        parserVersion: CURRENT_PARSER_ARTIFACT_VERSION,
       },
     });
 
