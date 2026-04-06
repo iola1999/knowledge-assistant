@@ -318,6 +318,7 @@ function WorkspaceSidebarContent({
           <Link
             href={`/workspaces/${workspace.id}`}
             onClick={onNavigate}
+            aria-current={isCreateConversationActive ? "page" : undefined}
             className={createConversationNavButtonStyles({
               active: isCreateConversationActive,
             })}
@@ -407,16 +408,11 @@ function BreadcrumbTrail({
         const isWorkspaceCrumb = item.label === workspace.title;
         const isCurrentConversationCrumb =
           Boolean(currentConversation) && index === breadcrumbs.length - 1;
-        const isWorkspaceRootCrumb =
-          Boolean(currentConversation) && index === 0 && item.href === "/workspaces";
 
         return (
           <span
             key={`${item.label}-${index}`}
-            className={cn(
-              "flex min-w-0 items-center gap-1",
-              isWorkspaceRootCrumb && "hidden min-[720px]:flex",
-            )}
+            className="flex min-w-0 items-center gap-1"
           >
             {isCurrentConversationCrumb && currentConversation ? (
               <ConversationBreadcrumbSwitcher

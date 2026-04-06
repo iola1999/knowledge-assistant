@@ -93,4 +93,24 @@ describe("WorkspaceConversationSidebarItem", () => {
 
     expect(document.body.textContent).toContain("删除");
   });
+
+  test("marks the active conversation entry as the current page", () => {
+    act(() => {
+      root.render(
+        createElement(WorkspaceConversationSidebarItem, {
+          workspaceId: "workspace-1",
+          activeConversationId: "conversation-1",
+          conversation: {
+            id: "conversation-1",
+            title: "当前会话",
+            updatedAt: new Date(),
+          },
+        }),
+      );
+    });
+
+    const activeLink = container.querySelector('a[aria-current="page"]');
+
+    expect(activeLink?.textContent).toContain("当前会话");
+  });
 });

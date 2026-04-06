@@ -172,6 +172,7 @@ export function WorkspaceConversationSidebarItem({
         <Link
           href={`/workspaces/${workspaceId}?conversationId=${conversation.id}`}
           onClick={onNavigate}
+          aria-current={isActive ? "page" : undefined}
           className={cn(
             "group relative grid gap-1 rounded-[12px] px-4 py-3 text-[13px] transition",
             isActive
