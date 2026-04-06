@@ -31,6 +31,14 @@
 cp .env.production.example .env.production
 ```
 
+也可以直接运行仓库内的一键脚本：
+
+```bash
+./scripts/deploy-single-host-docker.sh
+```
+
+这个脚本会先执行一次 `git pull --ff-only` 拉取最新代码；随后在 `.env.production` 不存在时自动从 `.env.production.example` 复制一份；如果 `.env.production` 已存在，则保留原文件不覆盖。再按本文档的顺序执行 build、基础设施启动、`upgrade`、运行时服务启动和 `ps` 检查。
+
 注意：
 
 - `docker compose` 默认只会自动读取项目根目录的 `.env`，不会自动读取 `.env.production`。
