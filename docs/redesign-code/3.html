@@ -1,0 +1,708 @@
+<!doctype html>
+
+<html class="light" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Knowledge Base Library | AnchorDesk</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "inverse-primary": "#c8c6c5",
+              "surface-container-highest": "#e0e3e5",
+              "secondary-fixed": "#dae2fd",
+              "primary-fixed-dim": "#c8c6c5",
+              "on-tertiary": "#ffffff",
+              "primary-fixed": "#e5e2e1",
+              surface: "#f7f9fb",
+              "tertiary-fixed": "#f0e0cb",
+              "on-surface-variant": "#45464d",
+              "surface-variant": "#e0e3e5",
+              "primary-container": "#1c1b1b",
+              error: "#ba1a1a",
+              "on-secondary-container": "#5c647a",
+              "surface-container-low": "#f2f4f6",
+              tertiary: "#000000",
+              "on-secondary-fixed": "#131b2e",
+              "on-surface": "#191c1e",
+              "surface-tint": "#5f5e5e",
+              "tertiary-container": "#221a0d",
+              "error-container": "#ffdad6",
+              secondary: "#565e74",
+              "on-primary-fixed-variant": "#474746",
+              "on-primary-fixed": "#1c1b1b",
+              "on-secondary-fixed-variant": "#3f465c",
+              "secondary-fixed-dim": "#bec6e0",
+              "tertiary-fixed-dim": "#d3c4b0",
+              "on-tertiary-fixed": "#221a0d",
+              "on-tertiary-container": "#8f826f",
+              "on-error-container": "#93000a",
+              "surface-container": "#eceef0",
+              primary: "#000000",
+              "inverse-on-surface": "#eff1f3",
+              "on-background": "#191c1e",
+              "secondary-container": "#dae2fd",
+              background: "#f7f9fb",
+              "surface-container-high": "#e6e8ea",
+              "surface-container-lowest": "#ffffff",
+              "surface-dim": "#d8dadc",
+              "inverse-surface": "#2d3133",
+              "on-primary-container": "#858383",
+              outline: "#76777d",
+              "outline-variant": "#c6c6cd",
+              "on-error": "#ffffff",
+              "on-secondary": "#ffffff",
+              "on-primary": "#ffffff",
+              "on-tertiary-fixed-variant": "#4f4535",
+              "surface-bright": "#f7f9fb",
+            },
+            borderRadius: {
+              DEFAULT: "0.25rem",
+              lg: "0.5rem",
+              xl: "0.75rem",
+              full: "9999px",
+            },
+            fontFamily: {
+              headline: ["Manrope"],
+              body: ["Inter"],
+              label: ["Inter"],
+            },
+          },
+        },
+      };
+    </script>
+    <style>
+      .material-symbols-outlined {
+        font-variation-settings:
+          "FILL" 0,
+          "wght" 400,
+          "GRAD" 0,
+          "opsz" 24;
+      }
+      body {
+        font-family: "Inter", sans-serif;
+      }
+      h1,
+      h2,
+      h3 {
+        font-family: "Manrope", sans-serif;
+      }
+      .tonal-shift {
+        transition: background-color 300ms ease;
+      }
+    </style>
+  </head>
+  <body class="bg-surface text-on-surface flex h-screen overflow-hidden">
+    <!-- SideNavBar Component -->
+    <aside
+      class="flex flex-col h-full py-8 bg-slate-50 dark:bg-slate-900 h-screen w-64 border-r-0 tonal-shift bg-slate-100 dark:bg-slate-800/50 shrink-0"
+    >
+      <div class="px-8 mb-10">
+        <h1
+          class="text-xl font-bold tracking-tight text-slate-950 dark:text-white"
+        >
+          AnchorDesk
+        </h1>
+        <p
+          class="text-xs font-medium Inter text-slate-500 uppercase tracking-widest mt-1"
+        >
+          Personal Knowledge
+        </p>
+      </div>
+      <div class="px-4 mb-8">
+        <button
+          class="w-full bg-primary text-on-primary py-3 px-4 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 hover:opacity-90 transition-all"
+        >
+          <span class="material-symbols-outlined text-sm">add</span>
+          New Conversation
+        </button>
+      </div>
+      <nav class="flex-1 space-y-1">
+        <!-- Home: Inactive -->
+        <a
+          class="flex items-center gap-4 py-3 text-slate-500 dark:text-slate-400 pl-4 hover:bg-slate-200/50 dark:hover:bg-slate-800 transition-colors text-sm font-medium Inter"
+          href="#"
+        >
+          <span class="material-symbols-outlined" data-icon="home">home</span>
+          Home
+        </a>
+        <!-- Knowledge Base: Active -->
+        <a
+          class="flex items-center gap-4 py-3 text-slate-950 dark:text-white font-bold border-l-2 border-slate-950 dark:border-white pl-4 hover:bg-slate-200/50 dark:hover:bg-slate-800 transition-colors text-sm font-medium Inter opacity-80 transition-all duration-300"
+          href="#"
+        >
+          <span class="material-symbols-outlined" data-icon="database"
+            >database</span
+          >
+          Knowledge Base
+        </a>
+        <!-- Settings: Inactive -->
+        <a
+          class="flex items-center gap-4 py-3 text-slate-500 dark:text-slate-400 pl-4 hover:bg-slate-200/50 dark:hover:bg-slate-800 transition-colors text-sm font-medium Inter"
+          href="#"
+        >
+          <span class="material-symbols-outlined" data-icon="settings"
+            >settings</span
+          >
+          Settings
+        </a>
+      </nav>
+      <div
+        class="mt-auto pt-8 border-t border-slate-200/50 dark:border-slate-800/50 space-y-1"
+      >
+        <a
+          class="flex items-center gap-4 py-3 text-slate-500 dark:text-slate-400 pl-4 hover:bg-slate-200/50 dark:hover:bg-slate-800 transition-colors text-sm font-medium Inter"
+          href="#"
+        >
+          <span class="material-symbols-outlined" data-icon="history"
+            >history</span
+          >
+          History
+        </a>
+        <a
+          class="flex items-center gap-4 py-3 text-slate-500 dark:text-slate-400 pl-4 hover:bg-slate-200/50 dark:hover:bg-slate-800 transition-colors text-sm font-medium Inter"
+          href="#"
+        >
+          <span class="material-symbols-outlined" data-icon="help_outline"
+            >help_outline</span
+          >
+          Help
+        </a>
+      </div>
+    </aside>
+    <!-- Main Canvas -->
+    <main class="flex-1 flex flex-col min-w-0 bg-surface">
+      <!-- TopAppBar Component -->
+      <header
+        class="flex justify-between items-center w-full px-8 h-16 bg-white/70 dark:bg-slate-950/70 backdrop-blur-xl docked full-width top-0 sticky z-40 tonal-shift border-b border-slate-100 dark:border-slate-800"
+      >
+        <div class="flex items-center gap-8">
+          <div class="flex items-center gap-6">
+            <a
+              class="text-slate-400 dark:text-slate-500 pb-2 text-xs uppercase tracking-widest font-bold hover:text-slate-950 dark:hover:text-white transition-opacity"
+              href="#"
+              >Workspaces</a
+            >
+            <a
+              class="text-slate-950 dark:text-white border-b-2 border-slate-950 dark:border-white pb-2 text-xs uppercase tracking-widest font-bold"
+              href="#"
+              >Recent</a
+            >
+            <a
+              class="text-slate-400 dark:text-slate-500 pb-2 text-xs uppercase tracking-widest font-bold hover:text-slate-950 dark:hover:text-white transition-opacity"
+              href="#"
+              >Pinned</a
+            >
+          </div>
+        </div>
+        <div class="flex items-center gap-4">
+          <button
+            class="text-sm font-semibold px-4 py-2 hover:bg-surface-container-low rounded-lg transition-colors"
+          >
+            Share
+          </button>
+          <div class="flex items-center gap-2">
+            <button
+              class="p-2 text-secondary hover:text-primary transition-colors"
+            >
+              <span class="material-symbols-outlined" data-icon="notifications"
+                >notifications</span
+              >
+            </button>
+            <button
+              class="p-2 text-secondary hover:text-primary transition-colors"
+            >
+              <span class="material-symbols-outlined" data-icon="account_circle"
+                >account_circle</span
+              >
+            </button>
+          </div>
+        </div>
+      </header>
+      <!-- Content Area -->
+      <div class="flex-1 overflow-y-auto px-12 py-10">
+        <!-- Editorial Header -->
+        <div class="mb-12 flex justify-between items-end">
+          <div class="max-w-2xl">
+            <h2
+              class="text-5xl font-extrabold tracking-tight text-primary mb-4"
+            >
+              Library
+            </h2>
+            <p class="text-secondary text-lg font-medium leading-relaxed">
+              Organize your research, technical docs, and private datasets for
+              intelligent retrieval.
+            </p>
+          </div>
+        </div>
+        <!-- Toolbar & Search -->
+        <div
+          class="flex flex-wrap items-center justify-between gap-6 mb-8 bg-surface-container-low p-4 rounded-xl"
+        >
+          <div class="flex items-center gap-3">
+            <button
+              class="flex items-center gap-2 px-4 py-2 bg-primary text-on-primary rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity"
+            >
+              <span class="material-symbols-outlined text-sm">upload</span>
+              Upload
+            </button>
+            <button
+              class="flex items-center gap-2 px-4 py-2 bg-surface-container-lowest text-on-surface-variant rounded-lg text-sm font-semibold hover:bg-surface-container-high transition-colors"
+            >
+              <span class="material-symbols-outlined text-sm"
+                >create_new_folder</span
+              >
+              New Folder
+            </button>
+            <div class="w-px h-6 bg-outline-variant/30 mx-1"></div>
+            <button
+              class="p-2 text-secondary hover:text-primary hover:bg-surface-container-high rounded-lg transition-all"
+            >
+              <span class="material-symbols-outlined">download</span>
+            </button>
+            <button
+              class="p-2 text-secondary hover:text-primary hover:bg-surface-container-high rounded-lg transition-all"
+            >
+              <span class="material-symbols-outlined">move_item</span>
+            </button>
+            <button
+              class="p-2 text-error hover:bg-error-container/20 rounded-lg transition-all"
+            >
+              <span class="material-symbols-outlined">delete</span>
+            </button>
+          </div>
+          <div class="relative min-w-[320px]">
+            <span
+              class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-secondary text-xl"
+              >search</span
+            >
+            <input
+              class="w-full pl-10 pr-4 py-2 bg-surface-container-lowest border-none focus:ring-1 focus:ring-outline-variant/20 rounded-lg text-sm font-medium placeholder:text-outline"
+              placeholder="Search in directory..."
+              type="text"
+            />
+          </div>
+        </div>
+        <!-- Table Section -->
+        <div class="bg-surface-container-lowest rounded-2xl overflow-hidden">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-surface-container-low/50">
+                <th class="py-5 pl-8 pr-4 w-12">
+                  <input
+                    class="rounded border-outline-variant text-primary focus:ring-primary w-4 h-4"
+                    type="checkbox"
+                  />
+                </th>
+                <th
+                  class="py-5 px-4 text-xs font-bold uppercase tracking-widest text-secondary/70"
+                >
+                  Name
+                </th>
+                <th
+                  class="py-5 px-4 text-xs font-bold uppercase tracking-widest text-secondary/70"
+                >
+                  Status
+                </th>
+                <th
+                  class="py-5 px-4 text-xs font-bold uppercase tracking-widest text-secondary/70"
+                >
+                  Type
+                </th>
+                <th
+                  class="py-5 px-4 text-xs font-bold uppercase tracking-widest text-secondary/70"
+                >
+                  Size
+                </th>
+                <th
+                  class="py-5 px-4 text-xs font-bold uppercase tracking-widest text-secondary/70"
+                >
+                  Updated
+                </th>
+                <th
+                  class="py-5 px-4 text-xs font-bold uppercase tracking-widest text-secondary/70"
+                >
+                  Created
+                </th>
+                <th class="py-5 pr-8 pl-4 w-10"></th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-surface-container-low">
+              <!-- Row 1 -->
+              <tr
+                class="hover:bg-surface-container-low/30 transition-colors group"
+              >
+                <td class="py-6 pl-8 pr-4">
+                  <input
+                    class="rounded border-outline-variant text-primary focus:ring-primary w-4 h-4"
+                    type="checkbox"
+                  />
+                </td>
+                <td class="py-6 px-4">
+                  <div class="flex items-center gap-3">
+                    <div
+                      class="w-10 h-10 rounded-lg bg-tertiary-fixed flex items-center justify-center text-on-tertiary-fixed-variant"
+                    >
+                      <span class="material-symbols-outlined">description</span>
+                    </div>
+                    <div>
+                      <div class="text-sm font-bold text-on-surface">
+                        Q3 Financial Report.pdf
+                      </div>
+                      <div class="text-[11px] text-secondary font-medium">
+                        Internal / Finance / 2023
+                      </div>
+                    </div>
+                  </div>
+                </td>
+                <td class="py-6 px-4">
+                  <span
+                    class="px-2 py-1 bg-green-100 text-green-700 text-[10px] font-bold uppercase tracking-wider rounded-full"
+                    >Ready</span
+                  >
+                </td>
+                <td
+                  class="py-6 px-4 text-sm font-medium text-on-surface-variant"
+                >
+                  PDF
+                </td>
+                <td
+                  class="py-6 px-4 text-sm font-medium text-on-surface-variant"
+                >
+                  12.4 MB
+                </td>
+                <td
+                  class="py-6 px-4 text-sm font-medium text-on-surface-variant"
+                >
+                  Oct 12, 2023
+                </td>
+                <td
+                  class="py-6 px-4 text-sm font-medium text-on-surface-variant"
+                >
+                  Oct 01, 2023
+                </td>
+                <td class="py-6 pr-8 pl-4 text-right">
+                  <button
+                    class="p-2 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-surface-container-high rounded-full"
+                  >
+                    <span class="material-symbols-outlined text-secondary"
+                      >more_vert</span
+                    >
+                  </button>
+                </td>
+              </tr>
+              <!-- Row 2 -->
+              <tr
+                class="hover:bg-surface-container-low/30 transition-colors group"
+              >
+                <td class="py-6 pl-8 pr-4">
+                  <input
+                    class="rounded border-outline-variant text-primary focus:ring-primary w-4 h-4"
+                    type="checkbox"
+                  />
+                </td>
+                <td class="py-6 px-4">
+                  <div class="flex items-center gap-3">
+                    <div
+                      class="w-10 h-10 rounded-lg bg-secondary-fixed flex items-center justify-center text-on-secondary-fixed-variant"
+                    >
+                      <span class="material-symbols-outlined">article</span>
+                    </div>
+                    <div>
+                      <div class="text-sm font-bold text-on-surface">
+                        Neural Network Architecture.docx
+                      </div>
+                      <div class="text-[11px] text-secondary font-medium">
+                        Research / Deep Learning
+                      </div>
+                    </div>
+                  </div>
+                </td>
+                <td class="py-6 px-4">
+                  <span
+                    class="px-2 py-1 bg-surface-container-high text-on-surface-variant text-[10px] font-bold uppercase tracking-wider rounded-full"
+                    >Processing</span
+                  >
+                </td>
+                <td
+                  class="py-6 px-4 text-sm font-medium text-on-surface-variant"
+                >
+                  DOCX
+                </td>
+                <td
+                  class="py-6 px-4 text-sm font-medium text-on-surface-variant"
+                >
+                  842 KB
+                </td>
+                <td
+                  class="py-6 px-4 text-sm font-medium text-on-surface-variant"
+                >
+                  2 hours ago
+                </td>
+                <td
+                  class="py-6 px-4 text-sm font-medium text-on-surface-variant"
+                >
+                  Oct 11, 2023
+                </td>
+                <td class="py-6 pr-8 pl-4 text-right">
+                  <button
+                    class="p-2 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-surface-container-high rounded-full"
+                  >
+                    <span class="material-symbols-outlined text-secondary"
+                      >more_vert</span
+                    >
+                  </button>
+                </td>
+              </tr>
+              <!-- Row 3 -->
+              <tr
+                class="hover:bg-surface-container-low/30 transition-colors group"
+              >
+                <td class="py-6 pl-8 pr-4">
+                  <input
+                    class="rounded border-outline-variant text-primary focus:ring-primary w-4 h-4"
+                    type="checkbox"
+                  />
+                </td>
+                <td class="py-6 px-4">
+                  <div class="flex items-center gap-3">
+                    <div
+                      class="w-10 h-10 rounded-lg bg-tertiary-fixed flex items-center justify-center text-on-tertiary-fixed-variant"
+                    >
+                      <span class="material-symbols-outlined">folder</span>
+                    </div>
+                    <div>
+                      <div class="text-sm font-bold text-on-surface">
+                        Project Apollo Assets
+                      </div>
+                      <div class="text-[11px] text-secondary font-medium">
+                        Creative / Projects
+                      </div>
+                    </div>
+                  </div>
+                </td>
+                <td class="py-6 px-4">
+                  <span
+                    class="px-2 py-1 bg-green-100 text-green-700 text-[10px] font-bold uppercase tracking-wider rounded-full"
+                    >Ready</span
+                  >
+                </td>
+                <td
+                  class="py-6 px-4 text-sm font-medium text-on-surface-variant"
+                >
+                  Folder
+                </td>
+                <td
+                  class="py-6 px-4 text-sm font-medium text-on-surface-variant"
+                >
+                  —
+                </td>
+                <td
+                  class="py-6 px-4 text-sm font-medium text-on-surface-variant"
+                >
+                  Oct 10, 2023
+                </td>
+                <td
+                  class="py-6 px-4 text-sm font-medium text-on-surface-variant"
+                >
+                  Sep 28, 2023
+                </td>
+                <td class="py-6 pr-8 pl-4 text-right">
+                  <button
+                    class="p-2 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-surface-container-high rounded-full"
+                  >
+                    <span class="material-symbols-outlined text-secondary"
+                      >more_vert</span
+                    >
+                  </button>
+                </td>
+              </tr>
+              <!-- Row 4 -->
+              <tr
+                class="hover:bg-surface-container-low/30 transition-colors group"
+              >
+                <td class="py-6 pl-8 pr-4">
+                  <input
+                    class="rounded border-outline-variant text-primary focus:ring-primary w-4 h-4"
+                    type="checkbox"
+                  />
+                </td>
+                <td class="py-6 px-4">
+                  <div class="flex items-center gap-3">
+                    <div
+                      class="w-10 h-10 rounded-lg bg-slate-200 flex items-center justify-center text-slate-600"
+                    >
+                      <span class="material-symbols-outlined"
+                        >picture_as_pdf</span
+                      >
+                    </div>
+                    <div>
+                      <div class="text-sm font-bold text-on-surface">
+                        API Documentation v2.pdf
+                      </div>
+                      <div class="text-[11px] text-secondary font-medium">
+                        Engineering / Docs
+                      </div>
+                    </div>
+                  </div>
+                </td>
+                <td class="py-6 px-4">
+                  <span
+                    class="px-2 py-1 bg-green-100 text-green-700 text-[10px] font-bold uppercase tracking-wider rounded-full"
+                    >Ready</span
+                  >
+                </td>
+                <td
+                  class="py-6 px-4 text-sm font-medium text-on-surface-variant"
+                >
+                  PDF
+                </td>
+                <td
+                  class="py-6 px-4 text-sm font-medium text-on-surface-variant"
+                >
+                  4.2 MB
+                </td>
+                <td
+                  class="py-6 px-4 text-sm font-medium text-on-surface-variant"
+                >
+                  Oct 09, 2023
+                </td>
+                <td
+                  class="py-6 px-4 text-sm font-medium text-on-surface-variant"
+                >
+                  Oct 09, 2023
+                </td>
+                <td class="py-6 pr-8 pl-4 text-right">
+                  <button
+                    class="p-2 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-surface-container-high rounded-full"
+                  >
+                    <span class="material-symbols-outlined text-secondary"
+                      >more_vert</span
+                    >
+                  </button>
+                </td>
+              </tr>
+              <!-- Row 5 -->
+              <tr
+                class="hover:bg-surface-container-low/30 transition-colors group"
+              >
+                <td class="py-6 pl-8 pr-4">
+                  <input
+                    class="rounded border-outline-variant text-primary focus:ring-primary w-4 h-4"
+                    type="checkbox"
+                  />
+                </td>
+                <td class="py-6 px-4">
+                  <div class="flex items-center gap-3">
+                    <div
+                      class="w-10 h-10 rounded-lg bg-tertiary-fixed flex items-center justify-center text-on-tertiary-fixed-variant"
+                    >
+                      <span class="material-symbols-outlined">description</span>
+                    </div>
+                    <div>
+                      <div class="text-sm font-bold text-on-surface">
+                        User Personas Analysis.pdf
+                      </div>
+                      <div class="text-[11px] text-secondary font-medium">
+                        Product / UX
+                      </div>
+                    </div>
+                  </div>
+                </td>
+                <td class="py-6 px-4">
+                  <span
+                    class="px-2 py-1 bg-amber-100 text-amber-700 text-[10px] font-bold uppercase tracking-wider rounded-full"
+                    >Review Required</span
+                  >
+                </td>
+                <td
+                  class="py-6 px-4 text-sm font-medium text-on-surface-variant"
+                >
+                  PDF
+                </td>
+                <td
+                  class="py-6 px-4 text-sm font-medium text-on-surface-variant"
+                >
+                  21.0 MB
+                </td>
+                <td
+                  class="py-6 px-4 text-sm font-medium text-on-surface-variant"
+                >
+                  Yesterday
+                </td>
+                <td
+                  class="py-6 px-4 text-sm font-medium text-on-surface-variant"
+                >
+                  Oct 05, 2023
+                </td>
+                <td class="py-6 pr-8 pl-4 text-right">
+                  <button
+                    class="p-2 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-surface-container-high rounded-full"
+                  >
+                    <span class="material-symbols-outlined text-secondary"
+                      >more_vert</span
+                    >
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <!-- Pagination/Footer -->
+          <div
+            class="px-8 py-4 bg-surface-container-low/20 border-t border-surface-container-low flex items-center justify-between"
+          >
+            <div class="text-xs font-medium text-secondary">
+              Showing 5 of 124 documents
+            </div>
+            <div class="flex items-center gap-2">
+              <button
+                class="p-2 text-secondary hover:text-primary transition-colors disabled:opacity-30"
+                disabled=""
+              >
+                <span class="material-symbols-outlined">chevron_left</span>
+              </button>
+              <div class="flex items-center gap-1">
+                <button
+                  class="w-8 h-8 rounded-lg bg-primary text-on-primary text-xs font-bold"
+                >
+                  1
+                </button>
+                <button
+                  class="w-8 h-8 rounded-lg hover:bg-surface-container-high text-xs font-bold transition-colors text-secondary"
+                >
+                  2
+                </button>
+                <button
+                  class="w-8 h-8 rounded-lg hover:bg-surface-container-high text-xs font-bold transition-colors text-secondary"
+                >
+                  3
+                </button>
+              </div>
+              <button
+                class="p-2 text-secondary hover:text-primary transition-colors"
+              >
+                <span class="material-symbols-outlined">chevron_right</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </body>
+</html>
