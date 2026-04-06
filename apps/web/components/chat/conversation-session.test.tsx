@@ -354,6 +354,10 @@ describe("ConversationSession", () => {
     expect(container.textContent).toContain("先查来源，再整理结论");
     expect(container.textContent).toContain("搜索网页");
     expect(container.textContent).toContain("继续整理网页结果");
+    const timelineCard = Array.from(container.querySelectorAll<HTMLElement>("article,div")).find(
+      (element) => element.className.includes("bg-app-surface-lowest/70"),
+    );
+    expect(timelineCard).toBeTruthy();
   });
 
   test("renders submitted attachments beside the user message in a new tab", () => {

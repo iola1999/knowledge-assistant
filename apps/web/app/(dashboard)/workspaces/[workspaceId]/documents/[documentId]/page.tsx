@@ -16,12 +16,14 @@ import {
 
 import { auth } from "@/auth";
 import { DeleteDocumentButton } from "@/components/documents/delete-document-button";
+import { DocumentDetailsModal } from "@/components/documents/document-details-modal";
 import { DocumentJobPanel } from "@/components/documents/document-job-panel";
 import { DocumentMetadataForm } from "@/components/documents/document-metadata-form";
 import { PdfViewer } from "@/components/documents/pdf-viewer";
 import { readCitationLocator } from "@/lib/api/document-metadata";
+import { resolveDocumentPreviewBackTarget } from "@/lib/api/document-page-navigation";
 import { buildDocumentViewerPages } from "@/lib/api/document-view";
-import { cn, textSelectionStyles, ui } from "@/lib/ui";
+import { buttonStyles, cn, textSelectionStyles, ui } from "@/lib/ui";
 
 export default async function DocumentPage({
   params,
@@ -166,7 +168,9 @@ export default async function DocumentPage({
     anchors: pageAnchors,
     highlightedAnchorId: anchorId,
   });
+  const backTarget = resolveDocumentPreviewBackTarget(workspaceId);
   const requestedPage = Number.parseInt(page ?? "", 10);
+  const tags = doc.tagsJson ?? [];
   const canRenderPdf = doc.mimeType.includes("pdf") && Boolean(latestVersion);
   const metadataPanel = isWorkspaceOwnedDocument ? (
     <DocumentMetadataForm
@@ -385,16 +389,65 @@ export default async function DocumentPage({
   return (
     <div className={cn(ui.page, "gap-6")}>
       <div className={cn(ui.panelLarge, "grid gap-6")}>
-        <div className="grid gap-2">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-app-secondary">
-            文档
-          </p>
-          <h1 className="font-headline text-[2rem] font-extrabold tracking-[-0.04em] text-app-text">
-            {doc.title}
-          </h1>
+        <div className="grid gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <Link
+              href={backTarget.href}
+              className={buttonStyles({ variant: "secondary", size: "sm" })}
+            >
+              {backTarget.label}
+            </Link>
+            <DocumentDetailsModal>{detailsPanels}</DocumentDetailsModal>
+          </div>
+          <div className="grid gap-2">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-app-secondary">
+              文档
+            </p>
+            <h1 className="font-headline text-[2rem] font-extrabold tracking-[-0.04em] text-app-text">
+              {doc.title}
+            </h1>
+            <div className="flex flex-wrap items-center gap-2 text-[13px] text-app-secondary">
+              <span>{doc.logicalPath}</span>
+              <span>·</span>
+              <span>{doc.status}</span>
+              {doc.libraryTitle ? (
+                <>
+                  <span>·</span>
+                  <span>{doc.libraryTitle}</span>
+                </>
+              ) : null}
+              {latestVersion ? (
+                <>
+                  <span>·</span>
+                  <span>v{latestVersion.version}</span>
+                  <span>·</span>
+                  <span>{latestVersion.parseStatus}</span>
+                </>
+              ) : null}
+              {latestJob && latestJob.stage && latestJob.progress !== null ? (
+                <>
+                  <span>·</span>
+                  <span>
+                    {latestJob.stage} {latestJob.progress}%
+                  </span>
+                </>
+              ) : null}
+            </div>
+            {tags.length > 0 ? (
+              <div className="flex flex-wrap gap-1.5">
+                {tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="inline-flex items-center rounded-full border border-app-border bg-app-surface-soft px-2 py-0.5 text-[12px] text-app-muted-strong"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            ) : null}
+          </div>
         </div>
         {contentSurface}
-        {detailsPanels}
       </div>
     </div>
   );

@@ -62,6 +62,7 @@ export default async function ReportPage({
             <h1 className="font-headline text-[2rem] font-extrabold tracking-[-0.04em] text-app-text">
               {report[0].title}
             </h1>
+            <p className="text-[13px] text-app-secondary">状态：{report[0].status}</p>
           </div>
           <Link
             href={`/api/reports/${reportId}/export-docx`}

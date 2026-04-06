@@ -358,7 +358,9 @@ function TimelineEntry({
         {!isLast ? (
           <span className="absolute left-[9px] top-[18px] bottom-[-18px] w-px bg-app-border/75" />
         ) : null}
-        {summary}
+        <div className={cn("grid min-w-0 gap-1", conversationDensityClassNames.timelineEntryCard)}>
+          {summary}
+        </div>
       </article>
     );
   }
@@ -370,7 +372,10 @@ function TimelineEntry({
       ) : null}
       <button
         type="button"
-        className="max-w-full cursor-pointer text-left text-app-muted-strong transition hover:text-app-text"
+        className={cn(
+          "grid min-w-0 max-w-full gap-1 cursor-pointer text-left text-app-muted-strong transition hover:text-app-text",
+          conversationDensityClassNames.timelineEntryCard,
+        )}
         aria-expanded={open}
         onClick={() => {
           setOpen((current) => !current);
