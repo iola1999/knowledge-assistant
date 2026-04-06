@@ -12,8 +12,8 @@ import {
   workspaces,
 } from "@anchordesk/db";
 
-import { AnchorDeskLogo } from "@/components/icons";
 import { ConversationSession } from "@/components/chat/conversation-session";
+import { PublicPageShell } from "@/components/shared/public-page-shell";
 import { groupAssistantProcessMessages } from "@/lib/api/conversation-process";
 import { workspaceBranding } from "@/lib/branding";
 
@@ -93,84 +93,67 @@ export default async function SharedConversationPage({
       : [];
 
   return (
-    <div className="flex min-h-screen flex-col">
-      {/* Branded header */}
-      <header className="sticky top-0 z-10 border-b border-app-border/60 bg-app-bg-elevated/80 backdrop-blur-md">
-        <div className="mx-auto flex max-w-[1080px] items-center gap-2.5 px-4 py-2.5 md:px-6">
-          <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-app-primary">
-            <AnchorDeskLogo className="size-[14px] text-app-primary-contrast" />
-          </span>
-          <span className="text-[12px] font-medium text-app-muted-strong">
-            {workspaceBranding.productName}
-          </span>
-          <span className="mx-1 text-[11px] text-app-muted">·</span>
-          <span className="text-[12px] text-app-muted">共享会话</span>
-        </div>
-      </header>
-
-      {/* Content */}
-      <main className="mx-auto flex w-full max-w-[1080px] flex-1 flex-col gap-5 px-4 py-6 md:px-6 md:py-7">
-        <div className="px-0.5">
-          <h1 className="max-w-[720px] text-[1.35rem] font-semibold leading-[1.28] tracking-[-0.02em] text-app-text">
-            {sharedConversation.title}
-          </h1>
-        </div>
-
-        <section className="w-full">
-          <ConversationSession
-            conversationId={sharedConversation.conversationId}
-            assistantMessageId={activeAssistantMessage?.id ?? null}
-            assistantStatus={
-              activeAssistantMessage?.role === MESSAGE_ROLE.ASSISTANT
-                ? activeAssistantMessage.status
-                : null
-            }
-            initialTimelineMessagesByAssistant={groupAssistantProcessMessages(
-              thread.map((message) => ({
-                id: message.id,
-                role: message.role,
-                status: message.status,
-                contentMarkdown: message.contentMarkdown,
-                createdAt: message.createdAt,
-                structuredJson:
-                  (message.structuredJson as Record<string, unknown> | null | undefined) ?? null,
-              })),
-            )}
-            initialMessages={chatThread.map((message) => ({
+    <PublicPageShell
+      productName={workspaceBranding.productName}
+      pageLabel="共享会话"
+      title={
+        <h1 className="max-w-[720px] text-[1.35rem] font-semibold leading-[1.28] tracking-[-0.02em] text-app-text">
+          {sharedConversation.title}
+        </h1>
+      }
+      footer={
+        <p className="text-[11px] text-app-muted">
+          本页面由 {workspaceBranding.productName} 生成，仅供查看；外部网页链接可打开，本地资料引用不提供跳转
+        </p>
+      }
+    >
+      <section className="w-full">
+        <ConversationSession
+          conversationId={sharedConversation.conversationId}
+          assistantMessageId={activeAssistantMessage?.id ?? null}
+          assistantStatus={
+            activeAssistantMessage?.role === MESSAGE_ROLE.ASSISTANT
+              ? activeAssistantMessage.status
+              : null
+          }
+          initialTimelineMessagesByAssistant={groupAssistantProcessMessages(
+            thread.map((message) => ({
               id: message.id,
               role: message.role,
               status: message.status,
               contentMarkdown: message.contentMarkdown,
+              createdAt: message.createdAt,
               structuredJson:
                 (message.structuredJson as Record<string, unknown> | null | undefined) ?? null,
-            }))}
-            initialCitations={citations.map((citation) => ({
-              id: citation.id,
-              messageId: citation.messageId,
-              anchorId: citation.anchorId,
-              documentId: citation.documentId,
-              label: citation.label,
-              quoteText: citation.quoteText,
-              sourceScope: citation.sourceScope,
-              libraryTitle: citation.libraryTitle,
-              sourceUrl: citation.sourceUrl,
-              sourceDomain: citation.sourceDomain,
-              sourceTitle: citation.sourceTitle,
-            }))}
-            streamEnabled={false}
-            documentLinksEnabled={false}
-            readOnly
-            emptyStateMessage="当前会话还没有可分享的消息"
-          />
-        </section>
-      </main>
-
-      {/* Footer */}
-      <footer className="border-t border-app-border/50 py-4">
-        <p className="mx-auto max-w-[1080px] px-4 text-[11px] text-app-muted md:px-6">
-          本页面由 {workspaceBranding.productName} 生成，仅供查看；外部网页链接可打开，本地资料引用不提供跳转
-        </p>
-      </footer>
-    </div>
+            })),
+          )}
+          initialMessages={chatThread.map((message) => ({
+            id: message.id,
+            role: message.role,
+            status: message.status,
+            contentMarkdown: message.contentMarkdown,
+            structuredJson:
+              (message.structuredJson as Record<string, unknown> | null | undefined) ?? null,
+          }))}
+          initialCitations={citations.map((citation) => ({
+            id: citation.id,
+            messageId: citation.messageId,
+            anchorId: citation.anchorId,
+            documentId: citation.documentId,
+            label: citation.label,
+            quoteText: citation.quoteText,
+            sourceScope: citation.sourceScope,
+            libraryTitle: citation.libraryTitle,
+            sourceUrl: citation.sourceUrl,
+            sourceDomain: citation.sourceDomain,
+            sourceTitle: citation.sourceTitle,
+          }))}
+          streamEnabled={false}
+          documentLinksEnabled={false}
+          readOnly
+          emptyStateMessage="当前会话还没有可分享的消息"
+        />
+      </section>
+    </PublicPageShell>
   );
 }

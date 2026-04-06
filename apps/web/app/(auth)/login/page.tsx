@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { AuthForm } from "@/components/shared/auth-form";
+import { AuthShell } from "@/components/shared/auth-shell";
 import { readRegistrationEnabled } from "@/lib/auth/registration";
 import { ui } from "@/lib/ui";
 
@@ -10,8 +11,8 @@ export default async function LoginPage() {
   const registrationEnabled = await readRegistrationEnabled();
 
   return (
-    <main className="mx-auto grid min-h-screen w-full max-w-[1320px] place-items-center px-4 py-8 md:px-6">
-      <div className="grid w-full max-w-[560px] gap-4">
+    <AuthShell>
+      <div className="grid gap-4">
         <AuthForm mode="login" registrationEnabled={registrationEnabled} />
         {registrationEnabled ? (
           <p className={ui.muted}>
@@ -24,6 +25,6 @@ export default async function LoginPage() {
           <p className={ui.muted}>当前未开放注册</p>
         )}
       </div>
-    </main>
+    </AuthShell>
   );
 }
