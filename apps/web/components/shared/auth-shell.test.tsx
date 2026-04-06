@@ -30,5 +30,16 @@ describe("AuthShell", () => {
     expect(container.textContent).toContain("AnchorDesk");
     expect(container.textContent).toContain("form-slot");
   });
-});
 
+  test("keeps a tighter centered content width and avoids non-actionable slogan copy", () => {
+    act(() => {
+      root.render(createElement(AuthShell, { children: createElement("div", null, "form-slot") }));
+    });
+
+    const content = container.querySelector('[data-slot="auth-shell-content"]');
+    expect(content).not.toBeNull();
+
+    expect(content?.getAttribute("class")).toContain("max-w-[420px]");
+    expect(container.textContent).not.toContain("安静地整理");
+  });
+});

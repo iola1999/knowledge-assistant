@@ -20,15 +20,14 @@ export function AuthShell({ children }: { children: ReactNode }) {
               </div>
             </div>
           </div>
-
-          <p className="text-[12px] text-app-muted">安静地整理，克制地输出</p>
         </section>
 
         <section className="flex min-w-0 items-center justify-center px-3 py-8 md:px-5 md:py-10">
-          <div className="w-full max-w-[560px]">{children}</div>
+          <div data-slot="auth-shell-content" className="w-full max-w-[420px]">
+            {children}
+          </div>
         </section>
       </div>
     </main>
   );
 }
-

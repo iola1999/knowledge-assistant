@@ -103,7 +103,7 @@ export default async function SharedConversationPage({
       }
       footer={
         <p className="text-[11px] text-app-muted">
-          本页面由 {workspaceBranding.productName} 生成，仅供查看；外部网页链接可打开，本地资料引用不提供跳转
+          仅供查看；外部网页链接可打开，本地资料引用不提供跳转
         </p>
       }
     >

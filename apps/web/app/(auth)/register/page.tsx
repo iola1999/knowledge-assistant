@@ -18,7 +18,13 @@ export default async function RegisterPage() {
       <div className="grid gap-4">
         <AuthForm mode="register" />
         <p className={ui.muted}>
-          已有账号？ <Link className="text-app-accent hover:underline" href="/login">去登录</Link>
+          已有账号？{" "}
+          <Link
+            className="font-medium text-app-secondary underline underline-offset-4 decoration-app-outline-variant/70 transition-colors hover:text-app-text"
+            href="/login"
+          >
+            去登录
+          </Link>
         </p>
       </div>
     </AuthShell>

@@ -17,7 +17,10 @@ export default async function LoginPage() {
         {registrationEnabled ? (
           <p className={ui.muted}>
             还没有账号？{" "}
-            <Link className="text-app-accent hover:underline" href="/register">
+            <Link
+              className="font-medium text-app-secondary underline underline-offset-4 decoration-app-outline-variant/70 transition-colors hover:text-app-text"
+              href="/register"
+            >
               去注册
             </Link>
           </p>
