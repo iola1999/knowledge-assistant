@@ -917,10 +917,10 @@ export function ConversationSession({
                           aria-label={userMessageCopied ? "已复制用户消息" : "复制用户消息"}
                           title={userMessageCopied ? "已复制" : "复制"}
                           className={cn(
-                            buttonStyles({ variant: "secondary", size: "xs", shape: "icon" }),
+                            buttonStyles({ variant: "ghost", size: "xs", shape: "icon" }),
                             conversationDensityClassNames.userActionButton,
                             userMessageCopied &&
-                              "border-emerald-200 bg-emerald-50 text-emerald-800 hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-800",
+                              "bg-emerald-50 text-emerald-800 hover:bg-emerald-50 hover:text-emerald-800",
                           )}
                           onClick={() => handleCopyMessage(message.id, message.contentMarkdown)}
                         >

@@ -60,6 +60,9 @@ describe("ConversationSession user copy action", () => {
     expect(copyButton).toBeTruthy();
     expect(copyButton?.className).toContain("opacity-0");
     expect(copyButton?.className).toContain("group-hover/user-message-row:opacity-100");
+    expect(copyButton?.className).toContain("border-transparent");
+    expect(copyButton?.className).toContain("hover:bg-app-surface-soft/82");
+    expect(copyButton?.className).not.toContain("border-app-border/65");
     expect(copyButton?.getAttribute("aria-label")).toBe("复制用户消息");
 
     await act(async () => {

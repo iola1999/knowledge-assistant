@@ -80,7 +80,7 @@ export function WorkspaceUserPanel({
       <div className="mt-auto">
         <PopoverContent
           id={menuId}
-          className="z-30 w-[min(280px,calc(100vw-24px))]"
+          className="z-60 w-[min(280px,calc(100vw-24px))]"
         >
           <WorkspaceUserMenuContent
             displayName={displayName}
