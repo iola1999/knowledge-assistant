@@ -129,7 +129,7 @@ function RuntimeMetricCard({
             <div
               className={cn("h-full rounded-full transition-[width]", tone.barClass)}
               style={{
-                width: `${Math.max(6, Math.min(rate, 100))}%`,
+                width: `${Math.max(0, Math.min(rate, 100))}%`,
               }}
             />
           </div>
@@ -209,7 +209,7 @@ function RuntimeScopeBar({
   count: number;
   total: number;
 }) {
-  const width = total > 0 ? Math.max(6, Math.round((count / total) * 100)) : 0;
+  const width = total > 0 ? Math.max(0, Math.round((count / total) * 100)) : 0;
 
   return (
     <div className="grid gap-1">

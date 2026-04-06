@@ -84,39 +84,46 @@ export function ModelProfilesAdmin({
   const [draft, setDraft] = useState<ModelProfileDraft>(() =>
     buildDraft(profiles[0] ?? null, { shouldDefault: profiles.length === 0 }),
   );
+  const [isSaving, setIsSaving] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
     setItems(profiles);
-    const nextSelectedId =
-      selectedId === NEW_MODEL_DRAFT_ID
-        ? NEW_MODEL_DRAFT_ID
-        : profiles.find((profile) => profile.id === selectedId)?.id ??
-          profiles[0]?.id ??
-          NEW_MODEL_DRAFT_ID;
-    setSelectedId(nextSelectedId);
+    setSelectedId((current) => {
+      if (current === NEW_MODEL_DRAFT_ID) {
+        return NEW_MODEL_DRAFT_ID;
+      }
+
+      if (profiles.some((profile) => profile.id === current)) {
+        return current;
+      }
+
+      return profiles[0]?.id ?? NEW_MODEL_DRAFT_ID;
+    });
+  }, [profiles]);
+
+  useEffect(() => {
     setDraft(
-      buildDraft(selectDraftProfile(profiles, nextSelectedId), {
-        shouldDefault: profiles.length === 0,
+      buildDraft(selectDraftProfile(items, selectedId), {
+        shouldDefault: items.length === 0,
       }),
     );
-  }, [profiles, selectedId]);
+  }, [items, selectedId]);
 
   const selectedProfile = selectDraftProfile(items, selectedId);
 
   function handleSelectProfile(profileId: string | null) {
     const nextSelectedId = profileId ?? NEW_MODEL_DRAFT_ID;
     setSelectedId(nextSelectedId);
-    setDraft(
-      buildDraft(selectDraftProfile(items, nextSelectedId), {
-        shouldDefault: items.length === 0,
-      }),
-    );
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (isSaving) {
+      return;
+    }
 
+    setIsSaving(true);
     try {
       const endpoint = draft.id
         ? `/api/admin/model-profiles/${draft.id}`
@@ -157,11 +164,6 @@ export function ModelProfilesAdmin({
 
       setItems(body.profiles);
       setSelectedId(nextSelectedId);
-      setDraft(
-        buildDraft(selectDraftProfile(body.profiles, nextSelectedId), {
-          shouldDefault: body.profiles.length === 0,
-        }),
-      );
       message.success(draft.id ? "模型已更新" : "模型已创建");
 
       startTransition(() => {
@@ -171,6 +173,8 @@ export function ModelProfilesAdmin({
       message.error(
         error instanceof Error && error.message ? error.message : "保存模型失败",
       );
+    } finally {
+      setIsSaving(false);
     }
   }
 
@@ -399,10 +403,14 @@ export function ModelProfilesAdmin({
                 ) : null}
                 <button
                   className={buttonStyles({ size: "sm" })}
-                  disabled={isPending}
+                  disabled={isSaving || isPending}
                   type="submit"
                 >
-                  {isPending ? "保存中..." : selectedProfile ? "保存模型" : "创建模型"}
+                  {isSaving || isPending
+                    ? "保存中..."
+                    : selectedProfile
+                      ? "保存模型"
+                      : "创建模型"}
                 </button>
               </div>
             </section>

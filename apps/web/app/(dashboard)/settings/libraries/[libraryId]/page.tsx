@@ -15,13 +15,14 @@ import { loadKnowledgeLibraryExplorerData } from "@/lib/api/knowledge-library-ex
 import { requireSessionUser } from "@/lib/auth/require-user";
 import { isSuperAdmin } from "@/lib/auth/super-admin";
 import { ui } from "@/lib/ui";
+import { normalizeOptionalStringParam } from "@/lib/query-params";
 
 export default async function GlobalLibraryDetailPage({
   params,
   searchParams,
 }: {
   params: Promise<{ libraryId: string }>;
-  searchParams: Promise<{ path?: string }>;
+  searchParams: Promise<{ path?: string | string[] }>;
 }) {
   const user = await requireSessionUser();
   if (!isSuperAdmin(user)) {
@@ -30,6 +31,7 @@ export default async function GlobalLibraryDetailPage({
 
   const { libraryId } = await params;
   const { path } = await searchParams;
+  const normalizedPath = normalizeOptionalStringParam(path);
   const db = getDb();
   const library = await findManagedKnowledgeLibrary(libraryId, db);
   const librarySummary = await loadManagedKnowledgeLibrarySummary(libraryId, db);
@@ -40,7 +42,7 @@ export default async function GlobalLibraryDetailPage({
 
   const explorer = await loadKnowledgeLibraryExplorerData({
     libraryId,
-    path,
+    path: normalizedPath,
     db,
   });
 

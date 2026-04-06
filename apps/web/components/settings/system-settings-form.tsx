@@ -35,6 +35,7 @@ export function SystemSettingsForm({
     flattenSections(sections),
   );
   const [query, setQuery] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
   const [isPending, startTransition] = useTransition();
   const deferredQuery = useDeferredValue(query);
 
@@ -47,7 +48,11 @@ export function SystemSettingsForm({
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (isSaving) {
+      return;
+    }
 
+    setIsSaving(true);
     try {
       const response = await fetch("/api/system-settings", {
         method: "PATCH",
@@ -84,6 +89,8 @@ export function SystemSettingsForm({
       message.error(
         error instanceof Error && error.message ? error.message : "保存系统参数失败",
       );
+    } finally {
+      setIsSaving(false);
     }
   }
 
@@ -113,10 +120,10 @@ export function SystemSettingsForm({
 
                 <button
                   className={buttonStyles({ size: "sm" })}
-                  disabled={isPending}
+                  disabled={isSaving || isPending}
                   type="submit"
                 >
-                  {isPending ? "保存中..." : "保存系统参数"}
+                  {isSaving || isPending ? "保存中..." : "保存系统参数"}
                 </button>
               </div>
             }
