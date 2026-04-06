@@ -9,19 +9,29 @@ import {
   navItemStyles,
   textSelectionStyles,
   tabButtonStyles,
+  ui,
   workspaceTileStyles,
 } from "./ui";
 
 describe("inputStyles", () => {
-  it("keeps the default field scale for standard forms", () => {
+  it("uses ghost-border filled field styling by default", () => {
     expect(inputStyles()).toContain("h-11");
-    expect(inputStyles()).toContain("rounded-[20px]");
+    expect(inputStyles()).toContain("rounded-xl");
+    expect(inputStyles()).toContain("bg-app-surface-low");
+    expect(inputStyles()).toContain("border-transparent");
+    expect(inputStyles()).toContain("focus:border-app-outline-variant/45");
+    expect(inputStyles()).toContain("focus:bg-app-surface-lowest");
+    expect(inputStyles()).toContain("focus-visible:ring-2");
+    expect(inputStyles()).toContain("focus-visible:ring-app-secondary-fixed/55");
+    expect(inputStyles()).not.toContain("focus:ring-[3px]");
   });
 
   it("supports a compact field scale for dense workbench layouts", () => {
     expect(inputStyles({ size: "compact" })).toContain("h-9");
-    expect(inputStyles({ size: "compact" })).toContain("rounded-[16px]");
-    expect(inputStyles({ size: "compact" })).toContain("focus:ring-[3px]");
+    expect(inputStyles({ size: "compact" })).toContain("rounded-xl");
+    expect(inputStyles({ size: "compact" })).toContain("focus:bg-app-surface-lowest");
+    expect(inputStyles({ size: "compact" })).toContain("focus-visible:ring-2");
+    expect(inputStyles({ size: "compact" })).not.toContain("focus:ring-[3px]");
   });
 });
 
@@ -29,6 +39,15 @@ describe("buttonStyles", () => {
   it("supports an extra-small button size without custom one-off classes", () => {
     expect(buttonStyles({ size: "xs" })).toContain("min-h-7");
     expect(buttonStyles({ size: "xs" })).toContain("text-[12px]");
+  });
+
+  it("uses integrated secondary fill instead of a raised white outlined style", () => {
+    const classes = buttonStyles({ variant: "secondary" });
+
+    expect(classes).toContain("bg-app-surface-lowest");
+    expect(classes).toContain("text-app-secondary");
+    expect(classes).toContain("border-transparent");
+    expect(classes).not.toContain("bg-app-surface text-app-text");
   });
 
   it("supports icon buttons through the shared button primitive", () => {
@@ -53,30 +72,81 @@ describe("buttonStyles", () => {
 });
 
 describe("navItemStyles", () => {
-  it("returns the selected sidebar/navigation treatment", () => {
+  it("uses an anchor line treatment for selected nav items", () => {
     const classes = navItemStyles({ selected: true });
 
-    expect(classes).toContain("bg-white");
+    expect(classes).toContain("relative");
     expect(classes).toContain("text-app-text");
-    expect(classes).toContain("shadow-soft");
+    expect(classes).toContain("before:w-0.5");
+    expect(classes).toContain("before:bg-app-text");
+  });
+});
+
+describe("shared surface primitives", () => {
+  it("uses editorial page scaffold sizing instead of the legacy wide scaffold", () => {
+    expect(ui.page).toContain("max-w-[1200px]");
+    expect(ui.page).toContain("gap-4");
+    expect(ui.page).toContain("px-3 py-5");
+    expect(ui.page).toContain("md:px-5 md:py-6");
+    expect(ui.pageNarrow).toContain("max-w-[980px]");
+    expect(ui.pageNarrow).not.toContain("max-w-[1320px]");
+  });
+
+  it("keeps panel surfaces lightweight with minimal border presence", () => {
+    expect(ui.panel).toContain("rounded-2xl");
+    expect(ui.panel).toContain("bg-app-surface-lowest/64");
+    expect(ui.panel).toContain("border-transparent");
+    expect(ui.panelLarge).toContain("rounded-2xl");
+    expect(ui.panelLarge).toContain("bg-app-surface-lowest/70");
+    expect(ui.panelLarge).toContain("border-transparent");
+  });
+
+  it("uses glass popover treatment with ghost border", () => {
+    expect(ui.popover).toContain("backdrop-blur-xl");
+    expect(ui.popover).toContain("border-app-outline-variant/55");
+    expect(ui.dialog).toContain("border-app-outline-variant/35");
+    expect(ui.dialog).not.toContain("border-transparent");
+  });
+
+  it("uses low surface toolbar container styling", () => {
+    expect(ui.toolbar).toContain("bg-app-surface-low");
+    expect(ui.toolbar).toContain("rounded-xl");
+    expect(ui.toolbar).toContain("border-transparent");
+  });
+
+  it("uses filled semantic chips instead of outlined pills", () => {
+    expect(ui.chip).toContain("border-transparent");
+    expect(ui.chip).toContain("bg-app-surface");
+    expect(ui.chipSoft).toContain("border-transparent");
+    expect(ui.chipSoft).toContain("bg-app-secondary-fixed");
   });
 });
 
 describe("createConversationNavButtonStyles", () => {
-  it("uses the selected white treatment when the new conversation view is active", () => {
+  it("uses integrated active treatment without raised white pill styling", () => {
     const classes = createConversationNavButtonStyles({ active: true });
 
-    expect(classes).toContain("bg-white");
+    expect(classes).toContain("bg-app-surface-low");
+    expect(classes).toContain("border-transparent");
     expect(classes).toContain("text-app-text");
-    expect(classes).toContain("hover:bg-white");
+    expect(classes).toContain("before:w-0.5");
+    expect(classes).not.toContain("bg-white");
   });
 
-  it("keeps the button dark while browsing an existing conversation", () => {
+  it("keeps the idle state aligned with muted navigation language", () => {
     const classes = createConversationNavButtonStyles({ active: false });
 
-    expect(classes).toContain("bg-app-primary");
-    expect(classes).toContain("text-app-primary-contrast");
-    expect(classes).not.toContain("hover:bg-app-surface-soft");
+    expect(classes).toContain("bg-transparent");
+    expect(classes).toContain("border-transparent");
+    expect(classes).toContain("text-app-secondary");
+    expect(classes).not.toContain("bg-app-primary");
+  });
+
+  it("does not use old selected white pill cues", () => {
+    const classes = createConversationNavButtonStyles({ active: true });
+
+    expect(classes).not.toContain("shadow-sm");
+    expect(classes).toContain("text-app-text");
   });
 });
 
@@ -144,6 +214,7 @@ describe("workspaceTileStyles", () => {
     expect(classes).toContain("justify-items-center");
     expect(classes).toContain("text-center");
     expect(classes).toContain("border-dashed");
+    expect(classes).toContain("border-app-outline-variant/70");
   });
 });
 

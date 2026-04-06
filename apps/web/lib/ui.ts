@@ -18,62 +18,67 @@ type ConversationControlSize = "default" | "compact";
 export function inputStyles({ size = "md" }: { size?: FieldSize } = {}) {
   return cn(
     textSelectionStyles.content,
-    "w-full border border-app-border bg-app-surface-soft text-app-text outline-none transition placeholder:text-app-muted focus:border-app-border-strong focus:ring-app-accent/10",
+    "w-full rounded-xl border border-transparent bg-app-surface-low text-app-text outline-none transition placeholder:text-app-muted focus:border-app-outline-variant/45 focus:bg-app-surface-lowest focus-visible:ring-2 focus-visible:ring-app-secondary-fixed/55 focus-visible:ring-offset-1 focus-visible:ring-offset-app-surface-lowest",
     size === "compact"
-      ? "h-9 rounded-[16px] px-3 text-[13px] focus:ring-[3px]"
-      : "h-11 rounded-[20px] px-3.5 text-[14px] focus:ring-[3px]",
+      ? "h-9 px-3 text-[13px]"
+      : "h-11 px-3.5 text-[14px]",
   );
 }
 
 export function textareaStyles({ size = "md" }: { size?: FieldSize } = {}) {
   return cn(
     textSelectionStyles.content,
-    "w-full border border-app-border bg-app-surface-soft text-app-text outline-none transition placeholder:text-app-muted focus:border-app-border-strong focus:ring-app-accent/10",
+    "w-full rounded-xl border border-transparent bg-app-surface-low text-app-text outline-none transition placeholder:text-app-muted focus:border-app-outline-variant/45 focus:bg-app-surface-lowest focus-visible:ring-2 focus-visible:ring-app-secondary-fixed/55 focus-visible:ring-offset-1 focus-visible:ring-offset-app-surface-lowest",
     size === "compact"
-      ? "rounded-[16px] px-3 py-2 text-[13px] focus:ring-[3px]"
-      : "rounded-[20px] px-3.5 py-2.5 text-[14px] focus:ring-[3px]",
+      ? "px-3 py-2 text-[13px]"
+      : "px-3.5 py-2.5 text-[14px]",
   );
 }
 
 export function selectStyles({ size = "md" }: { size?: FieldSize } = {}) {
   return cn(
     textSelectionStyles.content,
-    "w-full cursor-pointer border border-app-border bg-app-surface-soft text-app-text outline-none transition focus:border-app-border-strong focus:ring-app-accent/10",
+    "w-full cursor-pointer rounded-xl border border-transparent bg-app-surface-low text-app-text outline-none transition focus:border-app-outline-variant/45 focus:bg-app-surface-lowest focus-visible:ring-2 focus-visible:ring-app-secondary-fixed/55 focus-visible:ring-offset-1 focus-visible:ring-offset-app-surface-lowest",
     size === "compact"
-      ? "h-9 rounded-[16px] px-3 text-[13px] focus:ring-[3px]"
-      : "h-11 rounded-[20px] px-3.5 text-[14px] focus:ring-[3px]",
+      ? "h-9 px-3 text-[13px]"
+      : "h-11 px-3.5 text-[14px]",
   );
 }
 
 export const ui = {
-  page: "mx-auto flex w-full max-w-[1320px] flex-col gap-5 px-4 py-6 md:px-6 md:py-7",
-  pageNarrow: "mx-auto flex w-full max-w-[1040px] flex-col gap-5 px-4 py-6 md:px-6 md:py-7",
+  page: "mx-auto flex w-full max-w-[1200px] flex-col gap-4 px-3 py-5 md:px-5 md:py-6",
+  pageNarrow: "mx-auto flex w-full max-w-[980px] flex-col gap-4 px-3 py-5 md:px-5 md:py-6",
   stack: "flex flex-col gap-4",
   muted: "text-[13px] leading-5 text-app-muted",
   mutedStrong: "text-[13px] leading-5 text-app-muted-strong",
   error: "text-[13px] leading-5 text-red-600",
   eyebrow: "text-[11px] font-semibold uppercase tracking-[0.14em] text-app-accent",
   panel:
-    "rounded-[24px] border border-app-border bg-white/90 p-5 shadow-soft backdrop-blur-sm",
+    "rounded-2xl border border-transparent bg-app-surface-lowest/64 p-4 shadow-soft backdrop-blur-sm",
   panelLarge:
-    "rounded-[24px] border border-app-border bg-white/92 p-6 shadow-card backdrop-blur-sm",
-  sectionPanel: "rounded-[20px] border border-app-border bg-white/90 p-4 shadow-soft md:p-5",
-  subpanel: "rounded-[20px] border border-app-border bg-app-surface-soft/80 p-4 shadow-soft",
-  subcard: "rounded-[18px] border border-app-border bg-white/80 p-3.5 shadow-soft",
+    "rounded-2xl border border-transparent bg-app-surface-lowest/70 p-5 shadow-soft backdrop-blur-sm",
+  sectionPanel:
+    "rounded-[18px] border border-app-outline-variant/80 bg-app-surface-lowest/86 p-4 shadow-soft md:p-5",
+  subpanel:
+    "rounded-[16px] border border-app-outline-variant/80 bg-app-surface-low/92 p-4 shadow-soft",
+  subcard:
+    "rounded-[14px] border border-app-outline-variant/75 bg-app-surface-lowest/88 p-3.5 shadow-soft",
   popover:
-    "rounded-2xl border border-app-border bg-white/98 p-1.5 shadow-card backdrop-blur-md",
-  menu: "rounded-2xl border border-app-border bg-white/98 p-1.5 shadow-card backdrop-blur-md",
-  dialog: "rounded-2xl border border-app-border shadow-card",
-  toolbar: "flex flex-wrap items-start justify-between gap-2.5",
+    "rounded-2xl border border-app-outline-variant/55 bg-[color:color-mix(in_srgb,var(--surface-lowest)_72%,transparent)] p-1.5 shadow-soft backdrop-blur-xl",
+  menu: "rounded-2xl border border-app-outline-variant/55 bg-[color:color-mix(in_srgb,var(--surface-lowest)_72%,transparent)] p-1.5 shadow-soft backdrop-blur-xl",
+  dialog:
+    "rounded-2xl border border-app-outline-variant/35 bg-[color:color-mix(in_srgb,var(--surface-lowest)_78%,transparent)] shadow-soft backdrop-blur-xl",
+  toolbar:
+    "flex flex-wrap items-start justify-between gap-2.5 rounded-xl border border-transparent bg-app-surface-low px-2.5 py-2",
   actions: "flex flex-wrap items-center gap-1.5",
   label: "flex flex-col gap-1.5 text-[13px] font-medium text-app-muted-strong",
   input: inputStyles(),
   textarea: textareaStyles(),
   select: selectStyles(),
   chip:
-    "inline-flex items-center rounded-full border border-app-border bg-white/86 px-2.5 py-0.5 text-[11px] font-medium text-app-muted-strong",
+    "inline-flex items-center rounded-full border border-transparent bg-app-surface px-2.5 py-0.5 text-[11px] font-medium text-app-muted-strong",
   chipSoft:
-    "inline-flex items-center rounded-full border border-app-border bg-app-surface-soft px-2.5 py-0.5 text-[11px] font-medium text-app-muted-strong",
+    "inline-flex items-center rounded-full border border-transparent bg-app-secondary-fixed px-2.5 py-0.5 text-[11px] font-medium text-app-secondary",
   codeChip:
     "inline-flex items-center rounded-full bg-app-surface-strong px-3 py-1 text-[13px] text-app-text",
 };
@@ -106,12 +111,12 @@ export function buttonStyles({
     variant === "primary"
       ? "border-transparent bg-app-primary text-app-primary-contrast hover:bg-[#25211c]"
       : variant === "secondary"
-        ? "border-app-border bg-white/90 text-app-text hover:border-app-border-strong hover:bg-white"
+        ? "border-transparent bg-app-surface-lowest text-app-secondary hover:bg-app-surface"
         : variant === "danger"
           ? "border-transparent bg-red-600 text-white hover:bg-red-700"
           : variant === "dangerGhost"
             ? "border-transparent bg-transparent text-red-600 hover:bg-red-50"
-          : "border-transparent bg-transparent text-app-muted-strong hover:bg-black/5";
+          : "border-transparent bg-transparent text-app-muted-strong hover:bg-app-surface-high/65";
 
   return cn(
     "inline-flex cursor-pointer items-center justify-center border font-medium transition focus:outline-none focus:ring-4 focus:ring-app-accent/10 disabled:cursor-not-allowed disabled:opacity-60",
@@ -124,8 +129,8 @@ export function buttonStyles({
 
 export function navItemStyles({ selected = false }: { selected?: boolean } = {}) {
   return selected
-    ? "bg-white text-app-text shadow-soft"
-    : "text-app-muted-strong hover:bg-white/78 hover:text-app-text";
+    ? "relative text-app-text before:absolute before:inset-y-1.5 before:left-0 before:w-0.5 before:rounded-full before:bg-app-text"
+    : "text-app-muted-strong hover:bg-app-surface-low/78 hover:text-app-text";
 }
 
 export function createConversationNavButtonStyles({
@@ -134,10 +139,10 @@ export function createConversationNavButtonStyles({
   active?: boolean;
 } = {}) {
   return cn(
-    "group flex min-h-10 w-full items-center justify-center gap-1.5 rounded-xl border text-[13px] font-medium transition-all",
+    "group relative flex min-h-10 w-full items-center justify-center gap-1.5 rounded-xl border text-[13px] font-medium transition-all",
     active
-      ? "border-app-border-strong bg-white text-app-text shadow-sm hover:border-app-border-strong hover:bg-white hover:text-app-text"
-      : "border-app-primary bg-app-primary text-app-primary-contrast shadow-sm hover:border-app-primary hover:bg-app-primary hover:text-app-primary-contrast",
+      ? "border-transparent bg-app-surface-low text-app-text before:absolute before:inset-y-2 before:left-1 before:w-0.5 before:rounded-full before:bg-app-text hover:bg-app-surface"
+      : "border-transparent bg-transparent text-app-secondary hover:bg-app-surface-low/72 hover:text-app-text",
   );
 }
 
@@ -210,7 +215,7 @@ export function workspaceTileStyles({
     ui.panel,
     "grid min-h-[200px] rounded-[20px] p-5 transition hover:-translate-y-px",
     variant === "create"
-      ? "place-content-center justify-items-center gap-5 border-dashed text-center"
+      ? "place-content-center justify-items-center gap-5 border-dashed border-app-outline-variant/70 text-center"
       : "grid-rows-[auto_1fr_auto] gap-4",
   );
 }

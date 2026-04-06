@@ -53,7 +53,7 @@ export function ModalShell({
       <button
         type="button"
         aria-label="关闭弹窗"
-        className="absolute inset-0 bg-[rgba(23,22,18,0.34)] backdrop-blur-[2px]"
+        className="absolute inset-0 bg-[rgba(25,28,30,0.24)] backdrop-blur-[2px]"
         onClick={onClose}
       />
       <div
@@ -63,7 +63,7 @@ export function ModalShell({
         aria-describedby={description ? descriptionId : undefined}
         className={cn(
           ui.dialog,
-          "relative z-10 max-h-[min(88vh,960px)] w-full overflow-hidden bg-white",
+          "relative z-10 max-h-[min(88vh,960px)] w-full overflow-hidden",
           width === "md"
             ? "max-w-[560px]"
             : width === "lg"
@@ -71,7 +71,7 @@ export function ModalShell({
               : "max-w-[1040px]",
         )}
       >
-        <div className="flex items-start justify-between gap-3 border-b border-app-border px-5 py-4">
+        <div className="flex items-start justify-between gap-3 border-b border-app-outline-variant/70 px-5 py-4">
           <div className="grid gap-0.5">
             <h2
               id={titleId}
@@ -89,7 +89,7 @@ export function ModalShell({
             type="button"
             className={cn(
               buttonStyles({ variant: "ghost", size: "sm", shape: "icon" }),
-              "size-8 text-app-muted-strong",
+              "size-8 text-app-secondary hover:bg-app-surface-high/70",
             )}
             onClick={onClose}
           >

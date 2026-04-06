@@ -85,7 +85,7 @@ export function ActionDialog({
       <button
         type="button"
         aria-label="关闭对话框"
-        className="absolute inset-0 bg-[rgba(23,22,18,0.26)] backdrop-blur-[2px]"
+        className="absolute inset-0 bg-[rgba(25,28,30,0.24)] backdrop-blur-[2px]"
         disabled={isSubmitting}
         onClick={onClose}
       />
@@ -97,13 +97,9 @@ export function ActionDialog({
         role={role}
         className={cn(
           ui.dialog,
-          "relative z-10 w-full max-w-[560px] overflow-hidden bg-[color:color-mix(in_srgb,var(--surface)_96%,var(--bg-elevated))]",
+          "relative z-10 w-full max-w-[560px] overflow-hidden rounded-2xl bg-app-surface-lowest/76",
         )}
       >
-        <div
-          aria-hidden="true"
-          className="absolute inset-x-8 top-0 h-px bg-[linear-gradient(90deg,rgba(155,112,71,0),rgba(155,112,71,0.4),rgba(155,112,71,0))]"
-        />
         <div className="grid gap-5 p-5 md:p-6">
           <div className="flex items-start justify-between gap-3">
             <div className="grid gap-2.5">
@@ -111,7 +107,7 @@ export function ActionDialog({
               <div className="grid gap-1.5">
                 <h2
                   id={titleId}
-                  className="text-[24px] font-semibold leading-[1.05] tracking-[-0.04em] text-app-text md:text-[28px]"
+                  className="text-[20px] font-semibold leading-[1.15] tracking-[-0.025em] text-app-text md:text-[22px]"
                 >
                   {title}
                 </h2>
@@ -131,7 +127,7 @@ export function ActionDialog({
               aria-label="关闭对话框"
               className={cn(
                 buttonStyles({ variant: "ghost", size: "sm", shape: "icon" }),
-                "size-8 text-lg leading-none",
+                "size-8 text-lg leading-none text-app-secondary hover:bg-app-surface-high/70",
               )}
               disabled={isSubmitting}
               onClick={onClose}
@@ -144,7 +140,7 @@ export function ActionDialog({
 
           {error ? <p className={ui.error}>{error}</p> : null}
 
-          <div className="flex flex-wrap justify-end gap-2 border-t border-app-border/70 pt-3.5">
+          <div className="flex flex-wrap justify-end gap-2 border-t border-app-outline-variant/45 pt-3.5">
             <button
               type="button"
               className={buttonStyles({ variant: "secondary" })}

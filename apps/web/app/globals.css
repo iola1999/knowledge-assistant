@@ -3,22 +3,29 @@
 
 :root {
   color-scheme: light;
-  --bg: #f7f4ee;
-  --bg-elevated: #fbfaf6;
-  --sidebar: #f4f0e8;
-  --surface: #ffffff;
-  --surface-soft: #fcfaf5;
-  --surface-strong: #eee8dc;
-  --text: #171612;
-  --muted-strong: #696354;
-  --muted: #8b8477;
-  --accent: #9b7047;
-  --primary: #1a1814;
-  --primary-contrast: #fffaf3;
-  --border: #e7e1d6;
-  --border-strong: #ddd5c8;
-  --shadow-soft: 0 10px 24px rgba(23, 22, 18, 0.035);
-  --shadow-card: 0 16px 34px rgba(23, 22, 18, 0.055);
+  --bg: #f7f9fb;
+  --surface-low: #f2f4f6;
+  --surface: #eceef0;
+  --surface-high: #e6e8ea;
+  --surface-lowest: #ffffff;
+  --text: #191c1e;
+  --secondary: #565e74;
+  --accent-beige: #f0e0cb;
+  --outline-variant: #c6c6cd;
+  --secondary-fixed: #dae2fd;
+  --bg-elevated: #fbfcfd;
+  --sidebar: #f2f4f6;
+  --surface-soft: #f2f4f6;
+  --surface-strong: #e6e8ea;
+  --muted-strong: #565e74;
+  --muted: #6d7488;
+  --accent: #7a6d5b;
+  --primary: #000000;
+  --primary-contrast: #f8f9fc;
+  --border: #c6c6cd;
+  --border-strong: #b8bdc8;
+  --shadow-soft: 0 8px 18px rgba(18, 24, 32, 0.05);
+  --shadow-card: 0 14px 30px rgba(18, 24, 32, 0.08);
   --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
 }
 
@@ -26,19 +33,28 @@
   --color-app-bg: var(--bg);
   --color-app-bg-elevated: var(--bg-elevated);
   --color-app-sidebar: var(--sidebar);
+  --color-app-surface-low: var(--surface-low);
   --color-app-surface: var(--surface);
+  --color-app-surface-high: var(--surface-high);
+  --color-app-surface-lowest: var(--surface-lowest);
   --color-app-surface-soft: var(--surface-soft);
   --color-app-surface-strong: var(--surface-strong);
   --color-app-text: var(--text);
+  --color-app-secondary: var(--secondary);
+  --color-app-secondary-fixed: var(--secondary-fixed);
   --color-app-muted: var(--muted);
   --color-app-muted-strong: var(--muted-strong);
+  --color-app-accent-beige: var(--accent-beige);
   --color-app-accent: var(--accent);
+  --color-app-outline-variant: var(--outline-variant);
   --color-app-primary: var(--primary);
   --color-app-primary-contrast: var(--primary-contrast);
   --color-app-border: var(--border);
   --color-app-border-strong: var(--border-strong);
-  --font-sans: "PingFang SC", "Hiragino Sans GB", "Source Han Sans SC",
+  --font-sans: var(--font-inter), "Inter", "PingFang SC", "Hiragino Sans GB", "Source Han Sans SC",
     "Microsoft YaHei", sans-serif;
+  --font-headline: var(--font-manrope), "Manrope", "PingFang SC", "Hiragino Sans GB",
+    "Source Han Sans SC", "Microsoft YaHei", sans-serif;
   --font-serif: "Iowan Old Style", "Baskerville", "Songti SC", "Noto Serif SC", serif;
   --shadow-soft: var(--shadow-soft);
   --shadow-card: var(--shadow-card);
@@ -57,7 +73,7 @@
   body {
     min-height: 100vh;
     background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0)),
+      radial-gradient(circle at 12% 0%, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0)),
       linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg) 100%);
     color: var(--text);
     font-family: var(--font-sans);
@@ -78,8 +94,8 @@
   h1,
   h2,
   h3 {
-    font-family: var(--font-serif);
-    letter-spacing: -0.03em;
+    font-family: var(--font-headline);
+    letter-spacing: -0.025em;
   }
 
   p,
