@@ -46,6 +46,7 @@ export default async function WorkspaceKnowledgeBasePage({
   const selectedGlobalLibrary = isViewingSubscribedGlobalLibrary
     ? libraryCatalog.find((library) => library.id === activeLibraryId) ?? null
     : null;
+  const scopeLabel = isViewingSubscribedGlobalLibrary ? "订阅资料库" : "我的资料";
 
   return (
     <WorkspaceShell
@@ -103,7 +104,7 @@ export default async function WorkspaceKnowledgeBasePage({
             ? `已挂载只读 · ${selectedGlobalLibrary?.title ?? explorer.library.title}`
             : null
         }
-        scopeLabel={isViewingSubscribedGlobalLibrary ? "订阅资料库" : "我的资料"}
+        scopeLabel={scopeLabel}
         backLink={
           isViewingSubscribedGlobalLibrary
             ? {

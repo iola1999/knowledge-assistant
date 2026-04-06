@@ -11,6 +11,7 @@ import useSWR from "swr";
 import { RUN_STATUS } from "@anchordesk/contracts";
 
 import { RetryDocumentJobButton } from "@/components/workspaces/retry-document-job-button";
+import { EditorialPageHeader } from "@/components/shared/editorial-page-header";
 import { ModalShell } from "@/components/shared/modal-shell";
 import {
   createDocumentUploadItems,
@@ -263,9 +264,9 @@ function TableRow({
     <tr
       ref={droppable.setNodeRef}
       className={cn(
-        "border-b border-app-border/80 transition",
-        row.getIsSelected() ? "bg-app-surface-soft/72" : "bg-white/84",
-        droppable.isOver && entry.kind === "directory" && "bg-app-surface-strong/55",
+        "border-b border-app-border/45 transition last:border-b-0",
+        row.getIsSelected() ? "bg-app-surface-soft/78" : "bg-app-surface-lowest/84",
+        droppable.isOver && entry.kind === "directory" && "bg-app-surface-strong/45",
       )}
     >
       {row.getVisibleCells().map((cell) => {
@@ -347,7 +348,7 @@ export function KnowledgeBaseExplorer({
   backLink = null,
 }: {
   initialCurrentPath: string;
-  currentDirectoryId: string;
+  currentDirectoryId: string | null;
   directories: DirectoryRecord[];
   documents: DocumentRecord[];
   documentHrefBase?: string | null;
@@ -379,7 +380,7 @@ export function KnowledgeBaseExplorer({
   const [isCreateDirectoryOpen, setIsCreateDirectoryOpen] = useState(false);
   const [isMoveOpen, setIsMoveOpen] = useState(false);
   const [directoryName, setDirectoryName] = useState("");
-  const [targetDirectoryId, setTargetDirectoryId] = useState(currentDirectoryId);
+  const [targetDirectoryId, setTargetDirectoryId] = useState(currentDirectoryId ?? "");
   const [operationError, setOperationError] = useState<string | null>(null);
   const [uploadItems, setUploadItems] = useState<DocumentUploadItem[]>([]);
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
@@ -390,7 +391,7 @@ export function KnowledgeBaseExplorer({
   useEffect(() => {
     setCurrentPath(initialCurrentPath);
     setCurrentDirectory(currentDirectoryId);
-    setTargetDirectoryId(currentDirectoryId);
+    setTargetDirectoryId(currentDirectoryId ?? "");
   }, [currentDirectoryId, initialCurrentPath]);
 
   // Use SWR to handle automatic polling and revalidate-on-focus for RSC payload.
@@ -1113,40 +1114,43 @@ export function KnowledgeBaseExplorer({
     void handleDropMove(directoryId, payload);
   }
 
-  const toolbarButtonClass = cn(
-    buttonStyles({ variant: "secondary", size: "sm" }),
-    "shrink-0 whitespace-nowrap",
-  );
+  const toolbarButtonClass = cn(buttonStyles({ variant: "secondary", size: "sm" }), "shrink-0 whitespace-nowrap");
   const headerFieldClass =
     "h-9 rounded-[16px] border border-app-border bg-app-surface-soft/72 px-3 text-[13px]";
 
   return (
     <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-      <div className={cn(ui.panelLarge, "grid gap-4 px-4 py-4 md:px-5")}>
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="grid gap-1">
-            <span className={ui.eyebrow}>{scopeLabel}</span>
-            {backLink ? (
-              <Link
-                href={backLink.href}
-                className="text-[13px] font-medium text-app-muted-strong transition hover:text-app-text"
-              >
-                {backLink.label}
-              </Link>
+      <div className="grid gap-8">
+        <EditorialPageHeader
+          eyebrow="资料"
+          title="资料库"
+          description="组织研究资料、技术文档和上传内容，供检索与引用使用。"
+        />
+
+        <section className="grid gap-4 rounded-[16px] bg-app-surface-low px-4 py-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="grid gap-1">
+              <span className={ui.eyebrow}>{scopeLabel}</span>
+              {backLink ? (
+                <Link
+                  href={backLink.href}
+                  className="text-[13px] font-medium text-app-muted-strong transition hover:text-app-text"
+                >
+                  {backLink.label}
+                </Link>
+              ) : null}
+            </div>
+            {readOnlyNotice ? (
+              <span className="inline-flex items-center rounded-full border border-app-border bg-app-surface-lowest px-3 py-1 text-[12px] text-app-muted-strong">
+                {readOnlyNotice}
+              </span>
             ) : null}
           </div>
-          {readOnlyNotice ? (
-            <span className="inline-flex items-center rounded-full border border-app-border bg-app-surface-soft px-3 py-1 text-[12px] text-app-muted-strong">
-              {readOnlyNotice}
-            </span>
-          ) : null}
-        </div>
 
-        <div className="flex flex-wrap items-center gap-3">
           <div
             className={cn(
               headerFieldClass,
-              "flex min-w-0 flex-1 items-center gap-2 overflow-x-auto whitespace-nowrap",
+              "flex min-w-0 items-center gap-2 overflow-x-auto whitespace-nowrap",
             )}
           >
             {pathBreadcrumbs.map((item, index) => (
@@ -1162,206 +1166,211 @@ export function KnowledgeBaseExplorer({
               </div>
             ))}
           </div>
-          <input
-            className={cn(inputStyles({ size: "compact" }), "w-full max-w-[260px]")}
-            placeholder="搜索当前目录"
-            value={searchQuery}
-            onChange={(event) => setSearchQuery(event.target.value)}
-          />
-        </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-2">
-            {editable ? (
-              <>
-                <button
-                  type="button"
-                  className={toolbarButtonClass}
-                  onClick={() => {
-                    setUploadStatus(null);
-                    setUploadItems([]);
-                    setIsUploading(false);
-                    setIsUploadOpen(true);
-                  }}
-                >
-                  上传
-                </button>
-                <button
-                  type="button"
-                  className={toolbarButtonClass}
-                  onClick={() => {
-                    setOperationError(null);
-                    setDirectoryName("");
-                    setIsCreateDirectoryOpen(true);
-                  }}
-                >
-                  新建文件夹
-                </button>
-              </>
-            ) : null}
-            <button
-              type="button"
-              className={toolbarButtonClass}
-              disabled={selectedEntries.length === 0}
-              onClick={() => void handleDownloadSelection()}
-            >
-              下载
-            </button>
-            {editable ? (
-              <>
-                <button
-                  type="button"
-                  className={toolbarButtonClass}
-                  disabled={selectedEntries.length === 0}
-                  onClick={() => {
-                    setTargetDirectoryId(currentDirectory);
-                    setIsMoveOpen(true);
-                  }}
-                >
-                  移动
-                </button>
-                <button
-                  type="button"
-                  className={toolbarButtonClass}
-                  disabled={selectedEntries.length === 0}
-                  onClick={() => void handleDeleteSelection()}
-                >
-                  删除
-                </button>
-              </>
-            ) : null}
+          <div className={ui.toolbar}>
+            <div className="flex flex-wrap items-center gap-2">
+              {editable ? (
+                <>
+                  <button
+                    type="button"
+                    className={buttonStyles({ size: "sm" })}
+                    onClick={() => {
+                      setUploadStatus(null);
+                      setUploadItems([]);
+                      setIsUploading(false);
+                      setIsUploadOpen(true);
+                    }}
+                  >
+                    上传资料
+                  </button>
+                  <button
+                    type="button"
+                    className={buttonStyles({ variant: "secondary", size: "sm" })}
+                    onClick={() => {
+                      setOperationError(null);
+                      setDirectoryName("");
+                      setIsCreateDirectoryOpen(true);
+                    }}
+                  >
+                    新建目录
+                  </button>
+                </>
+              ) : null}
+            </div>
+            <label className="w-full sm:w-[320px]">
+              <span className="sr-only">搜索资料</span>
+              <input
+                className={inputStyles({ size: "compact" })}
+                type="search"
+                placeholder="搜索目录、文件名或类型"
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+              />
+            </label>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {canManageTasks ? (
+
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
                 className={toolbarButtonClass}
-                onClick={() => setIsTasksOpen(true)}
+                disabled={selectedEntries.length === 0}
+                onClick={() => void handleDownloadSelection()}
               >
-                处理中任务 {processingDocuments.length > 0 ? `(${processingDocuments.length})` : ""}
+                下载
               </button>
-            ) : null}
-            <button
-              type="button"
-              className={toolbarButtonClass}
-              disabled={isPending}
-              onClick={() => void refreshPage()}
-            >
-              {isPending ? "刷新中..." : "刷新"}
-            </button>
-          </div>
-        </div>
-
-        {operationError ? <p className={ui.error}>{operationError}</p> : null}
-
-        {mountedLibraries.length > 0 && currentPath === "资料库" ? (
-          <section className="grid gap-2.5 rounded-[20px] border border-app-border bg-app-surface-soft/48 p-3.5">
-            <div className="flex items-center justify-between gap-3">
-              <div className="grid gap-0.5">
-                <h3 className="text-[14px] font-semibold text-app-text">已挂载全局资料库</h3>
-                <p className="text-[13px] text-app-muted-strong">
-                  在当前工作空间内只读浏览，默认参与对话检索
-                </p>
-              </div>
-              <span className="rounded-full border border-app-border bg-white/90 px-2.5 py-0.5 text-[12px] text-app-muted">
-                {mountedLibraries.length} 个
-              </span>
+              {editable ? (
+                <>
+                  <button
+                    type="button"
+                    className={toolbarButtonClass}
+                    disabled={selectedEntries.length === 0}
+                    onClick={() => {
+                      setTargetDirectoryId(currentDirectory ?? "");
+                      setIsMoveOpen(true);
+                    }}
+                  >
+                    移动
+                  </button>
+                  <button
+                    type="button"
+                    className={toolbarButtonClass}
+                    disabled={selectedEntries.length === 0}
+                    onClick={() => void handleDeleteSelection()}
+                  >
+                    删除
+                  </button>
+                </>
+              ) : null}
             </div>
-            <div className="grid gap-2 md:grid-cols-2">
-              {mountedLibraries.map((library) => (
-                <Link
-                  key={library.id}
-                  href={library.href}
-                  className="grid gap-1.5 rounded-[18px] border border-app-border bg-white/88 px-3.5 py-2.5 transition hover:border-app-border-strong hover:bg-white"
+            <div className="flex flex-wrap items-center gap-2">
+              {canManageTasks ? (
+                <button
+                  type="button"
+                  className={toolbarButtonClass}
+                  onClick={() => setIsTasksOpen(true)}
                 >
-                  <div className="flex items-center justify-between gap-3">
-                    <strong className="truncate text-[13px] text-app-text">{library.title}</strong>
-                    <span className="shrink-0 text-[12px] text-app-muted">
-                      {library.documentCount} 份资料
-                    </span>
-                  </div>
-                  {library.description ? (
-                    <p className="line-clamp-2 text-[13px] leading-5 text-app-muted-strong">
-                      {library.description}
-                    </p>
-                  ) : null}
-                  <p className="text-[12px] text-app-muted">
-                    更新于 {formatTime(library.updatedAt)}
-                  </p>
-                </Link>
-              ))}
+                  处理中任务 {processingDocuments.length > 0 ? `(${processingDocuments.length})` : ""}
+                </button>
+              ) : null}
+              <button
+                type="button"
+                className={toolbarButtonClass}
+                disabled={isPending}
+                onClick={() => void refreshPage()}
+              >
+                {isPending ? "刷新中..." : "刷新"}
+              </button>
             </div>
-          </section>
-        ) : null}
+          </div>
 
-        <div className="overflow-hidden rounded-[20px] border border-app-border bg-white">
-          <table className="w-full border-collapse text-left">
-            <thead className="border-b border-app-border bg-app-surface-soft/70">
-              {table.getHeaderGroups().map((headerGroup) => (
-                <tr key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => (
-                    <th
-                      key={header.id}
-                      className="px-3.5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-app-muted-strong"
-                    >
-                      {header.isPlaceholder
-                        ? null
-                        : header.column.getCanSort()
-                          ? (
-                              <button
-                                type="button"
-                                className="inline-flex items-center gap-2 hover:text-app-text"
-                                onClick={header.column.getToggleSortingHandler()}
-                              >
-                                {flexRender(header.column.columnDef.header, header.getContext())}
-                                <span className="text-[10px]">
-                                  {header.column.getIsSorted() === "desc"
-                                    ? "↓"
-                                    : header.column.getIsSorted() === "asc"
-                                      ? "↑"
-                                      : ""}
-                                </span>
-                              </button>
-                            )
-                          : (
-                              <div className="inline-flex items-center gap-2">
-                                {flexRender(header.column.columnDef.header, header.getContext())}
-                              </div>
-                            )}
-                    </th>
+          {operationError ? <p className={ui.error}>{operationError}</p> : null}
+
+          {mountedLibraries.length > 0 && currentPath === "资料库" ? (
+            <section className="grid gap-2.5 rounded-[16px] bg-app-surface-lowest px-4 py-3.5">
+              <div className="flex items-center justify-between gap-3">
+                <div className="grid gap-0.5">
+                  <h3 className="text-[14px] font-semibold text-app-text">已挂载全局资料库</h3>
+                  <p className="text-[13px] text-app-muted-strong">当前空间以只读方式查看</p>
+                </div>
+                <span className="rounded-full border border-app-border bg-white/90 px-2.5 py-0.5 text-[12px] text-app-muted">
+                  {mountedLibraries.length} 个
+                </span>
+              </div>
+              <div className="grid gap-2 md:grid-cols-2">
+                {mountedLibraries.map((library) => (
+                  <Link
+                    key={library.id}
+                    href={library.href}
+                    className="grid gap-1.5 rounded-[16px] border border-app-border bg-white/90 px-3.5 py-2.5 transition hover:border-app-border-strong hover:bg-white"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <strong className="truncate text-[13px] text-app-text">{library.title}</strong>
+                      <span className="shrink-0 text-[12px] text-app-muted">{library.documentCount} 份资料</span>
+                    </div>
+                    {library.description ? (
+                      <p className="line-clamp-2 text-[13px] leading-5 text-app-muted-strong">
+                        {library.description}
+                      </p>
+                    ) : null}
+                    <p className="text-[12px] text-app-muted">更新于 {formatTime(library.updatedAt)}</p>
+                  </Link>
+                ))}
+              </div>
+            </section>
+          ) : null}
+
+          <div className="rounded-[16px] bg-app-surface-lowest px-4 py-4">
+            <div className="overflow-hidden rounded-[16px] bg-app-surface-lowest">
+              <table className="w-full border-collapse text-left">
+                <thead className="bg-app-surface-low/70">
+                  {table.getHeaderGroups().map((headerGroup) => (
+                    <tr key={headerGroup.id}>
+                      {headerGroup.headers.map((header) => (
+                        <th
+                          key={header.id}
+                          className="px-3.5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-app-secondary"
+                        >
+                          {header.isPlaceholder
+                            ? null
+                            : header.column.getCanSort()
+                              ? (
+                                  <button
+                                    type="button"
+                                    className="inline-flex items-center gap-2 hover:text-app-text"
+                                    onClick={header.column.getToggleSortingHandler()}
+                                  >
+                                    {flexRender(header.column.columnDef.header, header.getContext())}
+                                    <span className="text-[10px]">
+                                      {header.column.getIsSorted() === "desc"
+                                        ? "↓"
+                                        : header.column.getIsSorted() === "asc"
+                                          ? "↑"
+                                          : ""}
+                                    </span>
+                                  </button>
+                                )
+                              : (
+                                  <div className="inline-flex items-center gap-2">
+                                    {flexRender(header.column.columnDef.header, header.getContext())}
+                                  </div>
+                                )}
+                        </th>
+                      ))}
+                    </tr>
                   ))}
-                </tr>
-              ))}
-            </thead>
-            <tbody>
-              {table.getRowModel().rows.length > 0 ? (
-                table.getRowModel().rows.map((row) => (
-                  <TableRow
-                    key={row.id}
-                    row={row}
-                    documentHrefBase={documentHrefBase}
-                    editable={editable}
-                    onOpenDirectory={syncPath}
-                  />
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={columns.length} className="px-3.5 py-8 text-center text-[13px] text-app-muted">
-                    当前目录没有资料。
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+                </thead>
+                <tbody>
+                  {table.getRowModel().rows.length > 0 ? (
+                    table.getRowModel().rows.map((row) => (
+                      <TableRow
+                        key={row.id}
+                        row={row}
+                        documentHrefBase={documentHrefBase}
+                        editable={editable}
+                        onOpenDirectory={syncPath}
+                      />
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={columns.length} className="px-3.5 py-8 text-center text-[13px] text-app-muted">
+                        当前目录没有资料。
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 text-[13px] text-app-muted">
-          <span>
-            当前目录 {entries.length} 项
-            {selectedEntries.length > 0 ? ` · 已选 ${selectedEntries.length} 项` : ""}
-          </span>
-          {activeDragPayload ? <span>拖拽中：{activeDragPayload.label}</span> : null}
-        </div>
+          <div className="flex flex-wrap items-center justify-between gap-3 text-[13px] text-app-muted">
+            <span>
+              当前目录 {entries.length} 项
+              {selectedEntries.length > 0 ? ` · 已选 ${selectedEntries.length} 项` : ""}
+            </span>
+            {activeDragPayload ? <span>拖拽中：{activeDragPayload.label}</span> : null}
+          </div>
+        </section>
       </div>
 
       <ModalShell

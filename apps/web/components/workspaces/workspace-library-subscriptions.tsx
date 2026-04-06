@@ -84,20 +84,18 @@ export function WorkspaceLibrarySubscriptions({
   }
 
   return (
-    <section className={ui.sectionPanel}>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="grid gap-0.5">
-          <h2 className="text-[1rem] font-semibold text-app-text">全局资料库订阅</h2>
-          <p className="text-[13px] leading-5 text-app-muted-strong">
-            启用后会参与对话检索
-          </p>
+    <section className={cn(ui.sectionPanel, "grid gap-3.5")}>
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-app-border pb-3">
+        <div className="grid gap-1">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-app-secondary">
+            Library Scope
+          </span>
+          <h2 className="text-[1rem] font-semibold text-app-text">资料库订阅</h2>
         </div>
-        <span className={ui.chipSoft}>
-          {libraries.length} 个可见资料库
-        </span>
+        <span className={ui.chip}>{libraries.length} 个可见资料库</span>
       </div>
 
-      <div className="mt-3.5 grid gap-3">
+      <div className="grid gap-3">
         {libraries.length > 0 ? (
           libraries.map((library) => {
             const isBusy = pendingLibraryId !== null || isPending;
@@ -107,7 +105,7 @@ export function WorkspaceLibrarySubscriptions({
             return (
               <article
                 key={library.id}
-                className="grid gap-3 rounded-[20px] border border-app-border bg-app-surface-soft/58 p-3.5 md:grid-cols-[minmax(0,1fr)_auto] md:items-center md:p-4"
+                className="grid gap-3 rounded-[16px] bg-app-surface-lowest px-4 py-3.5 md:grid-cols-[minmax(0,1fr)_auto] md:items-center"
               >
                 <div className="grid gap-3">
                   <div className="grid gap-1.5">
@@ -224,7 +222,7 @@ export function WorkspaceLibrarySubscriptions({
             );
           })
         ) : (
-          <div className={cn(ui.subpanel, "text-[13px] text-app-muted-strong")}>
+          <div className={cn(ui.subpanel, "rounded-[16px] text-[13px] text-app-muted-strong")}>
             当前没有可订阅的全局资料库
           </div>
         )}

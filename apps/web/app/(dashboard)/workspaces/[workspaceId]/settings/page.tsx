@@ -1,5 +1,6 @@
 import { getDb } from "@anchordesk/db";
 
+import { EditorialPageHeader } from "@/components/shared/editorial-page-header";
 import { WorkspaceSettingsForm } from "@/components/workspaces/workspace-settings-form";
 import { WorkspaceLibrarySubscriptions } from "@/components/workspaces/workspace-library-subscriptions";
 import { WorkspaceLifecyclePanel } from "@/components/workspaces/workspace-lifecycle-panel";
@@ -38,22 +39,20 @@ export default async function WorkspaceSettingsPage({
         { label: "设置" },
       ]}
     >
-      <div className="flex w-full min-w-0 flex-col gap-3.5">
-        <header className="grid gap-2.5 px-1 pb-0.5">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="grid gap-1">
-              <h1 className="text-[1.3rem] font-semibold text-app-text">空间设置</h1>
-              <p className="text-[13px] text-app-muted-strong">{workspace.title}</p>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              <span className={ui.chipSoft}>
+      <div className="flex w-full min-w-0 flex-col gap-4">
+        <EditorialPageHeader
+          eyebrow="空间"
+          title="空间设置"
+          description="调整空间名称、资料订阅和生命周期设置。"
+          actions={
+            <div className="flex items-center gap-2">
+              <span className={ui.chip}>
                 {workspace.workspacePrompt ? "已设预置提示词" : "无预置提示词"}
               </span>
-              <span className={ui.chipSoft}>{libraryCatalog.length} 个可见资料库</span>
+              <span className={ui.chip}>{libraryCatalog.length} 个可见资料库</span>
             </div>
-          </div>
-        </header>
+          }
+        />
 
         <WorkspaceSettingsForm
           workspaceId={workspace.id}
