@@ -48,7 +48,7 @@ export function PublicPageShell({
       </main>
 
       {footer ? (
-        <footer className="border-t border-app-border/50 py-4">
+        <footer className="border-t border-[color:color-mix(in_srgb,var(--outline-variant)_12%,transparent)] py-4">
           <div className="mx-auto max-w-[1120px] px-4 md:px-6">{footer}</div>
         </footer>
       ) : null}

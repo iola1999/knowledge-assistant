@@ -52,6 +52,10 @@ describe("PublicPageShell", () => {
     expect(mainClass).not.toContain("max-w-[1080px]");
     expect(mainClass).not.toContain("px-4 py-6");
     expect(container.textContent).toContain("content-slot");
+
+    const footer = container.querySelector("footer");
+    expect(footer).not.toBeNull();
+    expect(footer?.getAttribute("class")).not.toContain("border-app-border/50");
+    expect(footer?.getAttribute("class")).toContain("color-mix");
   });
 });
-
