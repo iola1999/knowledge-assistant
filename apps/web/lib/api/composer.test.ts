@@ -6,6 +6,7 @@ import {
   COMPOSER_PRIMARY_ACTION,
   resolveComposerEnterKeyAction,
   resolveComposerHeading,
+  resolveComposerPrimaryButtonState,
   resolveComposerPrimaryAction,
   resolveComposerStageTextareaSizing,
   resolveComposerSubmitStatus,
@@ -80,6 +81,7 @@ describe("resolveComposerPrimaryAction", () => {
         content: "继续分析",
         hasQuotedSelection: false,
         hasPendingAttachments: true,
+        isSubmitting: false,
         isStreaming: false,
       }),
     ).toEqual({
@@ -94,11 +96,69 @@ describe("resolveComposerPrimaryAction", () => {
         content: "   ",
         hasQuotedSelection: true,
         hasPendingAttachments: false,
+        isSubmitting: false,
         isStreaming: false,
       }),
     ).toEqual({
       mode: COMPOSER_PRIMARY_ACTION.SUBMIT,
       disabled: false,
+    });
+  });
+
+  it("disables submit mode immediately while the message is being sent", () => {
+    expect(
+      resolveComposerPrimaryAction({
+        content: "继续分析",
+        hasQuotedSelection: false,
+        hasPendingAttachments: false,
+        isSubmitting: true,
+        isStreaming: false,
+      }),
+    ).toEqual({
+      mode: COMPOSER_PRIMARY_ACTION.SUBMIT,
+      disabled: true,
+    });
+  });
+});
+
+describe("resolveComposerPrimaryButtonState", () => {
+  it("shows the submit label when the composer is idle", () => {
+    expect(
+      resolveComposerPrimaryButtonState({
+        mode: COMPOSER_PRIMARY_ACTION.SUBMIT,
+        submitLabel: "开始对话",
+        isPending: false,
+        isSubmitting: false,
+      }),
+    ).toEqual({
+      label: "开始对话",
+      showLoadingIndicator: false,
+    });
+  });
+
+  it("switches submit mode into a visible loading state while the request is in flight", () => {
+    expect(
+      resolveComposerPrimaryButtonState({
+        mode: COMPOSER_PRIMARY_ACTION.SUBMIT,
+        submitLabel: "开始对话",
+        isPending: false,
+        isSubmitting: true,
+      }),
+    ).toEqual({
+      label: "发送中...",
+      showLoadingIndicator: true,
+    });
+  });
+
+  it("keeps stop mode focused on cancellation feedback", () => {
+    expect(
+      resolveComposerPrimaryButtonState({
+        mode: COMPOSER_PRIMARY_ACTION.STOP,
+        isStopping: true,
+      }),
+    ).toEqual({
+      label: "停止中...",
+      showLoadingIndicator: false,
     });
   });
 });

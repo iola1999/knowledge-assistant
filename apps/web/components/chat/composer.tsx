@@ -31,6 +31,7 @@ import {
   COMPOSER_PRIMARY_ACTION,
   resolveComposerEnterKeyAction,
   resolveComposerHeading,
+  resolveComposerPrimaryButtonState,
   resolveComposerPrimaryAction,
   resolveComposerStageTextareaSizing,
   resolveComposerSubmitStatus,
@@ -269,6 +270,18 @@ function ModelProfileSelector({
   );
 }
 
+function ComposerSubmitLoadingIndicator({ className }: { className?: string }) {
+  return (
+    <span
+      role="status"
+      aria-label="消息发送中"
+      className={cn("inline-flex items-center justify-center", className)}
+    >
+      <span className="size-[15px] rounded-full border-[1.5px] border-current/30 border-r-current border-t-current motion-safe:animate-spin" />
+    </span>
+  );
+}
+
 export function Composer({
   conversationId,
   workspaceId,
@@ -295,11 +308,13 @@ export function Composer({
   const router = useRouter();
   const [content, setContent] = useState("");
   const [status, setStatus] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [isStopping, setIsStopping] = useState(false);
   const [attachments, setAttachments] = useState<ComposerAttachment[]>(initialAttachments);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const submitInFlightRef = useRef(false);
   const draftUploadIdRef = useRef<string>(
     typeof crypto !== "undefined" ? crypto.randomUUID() : `${Date.now()}-draft`,
   );
@@ -328,9 +343,18 @@ export function Composer({
     content,
     hasQuotedSelection: Boolean(selectedQuote),
     hasPendingAttachments,
+    isSubmitting,
     isStreaming: canStopStreaming,
   });
-  const isSubmitDisabled = isPending || primaryAction.disabled;
+  const isSubmitBusy = isSubmitting || isPending;
+  const primaryButtonState = resolveComposerPrimaryButtonState({
+    mode: primaryAction.mode,
+    submitLabel,
+    isPending,
+    isStopping,
+    isSubmitting,
+  });
+  const isSubmitDisabled = isSubmitBusy || primaryAction.disabled;
   const isPrimaryActionDisabled = canStopStreaming ? isStopping : isSubmitDisabled;
   const stageActionButtonBase =
     "inline-flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full border transition disabled:cursor-not-allowed disabled:border-app-border disabled:bg-app-surface-strong/72 disabled:text-app-muted disabled:shadow-none";
@@ -681,7 +705,7 @@ export function Composer({
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (canStopStreaming) {
+    if (canStopStreaming || submitInFlightRef.current) {
       return;
     }
 
@@ -695,88 +719,95 @@ export function Composer({
       return;
     }
 
+    submitInFlightRef.current = true;
+    setIsSubmitting(true);
+    setStatus(null);
+
     let targetConversationId = conversationId;
-    if (!targetConversationId) {
-      if (!workspaceId) {
-        setStatus("缺少工作空间信息，无法创建对话。");
-        return;
+    try {
+      if (!targetConversationId) {
+        if (!workspaceId) {
+          setStatus("缺少工作空间信息，无法创建对话。");
+          return;
+        }
+
+        const createResponse = await fetch(`/api/workspaces/${workspaceId}/conversations`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            modelProfileId: currentModelProfileId ?? undefined,
+          }),
+        });
+        const createBody = (await createResponse.json().catch(() => null)) as
+          | { error?: string; conversation?: { id: string } }
+          | null;
+
+        targetConversationId = createBody?.conversation?.id;
+        if (!createResponse.ok || !targetConversationId) {
+          setStatus(createBody?.error ?? "创建对话失败。");
+          return;
+        }
       }
 
-      setStatus("正在创建对话...");
-      const createResponse = await fetch(`/api/workspaces/${workspaceId}/conversations`, {
+      const submittedAttachments = buildSubmittedMessageAttachments(attachments);
+      const response = await fetch(`/api/conversations/${targetConversationId}/messages`, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
+          attachmentIds: submittedAttachments.map((attachment) => attachment.attachmentId),
+          content: prompt,
           modelProfileId: currentModelProfileId ?? undefined,
+          quote: selectedQuote ?? undefined,
+          draftUploadId:
+            !conversationId && attachments.length > 0 ? draftUploadIdRef.current : undefined,
         }),
       });
-      const createBody = (await createResponse.json().catch(() => null)) as
-        | { error?: string; conversation?: { id: string } }
-        | null;
 
-      targetConversationId = createBody?.conversation?.id;
-      if (!createResponse.ok || !targetConversationId) {
-        setStatus(createBody?.error ?? "创建对话失败。");
-        return;
-      }
-    }
-
-    setStatus("正在发送...");
-    const submittedAttachments = buildSubmittedMessageAttachments(attachments);
-    const response = await fetch(`/api/conversations/${targetConversationId}/messages`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        attachmentIds: submittedAttachments.map((attachment) => attachment.attachmentId),
-        content: prompt,
-        modelProfileId: currentModelProfileId ?? undefined,
-        quote: selectedQuote ?? undefined,
-        draftUploadId:
-          !conversationId && attachments.length > 0 ? draftUploadIdRef.current : undefined,
-      }),
-    });
-
-    if (response.ok) {
-      const body = (await response.json().catch(() => null)) as
-        | {
-            agentError?: string;
-            assistantMessage?: ConversationChatMessage;
-            userMessage?: ConversationChatMessage;
-          }
-        | null;
-      setContent("");
-      setStatus(resolveComposerSubmitStatus(body?.agentError ?? null));
-      const submittedTurn = buildComposerSubmittedTurn({
-        conversationId: targetConversationId,
-        userMessage: body?.userMessage
-          ? applyConversationMessageAttachments({
-              attachments: submittedAttachments,
-              message: body.userMessage,
-            })
-          : null,
-        assistantMessage: body?.assistantMessage ?? null,
-      });
-      setAttachments([]);
-      onClearSelectedQuote?.();
-      draftUploadIdRef.current =
-        typeof crypto !== "undefined" ? crypto.randomUUID() : `${Date.now()}-draft`;
-
-      if (submittedTurn && onSubmitted) {
-        onSubmitted({
-          ...submittedTurn,
-          attachments: submittedAttachments,
-          modelProfileId: currentModelProfileId ?? null,
+      if (response.ok) {
+        const body = (await response.json().catch(() => null)) as
+          | {
+              agentError?: string;
+              assistantMessage?: ConversationChatMessage;
+              userMessage?: ConversationChatMessage;
+            }
+          | null;
+        setContent("");
+        setStatus(resolveComposerSubmitStatus(body?.agentError ?? null));
+        const submittedTurn = buildComposerSubmittedTurn({
+          conversationId: targetConversationId,
+          userMessage: body?.userMessage
+            ? applyConversationMessageAttachments({
+                attachments: submittedAttachments,
+                message: body.userMessage,
+              })
+            : null,
+          assistantMessage: body?.assistantMessage ?? null,
         });
+        setAttachments([]);
+        onClearSelectedQuote?.();
+        draftUploadIdRef.current =
+          typeof crypto !== "undefined" ? crypto.randomUUID() : `${Date.now()}-draft`;
+
+        if (submittedTurn && onSubmitted) {
+          onSubmitted({
+            ...submittedTurn,
+            attachments: submittedAttachments,
+            modelProfileId: currentModelProfileId ?? null,
+          });
+        } else {
+          startTransition(() => {
+            if (!conversationId && workspaceId) {
+              router.push(`/workspaces/${workspaceId}?conversationId=${targetConversationId}`);
+            }
+            router.refresh();
+          });
+        }
       } else {
-        startTransition(() => {
-          if (!conversationId && workspaceId) {
-            router.push(`/workspaces/${workspaceId}?conversationId=${targetConversationId}`);
-          }
-          router.refresh();
-        });
+        setStatus("发送失败。");
       }
-    } else {
-      setStatus("发送失败。");
+    } finally {
+      submitInFlightRef.current = false;
+      setIsSubmitting(false);
     }
   }
 
@@ -947,6 +978,8 @@ export function Composer({
               >
                 {primaryAction.mode === COMPOSER_PRIMARY_ACTION.STOP ? (
                   <StopIcon className="size-[18px]" aria-hidden="true" />
+                ) : primaryButtonState.showLoadingIndicator ? (
+                  <ComposerSubmitLoadingIndicator className="size-5 text-app-primary-contrast" />
                 ) : (
                   <ArrowUpIcon className="size-5" aria-hidden="true" />
                 )}
@@ -1042,13 +1075,7 @@ export function Composer({
                   : undefined
               }
             >
-              {primaryAction.mode === COMPOSER_PRIMARY_ACTION.STOP
-                ? isStopping
-                  ? "停止中..."
-                  : "停止"
-                : isPending
-                  ? "刷新中..."
-                  : submitLabel}
+              {primaryButtonState.label}
             </button>
           </div>
         </>

@@ -28,6 +28,28 @@ export const COMPOSER_PRIMARY_ACTION = {
   SUBMIT: "submit",
 } as const;
 
+export function resolveComposerPrimaryButtonState(input: {
+  mode: (typeof COMPOSER_PRIMARY_ACTION)[keyof typeof COMPOSER_PRIMARY_ACTION];
+  submitLabel?: string;
+  isPending?: boolean;
+  isStopping?: boolean;
+  isSubmitting?: boolean;
+}) {
+  if (input.mode === COMPOSER_PRIMARY_ACTION.STOP) {
+    return {
+      label: input.isStopping ? "停止中..." : "停止",
+      showLoadingIndicator: false,
+    };
+  }
+
+  const isBusy = Boolean(input.isSubmitting || input.isPending);
+
+  return {
+    label: isBusy ? "发送中..." : (input.submitLabel ?? "发送"),
+    showLoadingIndicator: isBusy,
+  };
+}
+
 export function resolveComposerEnterKeyAction(input: {
   key: string;
   shiftKey?: boolean | null;
@@ -81,6 +103,7 @@ export function resolveComposerPrimaryAction(input: {
   content: string;
   hasQuotedSelection?: boolean;
   hasPendingAttachments: boolean;
+  isSubmitting?: boolean;
   isStreaming: boolean;
 }) {
   if (input.isStreaming) {
@@ -93,6 +116,7 @@ export function resolveComposerPrimaryAction(input: {
   return {
     mode: COMPOSER_PRIMARY_ACTION.SUBMIT,
     disabled:
+      Boolean(input.isSubmitting) ||
       input.hasPendingAttachments ||
       (!input.content.trim() && !input.hasQuotedSelection),
   };
