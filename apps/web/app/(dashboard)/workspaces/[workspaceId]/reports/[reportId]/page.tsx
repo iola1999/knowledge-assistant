@@ -53,11 +53,15 @@ export default async function ReportPage({
 
   return (
     <div className={ui.pageNarrow}>
-      <div className={cn(ui.panelLarge, "grid gap-4")}>
+      <section className={cn(ui.panelLarge, "grid gap-5")}>
         <div className={ui.toolbar}>
-          <div className="space-y-1">
-            <h1>{report[0].title}</h1>
-            <p className={ui.muted}>状态：{report[0].status}</p>
+          <div className="grid gap-1">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-app-secondary">
+              Report
+            </p>
+            <h1 className="font-headline text-[2rem] font-extrabold tracking-[-0.04em] text-app-text">
+              {report[0].title}
+            </h1>
           </div>
           <Link
             href={`/api/reports/${reportId}/export-docx`}
@@ -70,7 +74,7 @@ export default async function ReportPage({
           <OutlineButton reportId={reportId} />
           <p className={ui.muted}>先生成大纲，再按章节逐步补全文本。</p>
         </div>
-      </div>
+      </section>
       <div className={cn(ui.panel, "grid gap-4")}>
         <h3>章节</h3>
         <ul className="grid gap-3">

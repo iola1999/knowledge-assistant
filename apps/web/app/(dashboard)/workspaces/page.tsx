@@ -8,12 +8,11 @@ import {
   workspaces,
 } from "@anchordesk/db";
 
-import { AnchorDeskLogo } from "@/components/icons";
+import { EditorialPageHeader } from "@/components/shared/editorial-page-header";
 import { WorkspacesHeaderActions } from "@/components/workspaces/workspaces-header-actions";
 import { auth } from "@/auth";
 import { isSuperAdmin } from "@/lib/auth/super-admin";
 import { formatRelativeWorkspaceActivity } from "@/lib/api/workspace-overview";
-import { workspaceBranding } from "@/lib/branding";
 import { cn, ui, workspaceTileStyles } from "@/lib/ui";
 
 function getWorkspaceBadgeLabel(title: string) {
@@ -99,33 +98,21 @@ export default async function WorkspacesPage() {
   }
 
   return (
-    <div className={cn(ui.page, "gap-6 py-8")}>
-      {/* Branded header row */}
-      <div className="flex flex-wrap items-end justify-between gap-3.5">
-        <div className="flex items-center gap-2.5">
-          <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-app-primary shadow-sm">
-            <AnchorDeskLogo className="size-[17px] text-app-primary-contrast" />
-          </span>
-          <div className="grid gap-0.5">
-            <strong className="font-serif text-[16px] leading-tight text-app-text">
-              {workspaceBranding.productName}
-            </strong>
-            <span className="text-[12px] text-app-muted">
-              {workspaceList.length > 0
-                ? `${workspaceList.length} 个工作空间`
-                : "开始创建你的第一个工作空间"}
-            </span>
-          </div>
-        </div>
-
-        <WorkspacesHeaderActions
-          initialUser={{
-            name: session?.user?.name,
-            username,
-          }}
-          canAccessSystemSettings={canAccessSystemSettings}
-        />
-      </div>
+    <div className={cn(ui.page, "gap-8")}>
+      <EditorialPageHeader
+        eyebrow="Workspaces"
+        title="工作空间"
+        description="围绕项目、客户或研究主题组织资料与对话。"
+        actions={(
+          <WorkspacesHeaderActions
+            initialUser={{
+              name: session?.user?.name,
+              username,
+            }}
+            canAccessSystemSettings={canAccessSystemSettings}
+          />
+        )}
+      />
 
       {/* Workspace grid */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">

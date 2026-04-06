@@ -5,7 +5,7 @@ import { conversationDensityClassNames } from "./conversation-density";
 describe("conversationDensityClassNames", () => {
   it("keeps the conversation stack tighter than the default sparse layout", () => {
     expect(conversationDensityClassNames.sessionStack).toContain("min-w-0");
-    expect(conversationDensityClassNames.sessionStack).toContain("gap-4");
+    expect(conversationDensityClassNames.sessionStack).toContain("gap-6");
     expect(conversationDensityClassNames.sessionStack).not.toContain("gap-10");
     expect(conversationDensityClassNames.sessionStack).not.toContain("gap-12");
   });
@@ -19,8 +19,8 @@ describe("conversationDensityClassNames", () => {
     expect(conversationDensityClassNames.userAttachmentList).toContain("justify-end");
     expect(conversationDensityClassNames.userAttachmentChip).toContain("rounded-full");
     expect(conversationDensityClassNames.resultPanel).toContain("min-w-0");
-    expect(conversationDensityClassNames.answerText).toContain("text-[13px]");
-    expect(conversationDensityClassNames.answerText).toContain("leading-6");
+    expect(conversationDensityClassNames.answerText).toContain("text-[14px]");
+    expect(conversationDensityClassNames.answerText).toContain("leading-7");
   });
 
   it("uses a stepped timeline layout with a vertical rail and borderless task rows", () => {
@@ -46,17 +46,28 @@ describe("conversationDensityClassNames", () => {
     expect(conversationDensityClassNames.payloadPre).toContain("bg-app-surface-soft/62");
   });
 
-  it("keeps the stage composer compact while preserving attachment visibility", () => {
+  it("keeps the stage composer sticky while preserving attachment visibility", () => {
     expect(conversationDensityClassNames.composerShell).toContain("sticky");
     expect(conversationDensityClassNames.composerShell).toContain("bottom-0");
-    expect(conversationDensityClassNames.composerShell).not.toContain("backdrop-blur");
-    expect(conversationDensityClassNames.composerShell).not.toContain("linear-gradient");
-    expect(conversationDensityClassNames.composerCard).toContain("rounded-[20px]");
+    expect(conversationDensityClassNames.composerShell).toContain("backdrop-blur-xl");
+    expect(conversationDensityClassNames.composerCard).toContain("rounded-[16px]");
     expect(conversationDensityClassNames.composerCard).toContain("border");
-    expect(conversationDensityClassNames.composerCard).toContain("px-3.5");
-    expect(conversationDensityClassNames.composerCard).toContain("py-2.5");
-    expect(conversationDensityClassNames.composerCard).toContain("shadow-[0_14px_24px");
+    expect(conversationDensityClassNames.composerCard).toContain("px-4");
+    expect(conversationDensityClassNames.composerCard).toContain("py-3");
+    expect(conversationDensityClassNames.composerCard).toContain("shadow-[0_28px_60px");
     expect(conversationDensityClassNames.composerText).toContain("text-[13px]");
     expect(conversationDensityClassNames.composerAttachments).toContain("gap-1");
+  });
+
+  it("uses an editorial glass composer shell instead of the old bordered card", () => {
+    expect(conversationDensityClassNames.composerShell).toContain("backdrop-blur-xl");
+    expect(conversationDensityClassNames.composerCard).toContain("rounded-[16px]");
+    expect(conversationDensityClassNames.composerCard).toContain("bg-white/78");
+    expect(conversationDensityClassNames.composerCard).not.toContain("rounded-[20px]");
+  });
+
+  it("keeps answer surfaces border-light and typography-led", () => {
+    expect(conversationDensityClassNames.answerText).toContain("leading-7");
+    expect(conversationDensityClassNames.timelineEntryCard).not.toContain("shadow-soft");
   });
 });

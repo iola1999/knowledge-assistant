@@ -922,7 +922,7 @@ export function Composer({
       />
       {isStage ? (
         <div className="grid gap-2.5">
-          <div className={conversationDensityClassNames.composerCard}>
+          <div className={cn("grid min-w-0 gap-2", conversationDensityClassNames.composerCard)}>
             {renderSelectedQuote()}
             <textarea
               ref={textareaRef}

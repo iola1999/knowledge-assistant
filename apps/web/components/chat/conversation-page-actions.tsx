@@ -146,7 +146,7 @@ export function ConversationPageActions({
               <span className="inline-flex items-center rounded-full border border-app-border bg-white/86 px-2.5 py-0.5 text-[11px] font-medium text-app-muted-strong">
                 {resolveConversationStatusLabel(conversationStatus)}
               </span>
-              <span className="inline-flex items-center rounded-full border border-app-border bg-white/86 px-2.5 py-0.5 text-[11px] font-medium text-app-muted-strong">
+              <span className="rounded-full bg-app-surface-low px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-app-secondary">
                 {messageCount} 条消息
               </span>
               <span className="inline-flex items-center rounded-full border border-app-border bg-white/86 px-2.5 py-0.5 text-[11px] font-medium text-app-muted-strong">

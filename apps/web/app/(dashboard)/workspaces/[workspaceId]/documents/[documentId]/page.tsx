@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { and, eq, isNull } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { formatCitationLocator, PARSE_STATUS } from "@anchordesk/contracts";
@@ -16,15 +15,12 @@ import {
 
 import { auth } from "@/auth";
 import { DeleteDocumentButton } from "@/components/documents/delete-document-button";
-import { DocumentDetailsModal } from "@/components/documents/document-details-modal";
 import { DocumentJobPanel } from "@/components/documents/document-job-panel";
 import { DocumentMetadataForm } from "@/components/documents/document-metadata-form";
 import { PdfViewer } from "@/components/documents/pdf-viewer";
 import { readCitationLocator } from "@/lib/api/document-metadata";
-import { resolveDocumentPreviewBackTarget } from "@/lib/api/document-page-navigation";
 import { buildDocumentViewerPages } from "@/lib/api/document-view";
-import { documentTypeOptions } from "@/lib/api/document-metadata";
-import { buttonStyles, cn, textSelectionStyles, ui } from "@/lib/ui";
+import { cn, textSelectionStyles, ui } from "@/lib/ui";
 
 export default async function DocumentPage({
   params,
@@ -169,11 +165,7 @@ export default async function DocumentPage({
     anchors: pageAnchors,
     highlightedAnchorId: anchorId,
   });
-  const backTarget = resolveDocumentPreviewBackTarget(workspaceId);
   const requestedPage = Number.parseInt(page ?? "", 10);
-  const docTypeLabel =
-    documentTypeOptions.find((item) => item.value === doc.docType)?.label ?? doc.docType;
-  const tags = doc.tagsJson ?? [];
   const canRenderPdf = doc.mimeType.includes("pdf") && Boolean(latestVersion);
   const metadataPanel = isWorkspaceOwnedDocument ? (
     <DocumentMetadataForm
@@ -376,89 +368,32 @@ export default async function DocumentPage({
     </>
   );
 
-  return (
-    <div className={cn(ui.page, "max-w-[1680px]")}>
-      {/* 顶部标题区，去除了笨重的 panelLarge，改为通栏透明底带底边框 */}
-      <div className="mb-2 grid gap-5 border-b border-app-border/40 pb-6">
-        <div className="flex items-center justify-start">
-          <Link
-            href={backTarget.href}
-            className={cn(buttonStyles({ variant: "secondary", size: "sm" }), "gap-2")}
-          >
-            <svg
-              aria-hidden="true"
-              className="size-4 shrink-0"
-              fill="none"
-              viewBox="0 0 20 20"
-              stroke="currentColor"
-              strokeWidth="1.8"
-            >
-              <path d="M11.75 4.75 6.5 10l5.25 5.25" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            {backTarget.label}
-          </Link>
-        </div>
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="grid gap-1.5">
-            <h1 className="text-2xl font-semibold tracking-tight text-app-text">{doc.title}</h1>
-            <div className="flex flex-wrap items-center gap-2 text-[14px] text-app-muted-strong">
-              <span>{doc.logicalPath}</span>
-              <span className="text-app-border-strong px-0.5">•</span>
-              <span className="inline-flex items-center rounded-full bg-app-surface-strong px-2.5 py-0.5 text-xs font-medium text-app-text">
-                {doc.status}
-              </span>
-              {doc.libraryTitle ? (
-                <>
-                  <span className="text-app-border-strong px-0.5">•</span>
-                  <span>{doc.libraryTitle}</span>
-                </>
-              ) : null}
-              {latestVersion ? (
-                <>
-                  <span className="text-app-border-strong px-0.5">•</span>
-                  <span>v{latestVersion.version}</span>
-                  <span className="text-app-border-strong px-0.5">•</span>
-                  <span>{latestVersion.parseStatus}</span>
-                  {latestJob && latestJob.stage && latestJob.progress !== null ? (
-                    <>
-                      <span className="text-app-border-strong px-0.5">•</span>
-                      <span>
-                        {latestJob.stage} {latestJob.progress}%
-                      </span>
-                    </>
-                  ) : null}
-                </>
-              ) : null}
-            </div>
-            {tags.length > 0 ? (
-              <div className="mt-1 flex flex-wrap gap-1.5">
-                {tags.map((tag) => (
-                  <span key={tag} className="inline-flex items-center rounded-full border border-app-border bg-app-surface-soft px-2 py-0.5 text-[13px] text-app-muted-strong">
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            ) : null}
-          </div>
-          <div className="flex shrink-0 items-center justify-end gap-2">
-            <DocumentDetailsModal>{detailsPanels}</DocumentDetailsModal>
-          </div>
-        </div>
-      </div>
+  const contentSurface = canRenderPdf ? (
+    <PdfViewer
+      fileUrl={`/api/workspaces/${workspaceId}/documents/${documentId}/content`}
+      title={doc.title}
+      initialPage={anchor?.pageNo ?? (Number.isFinite(requestedPage) ? requestedPage : 1)}
+      highlightedText={anchor?.anchorText ?? ""}
+    >
+      {contentBlocks}
+    </PdfViewer>
+  ) : (
+    contentBlocks
+  );
 
-      <div className="min-w-0">
-        {canRenderPdf ? (
-          <PdfViewer
-            fileUrl={`/api/workspaces/${workspaceId}/documents/${documentId}/content`}
-            title={doc.title}
-            initialPage={anchor?.pageNo ?? (Number.isFinite(requestedPage) ? requestedPage : 1)}
-            highlightedText={anchor?.anchorText ?? ""}
-          >
-            {contentBlocks}
-          </PdfViewer>
-        ) : (
-          contentBlocks
-        )}
+  return (
+    <div className={cn(ui.page, "gap-6")}>
+      <div className={cn(ui.panelLarge, "grid gap-6")}>
+        <div className="grid gap-2">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-app-secondary">
+            Document
+          </p>
+          <h1 className="font-headline text-[2rem] font-extrabold tracking-[-0.04em] text-app-text">
+            {doc.title}
+          </h1>
+        </div>
+        {contentSurface}
+        {detailsPanels}
       </div>
     </div>
   );

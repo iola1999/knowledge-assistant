@@ -8,12 +8,12 @@ import {
   type ComposerSubmittedTurn,
 } from "@/components/chat/composer";
 import { WorkspaceConversationPanel } from "@/components/chat/workspace-conversation-panel";
+import { EditorialPageHeader } from "@/components/shared/editorial-page-header";
 import { appendSubmittedConversationTurn } from "@/lib/api/conversation-session";
 import {
   resolveInitialModelProfileId,
   type EnabledModelProfileOption,
 } from "@/lib/api/model-profiles";
-import { ui } from "@/lib/ui";
 
 type PendingConversationState = {
   conversationId: string;
@@ -80,15 +80,13 @@ export function WorkspaceEmptyConversationStage({
   }
 
   return (
-    <div className="grid min-h-[calc(100dvh-156px)] place-items-center px-1 py-5 min-[720px]:min-h-[calc(100vh-180px)] min-[720px]:px-5 min-[720px]:py-6">
-      <div className="grid w-full max-w-[860px] gap-5 text-center">
-        <div className="grid justify-items-center gap-2.5">
-          <p className={ui.eyebrow}>New Question</p>
-          <h1 className="text-[26px] font-semibold tracking-[-0.02em] text-app-text md:text-[34px]">
-            {workspaceTitle}
-          </h1>
-        </div>
-
+    <div className="grid min-h-[calc(100dvh-156px)] gap-6 px-1 py-5 min-[720px]:min-h-[calc(100vh-180px)] min-[720px]:px-5 min-[720px]:py-6">
+      <div className="mx-auto grid w-full max-w-[920px] gap-5">
+        <EditorialPageHeader
+          eyebrow="Workspaces"
+          title={workspaceTitle}
+          description="围绕一个主题组织资料、问答和结论。"
+        />
         <Composer
           workspaceId={workspaceId}
           variant="stage"

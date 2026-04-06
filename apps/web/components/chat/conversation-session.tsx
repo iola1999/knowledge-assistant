@@ -855,7 +855,7 @@ export function ConversationSession({
   }
 
   return (
-    <div className={conversationDensityClassNames.sessionStack}>
+    <div className={cn("grid", conversationDensityClassNames.sessionStack)}>
       {chatMessages.length > 0 ? (
         chatMessages.map((message) => {
           const isUser = message.role === MESSAGE_ROLE.USER;

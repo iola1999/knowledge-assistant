@@ -1,5 +1,5 @@
 export const conversationDensityClassNames = {
-  sessionStack: "grid min-w-0 gap-4 pb-2.5 min-[720px]:gap-5 min-[720px]:pb-3 md:gap-6 md:pb-4",
+  sessionStack: "min-w-0 gap-6",
   assistantSection: "grid min-w-0 gap-2 min-[720px]:gap-2.5",
   userWrap: "ml-auto w-full min-w-0 max-w-[860px]",
   userStack: "grid justify-items-end gap-1.5",
@@ -17,7 +17,7 @@ export const conversationDensityClassNames = {
   resultPanel: "grid min-w-0 gap-2 min-[720px]:gap-2.5",
   resultHeader:
     "flex min-w-0 flex-wrap items-center justify-between gap-2 border-b border-app-border/60 pb-1",
-  answerText: "max-w-none text-[13px] leading-6 text-app-text md:text-[14px]",
+  answerText: "text-[14px] leading-7 text-app-text",
   thinkingPanel:
     "group/thinking min-w-0 max-w-full rounded-[20px] border border-app-border/60 bg-app-surface-soft/68 px-3 py-2.5 shadow-[0_6px_16px_rgba(23,22,18,0.018)]",
   thinkingSummary:
@@ -37,7 +37,7 @@ export const conversationDensityClassNames = {
   timelineEntrySummary:
     "grid min-w-0 list-none grid-cols-[1.5rem_minmax(0,1fr)] items-start gap-2 text-left [&::-webkit-details-marker]:hidden",
   timelineEntryRail: "relative z-10 flex items-start justify-center pt-1",
-  timelineEntryCard: "grid min-w-0 gap-1",
+  timelineEntryCard: "rounded-[14px] bg-app-surface-lowest/70 px-4 py-3",
   timelineEntryHeader: "flex min-w-0 items-start justify-between gap-2.5",
   timelineEntryBody: "grid min-w-0 gap-1.5",
   timelineEntryTitleRow: "flex min-w-0 flex-wrap items-center gap-2",
@@ -65,9 +65,9 @@ export const conversationDensityClassNames = {
   payloadPre:
     "min-w-0 max-w-full max-h-[180px] overflow-auto whitespace-pre-wrap break-all [overflow-wrap:anywhere] select-text rounded-[8px] bg-app-surface-soft/62 px-2 py-1.5 text-[9.5px] leading-4 text-app-muted-strong",
   composerShell:
-    "sticky bottom-0 z-10 shrink-0 px-3 pb-2.5 pt-2.5 min-[720px]:pb-3.5 min-[720px]:pt-3.5",
+    "sticky bottom-0 z-10 bg-linear-to-t from-app-bg via-app-bg/92 to-transparent px-0 pb-1 pt-8 backdrop-blur-xl",
   composerCard:
-    "grid min-w-0 gap-2 rounded-[20px] border border-app-border/80 bg-white/96 px-3.5 py-2.5 shadow-[0_14px_24px_rgba(23,22,18,0.055),0_3px_8px_rgba(23,22,18,0.025)] md:px-4 md:py-3",
+    "rounded-[16px] border border-[color:color-mix(in_srgb,var(--outline-variant)_14%,transparent)] bg-white/78 px-4 py-3 shadow-[0_28px_60px_rgba(25,28,30,0.06)] backdrop-blur-xl",
   composerText:
     "w-full resize-none bg-transparent px-0 py-0 text-[13px] leading-6 text-app-text outline-none placeholder:text-app-muted md:text-[14px]",
   composerAttachments: "flex flex-wrap items-center gap-1 px-0",
