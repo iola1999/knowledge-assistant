@@ -57,7 +57,7 @@ export default async function ReportPage({
         <div className={ui.toolbar}>
           <div className="grid gap-1">
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-app-secondary">
-              Report
+              报告
             </p>
             <h1 className="font-headline text-[2rem] font-extrabold tracking-[-0.04em] text-app-text">
               {report[0].title}

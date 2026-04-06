@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { and, eq, isNull } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { formatCitationLocator, PARSE_STATUS } from "@anchordesk/contracts";
@@ -386,7 +387,7 @@ export default async function DocumentPage({
       <div className={cn(ui.panelLarge, "grid gap-6")}>
         <div className="grid gap-2">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-app-secondary">
-            Document
+            文档
           </p>
           <h1 className="font-headline text-[2rem] font-extrabold tracking-[-0.04em] text-app-text">
             {doc.title}

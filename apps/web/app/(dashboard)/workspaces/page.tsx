@@ -100,7 +100,7 @@ export default async function WorkspacesPage() {
   return (
     <div className={cn(ui.page, "gap-8")}>
       <EditorialPageHeader
-        eyebrow="Workspaces"
+        eyebrow="工作空间"
         title="工作空间"
         description="围绕项目、客户或研究主题组织资料与对话。"
         actions={(

@@ -83,7 +83,7 @@ export function WorkspaceEmptyConversationStage({
     <div className="grid min-h-[calc(100dvh-156px)] gap-6 px-1 py-5 min-[720px]:min-h-[calc(100vh-180px)] min-[720px]:px-5 min-[720px]:py-6">
       <div className="mx-auto grid w-full max-w-[920px] gap-5">
         <EditorialPageHeader
-          eyebrow="Workspaces"
+          eyebrow="工作空间"
           title={workspaceTitle}
           description="围绕一个主题组织资料、问答和结论。"
         />
