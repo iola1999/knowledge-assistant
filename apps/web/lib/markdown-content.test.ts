@@ -163,4 +163,27 @@ describe("MarkdownContent", () => {
     expect(excerpt?.querySelector("a")).toBeNull();
     expect(excerpt?.textContent).toContain("部署手册");
   });
+
+  test("wraps markdown tables with a scrollable container to prevent overflow", () => {
+    const tableSource = `
+| Column A | Column B |
+| -------- | -------- |
+| ${"Very long content ".repeat(5)} | ${"More long content ".repeat(5)} |
+`;
+
+    act(() => {
+      root.render(
+        createElement(MarkdownContent, {
+          content: tableSource,
+        }),
+      );
+    });
+
+    const wrapper = container.querySelector(".app-markdown-table-wrapper");
+    const table = wrapper?.querySelector("table");
+
+    expect(wrapper).toBeTruthy();
+    expect(table).toBeTruthy();
+    expect(wrapper?.classList.contains("app-markdown-table-wrapper")).toBe(true);
+  });
 });

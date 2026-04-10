@@ -171,6 +171,25 @@ describe("ModelProfilesAdmin", () => {
     expect(container.querySelectorAll('[role="switch"]')).toHaveLength(2);
   });
 
+  test("renders a single sidebar entry for creating a new model and keeps its marker inset", async () => {
+    await act(async () => {
+      root.render(
+        createElement(ModelProfilesAdmin, {
+          profiles: [],
+        }),
+      );
+    });
+
+    const newModelButtons = Array.from(
+      container.querySelectorAll('button[type="button"]'),
+    ).filter((button) => button.textContent?.trim() === "新建模型");
+
+    expect(newModelButtons).toHaveLength(1);
+    expect(newModelButtons[0]?.getAttribute("aria-current")).toBe("page");
+    expect(newModelButtons[0]?.className).toContain("before:left-1.5");
+    expect(newModelButtons[0]?.className).toContain("before:inset-y-4");
+  });
+
   test("locks the submit button while the create request is in-flight", async () => {
     const fetchSpy = vi
       .spyOn(globalThis, "fetch")

@@ -211,18 +211,7 @@ export function ModelProfilesAdmin({
     <form onSubmit={handleSubmit}>
       <SettingsShell sidebar={<SystemManagementSidebar activeSection="models" />}>
         <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-4">
-          <EditorialPageHeader
-            title="模型管理"
-            actions={
-              <button
-                type="button"
-                className={buttonStyles({ variant: "secondary", size: "sm", shape: "pill" })}
-                onClick={() => handleSelectProfile(null)}
-              >
-                新建模型
-              </button>
-            }
-          />
+          <EditorialPageHeader title="模型管理" />
 
           <section className="grid gap-4 xl:grid-cols-[340px_minmax(0,1fr)]">
             <aside className="grid content-start gap-3 rounded-2xl bg-app-surface-low p-3.5 shadow-soft">
@@ -240,6 +229,7 @@ export function ModelProfilesAdmin({
                       ? "bg-app-surface-lowest text-app-text shadow-soft"
                       : "text-app-muted-strong hover:bg-white/60 hover:text-app-text",
                     navItemStyles({ selected: selectedId === NEW_MODEL_DRAFT_ID }),
+                    selectedId === NEW_MODEL_DRAFT_ID && "before:left-1.5 before:inset-y-4",
                   )}
                   onClick={() => handleSelectProfile(null)}
                 >
@@ -270,6 +260,7 @@ export function ModelProfilesAdmin({
                             ? "bg-app-surface-lowest text-app-text shadow-soft"
                             : "text-app-muted-strong hover:bg-white/60 hover:text-app-text",
                           navItemStyles({ selected }),
+                          selected && "before:left-1.5 before:inset-y-4",
                         )}
                         onClick={() => handleSelectProfile(profile.id)}
                       >

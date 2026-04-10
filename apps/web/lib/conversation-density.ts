@@ -65,9 +65,9 @@ export const conversationDensityClassNames = {
   payloadPre:
     "min-w-0 max-w-full max-h-[180px] overflow-auto whitespace-pre-wrap break-all [overflow-wrap:anywhere] select-text rounded-[8px] bg-app-surface-soft/62 px-2 py-1.5 text-[9.5px] leading-4 text-app-muted-strong",
   composerShell:
-    "sticky bottom-0 z-10 bg-linear-to-t from-app-bg via-app-bg/92 to-transparent px-0 pb-1 pt-8 backdrop-blur-xl",
+    "sticky bottom-0 z-10 border-app-border/45 bg-app-bg/96 px-0 pb-1 pt-3",
   composerCard:
-    "rounded-[18px] border border-[color:color-mix(in_srgb,var(--outline-variant)_12%,transparent)] bg-white/82 px-4 py-3 shadow-[0_20px_44px_rgba(25,28,30,0.05)] backdrop-blur-xl",
+    "rounded-[16px] border border-app-border/70 bg-app-surface-lowest px-3.5 py-2.5 shadow-[0_1px_2px_rgba(23,22,18,0.04)]",
   composerText:
     "w-full resize-none bg-transparent px-0 py-0 text-[13px] leading-6 text-app-text outline-none placeholder:text-app-muted md:text-[14px]",
   composerAttachments: "flex flex-wrap items-center gap-1 px-0",

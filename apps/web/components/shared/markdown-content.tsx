@@ -180,6 +180,18 @@ function InlineCitationMarker({
   );
 }
 
+function MarkdownTable(props: XMarkdownComponentProps) {
+  const { children, domNode: _domNode, ...domProps } = props as XMarkdownComponentProps & {
+    domNode?: unknown;
+  };
+
+  return (
+    <div className="app-markdown-table-wrapper">
+      <table {...domProps}>{children}</table>
+    </div>
+  );
+}
+
 export function MarkdownContent({
   content,
   className,
@@ -205,6 +217,7 @@ export function MarkdownContent({
       ADD_ATTR: ["data-citation-indices"],
     },
     components: {
+      table: MarkdownTable,
       "citation-group": (props: XMarkdownComponentProps) => {
         const rawIndices =
           typeof props["data-citation-indices"] === "string"

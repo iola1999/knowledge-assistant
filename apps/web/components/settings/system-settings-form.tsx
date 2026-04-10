@@ -99,7 +99,7 @@ export function SystemSettingsForm({
       <SettingsShell
         sidebar={<SystemManagementSidebar activeSection="settings" />}
       >
-        <div className="mx-auto flex w-full max-w-[1120px] flex-col gap-4">
+        <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-4">
           <EditorialPageHeader
             eyebrow="系统管理"
             title="系统参数"

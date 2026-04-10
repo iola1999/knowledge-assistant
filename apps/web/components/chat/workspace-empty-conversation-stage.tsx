@@ -8,7 +8,6 @@ import {
   type ComposerSubmittedTurn,
 } from "@/components/chat/composer";
 import { WorkspaceConversationPanel } from "@/components/chat/workspace-conversation-panel";
-import { EditorialPageHeader } from "@/components/shared/editorial-page-header";
 import { appendSubmittedConversationTurn } from "@/lib/api/conversation-session";
 import {
   resolveInitialModelProfileId,
@@ -80,18 +79,23 @@ export function WorkspaceEmptyConversationStage({
   }
 
   return (
-    <div className="grid min-h-[calc(100dvh-140px)] gap-4 px-1 py-4 min-[720px]:min-h-[calc(100vh-164px)] min-[720px]:px-5 min-[720px]:py-5">
-      <div className="mx-auto grid w-full max-w-[860px] gap-4">
-        <EditorialPageHeader
-          title={workspaceTitle}
-        />
+    <div className="grid min-h-[calc(100dvh-168px)] content-start gap-3 px-1 py-3 min-[720px]:min-h-[calc(100vh-196px)] min-[720px]:px-5 min-[720px]:py-4">
+      <div className="mx-auto grid w-full max-w-[820px] gap-3">
+        <div className="grid gap-1 px-1">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-app-accent">
+            新建会话
+          </p>
+          <h1 className="font-headline text-[2rem] font-semibold tracking-[-0.05em] text-app-text min-[720px]:text-[2.3rem]">
+            {workspaceTitle}
+          </h1>
+        </div>
         <Composer
           workspaceId={workspaceId}
           variant="stage"
           rows={1}
           placeholder="例如：请基于本空间资料，总结新版发布流程的关键变化，并列出仍需补充的信息"
           submitLabel="开始对话"
-          className="mx-auto w-full max-w-[860px] text-left"
+          className="mx-auto w-full max-w-[820px] text-left"
           textareaClassName="bg-transparent"
           availableModelProfiles={availableModelProfiles}
           initialAttachments={[]}

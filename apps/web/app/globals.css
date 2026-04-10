@@ -221,7 +221,22 @@
   }
 
   .app-markdown table {
-    border-radius: 16px;
+    border-radius: 0;
+  }
+
+  .app-markdown-table-wrapper {
+    margin: var(--table-margin);
+    border-radius: var(--border-radius-middle, 16px);
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .app-markdown-table-wrapper table {
+    margin: 0;
+    width: max-content;
+    min-width: 100%;
+    border-radius: inherit;
   }
 
   .app-markdown a {

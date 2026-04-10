@@ -921,8 +921,8 @@ export function Composer({
         onChange={onFileChange}
       />
       {isStage ? (
-        <div className="grid gap-2.5">
-          <div className={cn("grid min-w-0 gap-2", conversationDensityClassNames.composerCard)}>
+        <div className="grid gap-2">
+          <div className={cn("grid min-w-0 gap-1.5", conversationDensityClassNames.composerCard)}>
             {renderSelectedQuote()}
             <textarea
               ref={textareaRef}
@@ -936,7 +936,7 @@ export function Composer({
                 textareaClassName,
               )}
             />
-            <div className="flex items-center justify-between gap-2.5 pt-0.5">
+            <div className="flex items-center justify-between gap-2 pt-0">
               <div className="flex min-h-8 min-w-0 flex-1 flex-wrap items-center gap-1.5">
                 {workspaceId ? (
                   <button
@@ -956,7 +956,6 @@ export function Composer({
               <button
                 className={cn(
                   stageActionButtonBase,
-                  "shadow-sm",
                   canStopStreaming
                     ? "border-transparent bg-app-primary text-app-primary-contrast hover:bg-[#25211c]"
                     : "border-transparent bg-app-primary text-app-primary-contrast hover:bg-[#25211c]",

@@ -25,7 +25,7 @@ export default async function GlobalLibrariesPage() {
     <SettingsShell
       sidebar={<SystemManagementSidebar activeSection="libraries" />}
     >
-      <div className="mx-auto flex w-full max-w-[1120px] flex-col gap-4">
+      <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-4">
         <EditorialPageHeader
           eyebrow="系统管理"
           title="全局资料库"
