@@ -193,7 +193,7 @@ export function WorkspaceConversationPanel({
       ref={panelRef}
       className="mx-auto flex min-h-full w-full max-w-[1080px] min-w-0 flex-col overflow-visible"
     >
-      <div className="min-w-0 flex-1 pt-2 pb-0 pr-1 min-[720px]:pt-3 min-[720px]:pb-0">
+      <div className="min-w-0 flex-1 pt-2 pb-6 pr-1 min-[720px]:pt-3 min-[720px]:pb-8">
         <ConversationSession
           conversationId={conversationId}
           workspaceId={workspaceId}
@@ -214,7 +214,7 @@ export function WorkspaceConversationPanel({
           conversationId={conversationId}
           workspaceId={workspaceId}
           variant="stage"
-          rows={1}
+          rows={3}
           placeholder="继续追问、要求整理成结论，或让助手基于资料补充论证"
           submitLabel="继续"
           className="border-transparent bg-transparent p-0 shadow-none backdrop-blur-0"
