@@ -68,10 +68,13 @@ export function DocumentMetadataForm({
   }
 
   return (
-    <form onSubmit={onSubmit} className="grid gap-3.5 rounded-[20px] border border-app-border/60 bg-white/50 p-3.5 shadow-sm backdrop-blur-md">
-      <div className="flex items-center justify-between pb-1 border-b border-app-border/40">
-        <h3 className="text-[14px] font-semibold text-app-text">资料管理</h3>
-        <span className="text-[12px] text-app-muted">属性与分类</span>
+    <form
+      onSubmit={onSubmit}
+      className="grid gap-3.5 rounded-[18px] border border-app-outline-variant/14 bg-app-surface-low/72 p-4 shadow-soft"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <h3 className="text-[14px] font-semibold text-app-text">文档属性</h3>
+        <span className="text-[12px] text-app-muted">名称与目录</span>
       </div>
       <div className="grid gap-3.5">
         <label className={ui.label}>
@@ -99,7 +102,11 @@ export function DocumentMetadataForm({
         </label>
       </div>
       <div className="pt-1.5">
-        <button className={buttonStyles({ size: "sm", variant: "secondary", block: true })} disabled={isPending} type="submit">
+        <button
+          className={buttonStyles({ size: "sm", variant: "secondary", block: true })}
+          disabled={isPending}
+          type="submit"
+        >
           {isPending ? "保存中..." : "保存更改"}
         </button>
       </div>

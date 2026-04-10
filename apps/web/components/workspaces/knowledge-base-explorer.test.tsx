@@ -50,9 +50,11 @@ describe("KnowledgeBaseExplorer", () => {
           directories: [],
           documents: [],
           documentsEndpoint: "/api/knowledge-libraries/library-1/documents",
+          downloadEndpoint: "/api/knowledge-libraries/library-1/knowledge-base/download",
           editable: false,
           canManageTasks: false,
           mountedLibraries: [],
+          presignEndpoint: "/api/knowledge-libraries/library-1/uploads/presign",
           readOnlyNotice: "已挂载只读 · 设计系统库",
           scopeLabel: "订阅资料库",
           backLink: { href: "/workspaces/workspace-1/knowledge-base", label: "返回我的资料" },
@@ -83,6 +85,31 @@ describe("KnowledgeBaseExplorer", () => {
 
     expect(container.textContent).toContain("资料库");
     expect(container.textContent).not.toContain("组织研究资料、技术文档和上传内容，供检索与引用使用。");
+  });
+
+  test("hides duplicate scope and root path labels on the default top-level page", () => {
+    act(() => {
+      root.render(
+        createElement(KnowledgeBaseExplorer, {
+          initialCurrentPath: "资料库",
+          currentDirectoryId: null,
+          directories: [],
+          documents: [],
+          documentsEndpoint: "/api/workspaces/workspace-1/documents",
+          downloadEndpoint: "/api/workspaces/workspace-1/knowledge-base/download",
+          presignEndpoint: "/api/workspaces/workspace-1/uploads/presign",
+        }),
+      );
+    });
+
+    const titleMatches = container.textContent?.match(/资料库/g) ?? [];
+    const rootPathButton = Array.from(container.querySelectorAll("button")).find((button) =>
+      button.textContent?.trim() === "资料库",
+    );
+
+    expect(titleMatches).toHaveLength(1);
+    expect(container.textContent).not.toContain("我的资料");
+    expect(rootPathButton).toBeUndefined();
   });
 
   test("can hide the page-level header when embedded inside a management detail page", () => {

@@ -48,6 +48,7 @@ import {
   withConsumerSpan,
 } from "@anchordesk/tracing";
 import { buildChunkSeeds } from "./chunking";
+import { splitIntoDbInsertBatches } from "./db-batches";
 import {
   resolveDocumentIndexingMode,
   shouldSkipEmbeddingIndexing,
@@ -473,36 +474,40 @@ async function chunkDocument(documentVersionId: string) {
   );
 
   if (artifact.pages.length) {
-    await db.insert(documentPages).values(
-      artifact.pages.map((page) => ({
-        documentVersionId,
-        pageNo: page.page_no,
-        width: page.width,
-        height: page.height,
-        textLength: page.text_length,
-      })),
-    );
+    const pageRows = artifact.pages.map((page) => ({
+      documentVersionId,
+      pageNo: page.page_no,
+      width: page.width,
+      height: page.height,
+      textLength: page.text_length,
+    }));
+
+    for (const batch of splitIntoDbInsertBatches(pageRows)) {
+      await db.insert(documentPages).values(batch);
+    }
   }
 
-  const insertedBlocks =
-    artifact.blocks.length > 0
-      ? await db
-          .insert(documentBlocks)
-          .values(
-            artifact.blocks.map((block) => ({
-              documentVersionId,
-              pageNo: block.page_no,
-              orderIndex: block.order_index,
-              blockType: block.block_type,
-              sectionLabel: block.section_label ?? null,
-              headingPath: block.heading_path ?? [],
-              text: block.text,
-              bboxJson: block.bbox_json ?? null,
-              metadataJson: block.metadata_json ?? null,
-            })),
-          )
-          .returning()
-      : [];
+  let insertedBlocks: Array<typeof documentBlocks.$inferSelect> = [];
+
+  if (artifact.blocks.length > 0) {
+    const blockRows = artifact.blocks.map((block) => ({
+      documentVersionId,
+      pageNo: block.page_no,
+      orderIndex: block.order_index,
+      blockType: block.block_type,
+      sectionLabel: block.section_label ?? null,
+      headingPath: block.heading_path ?? [],
+      text: block.text,
+      bboxJson: block.bbox_json ?? null,
+      metadataJson: block.metadata_json ?? null,
+    }));
+
+    for (const batch of splitIntoDbInsertBatches(blockRows)) {
+      insertedBlocks = insertedBlocks.concat(
+        await db.insert(documentBlocks).values(batch).returning(),
+      );
+    }
+  }
 
   if (insertedBlocks.length) {
     const chunkSeeds = buildChunkSeeds(
@@ -517,57 +522,62 @@ async function chunkDocument(documentVersionId: string) {
       })),
     );
 
-    const insertedChunks = await db
-      .insert(documentChunks)
-      .values(
-        chunkSeeds.map((chunk) => ({
-          libraryId: version.libraryId,
-          workspaceId: version.workspaceId,
-          documentId: version.documentId,
-          documentVersionId,
-          sourceBlockId: chunk.sourceBlockId,
-          pageStart: chunk.pageStart,
-          pageEnd: chunk.pageEnd,
-          sectionLabel: chunk.sectionLabel,
-          headingPath: chunk.headingPath,
-          chunkText: chunk.chunkText,
-          plainText: chunk.plainText,
-          keywords: chunk.keywords,
-          tokenCount: chunk.tokenCount,
-        })),
-      )
-      .returning();
+    const chunkRows = chunkSeeds.map((chunk) => ({
+      libraryId: version.libraryId,
+      workspaceId: version.workspaceId,
+      documentId: version.documentId,
+      documentVersionId,
+      sourceBlockId: chunk.sourceBlockId,
+      pageStart: chunk.pageStart,
+      pageEnd: chunk.pageEnd,
+      sectionLabel: chunk.sectionLabel,
+      headingPath: chunk.headingPath,
+      chunkText: chunk.chunkText,
+      plainText: chunk.plainText,
+      keywords: chunk.keywords,
+      tokenCount: chunk.tokenCount,
+    }));
+
+    let insertedChunks: Array<typeof documentChunks.$inferSelect> = [];
+
+    for (const batch of splitIntoDbInsertBatches(chunkRows)) {
+      insertedChunks = insertedChunks.concat(
+        await db.insert(documentChunks).values(batch).returning(),
+      );
+    }
 
     const blockById = new Map(insertedBlocks.map((block) => [block.id, block] as const));
 
-    await db.insert(citationAnchors).values(
-      insertedChunks.map((chunk) => {
-        const sourceBlock = chunk.sourceBlockId
-          ? blockById.get(chunk.sourceBlockId) ?? null
-          : null;
+    const anchorRows = insertedChunks.map((chunk) => {
+      const sourceBlock = chunk.sourceBlockId
+        ? blockById.get(chunk.sourceBlockId) ?? null
+        : null;
 
-        return {
-          libraryId: version.libraryId,
-          workspaceId: version.workspaceId,
-          documentId: version.documentId,
-          documentVersionId,
-          chunkId: chunk.id,
-          blockId: chunk.sourceBlockId,
+      return {
+        libraryId: version.libraryId,
+        workspaceId: version.workspaceId,
+        documentId: version.documentId,
+        documentVersionId,
+        chunkId: chunk.id,
+        blockId: chunk.sourceBlockId,
+        pageNo: chunk.pageStart,
+        documentPath: version.documentPath,
+        anchorLabel: buildCitationReferenceLabel({
+          subject: version.documentTitle,
           pageNo: chunk.pageStart,
-          documentPath: version.documentPath,
-          anchorLabel: buildCitationReferenceLabel({
-            subject: version.documentTitle,
-            pageNo: chunk.pageStart,
-            sectionLabel: chunk.sectionLabel,
-            locator: readBlockLocator(
-              (sourceBlock?.metadataJson as Record<string, unknown> | null | undefined) ?? null,
-            ),
-          }),
-          anchorText: chunk.chunkText,
-          bboxJson: sourceBlock?.bboxJson ?? null,
-        };
-      }),
-    );
+          sectionLabel: chunk.sectionLabel,
+          locator: readBlockLocator(
+            (sourceBlock?.metadataJson as Record<string, unknown> | null | undefined) ?? null,
+          ),
+        }),
+        anchorText: chunk.chunkText,
+        bboxJson: sourceBlock?.bboxJson ?? null,
+      };
+    });
+
+    for (const batch of splitIntoDbInsertBatches(anchorRows)) {
+      await db.insert(citationAnchors).values(batch);
+    }
 
     versionLogger.info(
       {

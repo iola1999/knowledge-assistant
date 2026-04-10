@@ -71,7 +71,7 @@ export function ModalShell({
               : "max-w-[1040px]",
         )}
       >
-        <div className="flex items-start justify-between gap-3 border-b border-app-outline-variant/70 px-5 py-4">
+        <div className="flex items-start justify-between gap-3 border-b border-app-outline-variant/14 px-5 py-4">
           <div className="grid gap-0.5">
             <h2
               id={titleId}

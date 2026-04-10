@@ -97,7 +97,7 @@ export function ActionDialog({
         role={role}
         className={cn(
           ui.dialog,
-          "relative z-10 w-full max-w-[560px] overflow-hidden rounded-2xl bg-app-surface-lowest/76",
+          "relative z-10 w-full max-w-[560px] overflow-hidden rounded-2xl bg-app-surface-lowest/97",
         )}
       >
         <div className="grid gap-5 p-5 md:p-6">
@@ -140,7 +140,7 @@ export function ActionDialog({
 
           {error ? <p className={ui.error}>{error}</p> : null}
 
-          <div className="flex flex-wrap justify-end gap-2 border-t border-app-outline-variant/45 pt-3.5">
+          <div className="flex flex-wrap justify-end gap-2 border-t border-app-outline-variant/14 pt-3.5">
             <button
               type="button"
               className={buttonStyles({ variant: "secondary" })}

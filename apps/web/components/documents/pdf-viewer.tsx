@@ -248,17 +248,17 @@ export function PdfViewer({
         </div>
       </div>
 
-      <div className="min-w-0 lg:col-start-1 lg:row-start-2 2xl:col-start-2 2xl:row-start-1 2xl:row-span-2">
+      <div className="min-w-0 lg:col-start-2 lg:row-start-1 2xl:col-start-2 2xl:row-start-1 2xl:row-span-2">
         <div className="grid gap-4 rounded-[20px] border border-app-border/60 bg-white/40 p-3.5 shadow-soft backdrop-blur-sm md:p-4">
-          <div className="flex flex-col gap-2.5 border-b border-app-border/40 pb-2.5 sm:flex-row sm:items-center sm:justify-between">
-            <div className="grid gap-1">
+          <div className="flex flex-col gap-2.5 border-b border-app-border/40 pb-2.5 lg:flex-row lg:items-center lg:justify-between">
+            <div className="min-w-0 grid gap-1">
               <h3 className="text-[14px] font-semibold text-app-text">PDF 阅读器</h3>
-              <p className="max-w-[320px] truncate text-[12px] text-app-muted" title={title}>
+              <p className="max-w-full truncate text-[12px] text-app-muted sm:max-w-[320px]" title={title}>
                 {title}
                 {pageCount > 0 ? ` · 共 ${pageCount} 页` : ""}
               </p>
             </div>
-            <div className="flex shrink-0 flex-wrap items-center gap-1.5 rounded-xl border border-app-border/40 bg-app-surface-soft/50 p-1">
+            <div className="flex w-full flex-wrap items-center justify-start gap-1.5 rounded-xl border border-app-border/40 bg-app-surface-soft/50 p-1 lg:w-auto">
               <button
                 className={buttonStyles({ variant: "ghost", size: "sm" })}
                 disabled={currentPage <= 1}
@@ -282,7 +282,7 @@ export function PdfViewer({
               >
                 下一页
               </button>
-              <div className="mx-1 h-4 w-px bg-app-border/60" />
+              <div className="hidden h-4 w-px bg-app-border/60 lg:block" />
               <button
                 className={buttonStyles({ variant: "ghost", size: "sm" })}
                 disabled={scale <= 0.8}

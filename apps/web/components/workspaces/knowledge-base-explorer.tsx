@@ -546,6 +546,9 @@ export function KnowledgeBaseExplorer({
       };
     });
   }, [currentPath, directoryByPath]);
+  const isRootDirectory = pathBreadcrumbs.length <= 1;
+  const shouldShowScopeMeta = !showPageHeader || Boolean(backLink) || Boolean(readOnlyNotice);
+  const shouldShowPathBreadcrumbs = !isRootDirectory;
 
   const columns = useMemo<ColumnDef<ExplorerEntry>[]>(
     () => [
@@ -1130,44 +1133,48 @@ export function KnowledgeBaseExplorer({
         ) : null}
 
         <section className="grid gap-4 rounded-[16px] bg-app-surface-low px-4 py-4">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="grid gap-1">
-              <span className={ui.eyebrow}>{scopeLabel}</span>
-              {backLink ? (
-                <Link
-                  href={backLink.href}
-                  className="text-[13px] font-medium text-app-muted-strong transition hover:text-app-text"
-                >
-                  {backLink.label}
-                </Link>
+          {shouldShowScopeMeta ? (
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="grid gap-1">
+                <span className={ui.eyebrow}>{scopeLabel}</span>
+                {backLink ? (
+                  <Link
+                    href={backLink.href}
+                    className="text-[13px] font-medium text-app-muted-strong transition hover:text-app-text"
+                  >
+                    {backLink.label}
+                  </Link>
+                ) : null}
+              </div>
+              {readOnlyNotice ? (
+                <span className="inline-flex items-center rounded-full border border-app-border bg-app-surface-lowest px-3 py-1 text-[12px] text-app-muted-strong">
+                  {readOnlyNotice}
+                </span>
               ) : null}
             </div>
-            {readOnlyNotice ? (
-              <span className="inline-flex items-center rounded-full border border-app-border bg-app-surface-lowest px-3 py-1 text-[12px] text-app-muted-strong">
-                {readOnlyNotice}
-              </span>
-            ) : null}
-          </div>
+          ) : null}
 
-          <div
-            className={cn(
-              headerFieldClass,
-              "flex min-w-0 items-center gap-2 overflow-x-auto whitespace-nowrap",
-            )}
-          >
-            {pathBreadcrumbs.map((item, index) => (
-              <div key={item.id} className="flex shrink-0 items-center gap-2">
-                {index > 0 ? <span className="text-app-muted">/</span> : null}
-                <button
-                  type="button"
-                  onClick={() => syncPath(item.path)}
-                  className="text-sm font-medium text-app-text hover:text-app-accent"
-                >
-                  {item.label}
-                </button>
-              </div>
-            ))}
-          </div>
+          {shouldShowPathBreadcrumbs ? (
+            <div
+              className={cn(
+                headerFieldClass,
+                "flex min-w-0 items-center gap-2 overflow-x-auto whitespace-nowrap",
+              )}
+            >
+              {pathBreadcrumbs.map((item, index) => (
+                <div key={item.id} className="flex shrink-0 items-center gap-2">
+                  {index > 0 ? <span className="text-app-muted">/</span> : null}
+                  <button
+                    type="button"
+                    onClick={() => syncPath(item.path)}
+                    className="text-sm font-medium text-app-text hover:text-app-accent"
+                  >
+                    {item.label}
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : null}
 
           <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
             <div className="flex flex-wrap items-center gap-2">

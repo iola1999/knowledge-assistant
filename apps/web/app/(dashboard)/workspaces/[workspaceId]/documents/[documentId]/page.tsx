@@ -186,7 +186,7 @@ export default async function DocumentPage({
       }))}
     />
   ) : (
-    <div className="grid gap-2 rounded-[20px] border border-app-border/60 bg-white/50 p-3.5 shadow-sm backdrop-blur-md">
+    <div className="grid gap-2 rounded-[18px] border border-app-outline-variant/14 bg-app-surface-low/72 p-4 shadow-soft">
       <h3 className="text-[14px] font-semibold text-app-text">共享资料</h3>
       <p className="text-[13px] leading-5 text-app-muted-strong">
         该文档来自已订阅的全局资料库，当前工作空间内只读。
@@ -194,15 +194,15 @@ export default async function DocumentPage({
     </div>
   );
   const versionHistoryPanel = (
-    <div className="grid content-start gap-3 rounded-[20px] border border-app-border/60 bg-white/50 p-3.5 shadow-sm backdrop-blur-md">
-      <div className="flex items-center justify-between border-b border-app-border/40 pb-1">
+    <div className="grid content-start gap-3 rounded-[18px] border border-app-outline-variant/14 bg-app-surface-low/72 p-4 shadow-soft">
+      <div className="flex items-start justify-between gap-3">
         <h3 className="text-[14px] font-semibold text-app-text">版本历史</h3>
       </div>
       <ul className="grid max-h-[420px] content-start gap-2 overflow-y-auto pr-1">
         {versions.map((version, idx) => (
           <li
             key={version.id}
-            className="flex flex-col gap-1 rounded-xl border border-app-border/60 bg-white/70 px-3 py-2.5 transition hover:bg-white"
+            className="flex flex-col gap-1 rounded-[16px] border border-app-outline-variant/12 bg-app-surface-lowest/86 px-3 py-2.5 transition hover:bg-app-surface-lowest"
           >
             <div className="flex items-center justify-between">
               <strong className="text-[13px] font-medium text-app-text">
@@ -231,15 +231,19 @@ export default async function DocumentPage({
     </div>
   );
   const detailsPanels = (
-    <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(320px,360px)]">
-      <div className="grid content-start gap-5">
+    <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="grid content-start gap-4">
         <DocumentJobPanel job={latestJob} showForceReparse={isWorkspaceOwnedDocument} />
         {metadataPanel}
       </div>
-      <div className="grid content-start gap-5">
+      <div className="grid content-start gap-4">
         {versionHistoryPanel}
         {isWorkspaceOwnedDocument ? (
-          <div className="flex justify-end border-t border-app-border/40 pt-4">
+          <div className="grid gap-3 rounded-[18px] border border-red-200/55 bg-red-50/60 p-4 shadow-soft">
+            <div className="grid gap-1">
+              <h3 className="text-[14px] font-semibold text-red-700">删除文档</h3>
+              <p className="text-[12px] leading-5 text-red-700/78">会同步移除版本、索引和上传文件</p>
+            </div>
             <DeleteDocumentButton workspaceId={workspaceId} documentId={documentId} />
           </div>
         ) : null}
@@ -389,8 +393,8 @@ export default async function DocumentPage({
   return (
     <div className={cn(ui.page, "gap-6")}>
       <div className={cn(ui.panelLarge, "grid gap-6")}>
-        <div className="grid gap-3">
-          <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="grid min-w-0 gap-3">
+          <div className="flex flex-wrap items-start justify-between gap-2">
             <Link
               href={backTarget.href}
               className={buttonStyles({ variant: "secondary", size: "sm" })}
@@ -399,7 +403,7 @@ export default async function DocumentPage({
             </Link>
             <DocumentDetailsModal>{detailsPanels}</DocumentDetailsModal>
           </div>
-          <div className="grid gap-2">
+          <div className="grid min-w-0 gap-2">
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-app-secondary">
               文档
             </p>

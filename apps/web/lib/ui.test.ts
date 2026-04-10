@@ -14,21 +14,22 @@ import {
 } from "./ui";
 
 describe("inputStyles", () => {
-  it("uses ghost-border filled field styling by default", () => {
+  it("keeps fields visibly bounded against pale page surfaces", () => {
     expect(inputStyles()).toContain("h-11");
     expect(inputStyles()).toContain("rounded-xl");
-    expect(inputStyles()).toContain("bg-app-surface-low");
-    expect(inputStyles()).toContain("border-transparent");
-    expect(inputStyles()).toContain("focus:border-app-outline-variant/45");
+    expect(inputStyles()).toContain("bg-app-surface-lowest/96");
+    expect(inputStyles()).toContain("border-app-outline-variant/16");
+    expect(inputStyles()).toContain("focus:border-app-outline-variant/28");
     expect(inputStyles()).toContain("focus:bg-app-surface-lowest");
     expect(inputStyles()).toContain("focus-visible:ring-2");
-    expect(inputStyles()).toContain("focus-visible:ring-app-secondary-fixed/55");
+    expect(inputStyles()).toContain("focus-visible:ring-app-secondary-fixed/45");
     expect(inputStyles()).not.toContain("focus:ring-[3px]");
   });
 
   it("supports a compact field scale for dense workbench layouts", () => {
     expect(inputStyles({ size: "compact" })).toContain("h-9");
     expect(inputStyles({ size: "compact" })).toContain("rounded-xl");
+    expect(inputStyles({ size: "compact" })).toContain("border-app-outline-variant/16");
     expect(inputStyles({ size: "compact" })).toContain("focus:bg-app-surface-lowest");
     expect(inputStyles({ size: "compact" })).toContain("focus-visible:ring-2");
     expect(inputStyles({ size: "compact" })).not.toContain("focus:ring-[3px]");
@@ -44,9 +45,9 @@ describe("buttonStyles", () => {
   it("uses integrated secondary fill instead of a raised white outlined style", () => {
     const classes = buttonStyles({ variant: "secondary" });
 
-    expect(classes).toContain("bg-app-surface-lowest");
+    expect(classes).toContain("bg-app-surface-low");
     expect(classes).toContain("text-app-secondary");
-    expect(classes).toContain("border-transparent");
+    expect(classes).toContain("border-app-outline-variant/16");
     expect(classes).not.toContain("bg-app-surface text-app-text");
   });
 
@@ -102,9 +103,10 @@ describe("shared surface primitives", () => {
   });
 
   it("uses glass popover treatment with ghost border", () => {
-    expect(ui.popover).toContain("backdrop-blur-xl");
-    expect(ui.popover).toContain("border-app-outline-variant/55");
-    expect(ui.dialog).toContain("border-app-outline-variant/35");
+    expect(ui.popover).toContain("backdrop-blur-md");
+    expect(ui.popover).toContain("border-app-outline-variant/14");
+    expect(ui.dialog).toContain("border-app-outline-variant/16");
+    expect(ui.dialog).toContain("bg-app-surface-lowest/97");
     expect(ui.dialog).not.toContain("border-transparent");
   });
 

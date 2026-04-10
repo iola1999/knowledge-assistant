@@ -226,7 +226,7 @@ export function WorkspaceShellFrame({
       </aside>
 
       <section className="grid min-h-[100dvh] min-w-0 grid-rows-[auto_minmax(0,1fr)] gap-2.5 px-3 py-3 min-[720px]:min-h-0 min-[720px]:overflow-hidden min-[720px]:px-5 min-[720px]:py-4 md:px-6">
-        <header className="sticky top-0 z-20 border-b border-[color:color-mix(in_srgb,var(--outline-variant)_12%,transparent)] bg-white/72 px-0.5 py-3 backdrop-blur-xl">
+        <header className="sticky top-0 z-20 bg-white/72 px-0.5 py-3 backdrop-blur-xl">
           <div className="flex min-w-0 items-center justify-between gap-4">
             <div className="flex min-w-0 flex-1 items-center gap-3">
               <button

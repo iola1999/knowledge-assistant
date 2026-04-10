@@ -60,4 +60,35 @@ describe("DocumentDetailsModal", () => {
 
     expect(document.body.textContent).not.toContain("版本历史区");
   });
+
+  test("keeps the trigger shrinkable inside narrow header action rows", () => {
+    act(() => {
+      root.render(
+        createElement(
+          "div",
+          { className: "w-[120px]" },
+          createElement(
+            DocumentDetailsModal,
+            {
+              title: "文档详情",
+              children: createElement("div", null, "版本历史区"),
+            },
+          ),
+        ),
+      );
+    });
+
+    const trigger = Array.from(container.querySelectorAll("button")).find((button) =>
+      button.textContent?.includes("文档详情"),
+    );
+    const label = Array.from(trigger?.querySelectorAll("span") ?? []).find((span) =>
+      span.textContent?.includes("文档详情"),
+    );
+
+    expect(trigger?.className).toContain("max-w-full");
+    expect(trigger?.className).toContain("w-full");
+    expect(trigger?.className).toContain("sm:w-auto");
+    expect(label?.className).toContain("min-w-0");
+    expect(label?.className).toContain("truncate");
+  });
 });

@@ -55,7 +55,7 @@ export function DeleteDocumentButton({
     <>
       <div className="grid gap-2">
         <button
-          className={buttonStyles({ variant: "danger" })}
+          className={buttonStyles({ variant: "danger", block: true })}
           disabled={isBusy}
           onClick={() => {
             setStatus(null);

@@ -18,7 +18,7 @@ type ConversationControlSize = "default" | "compact";
 export function inputStyles({ size = "md" }: { size?: FieldSize } = {}) {
   return cn(
     textSelectionStyles.content,
-    "w-full rounded-xl border border-transparent bg-app-surface-low text-app-text outline-none transition placeholder:text-app-muted focus:border-app-outline-variant/45 focus:bg-app-surface-lowest focus-visible:ring-2 focus-visible:ring-app-secondary-fixed/55 focus-visible:ring-offset-1 focus-visible:ring-offset-app-surface-lowest",
+    "w-full rounded-xl border border-app-outline-variant/16 bg-app-surface-lowest/96 text-app-text outline-none transition placeholder:text-app-muted-strong/82 focus:border-app-outline-variant/28 focus:bg-app-surface-lowest focus-visible:ring-2 focus-visible:ring-app-secondary-fixed/45 focus-visible:ring-offset-1 focus-visible:ring-offset-app-surface-lowest",
     size === "compact"
       ? "h-9 px-3 text-[13px]"
       : "h-11 px-3.5 text-[14px]",
@@ -28,7 +28,7 @@ export function inputStyles({ size = "md" }: { size?: FieldSize } = {}) {
 export function textareaStyles({ size = "md" }: { size?: FieldSize } = {}) {
   return cn(
     textSelectionStyles.content,
-    "w-full rounded-xl border border-transparent bg-app-surface-low text-app-text outline-none transition placeholder:text-app-muted focus:border-app-outline-variant/45 focus:bg-app-surface-lowest focus-visible:ring-2 focus-visible:ring-app-secondary-fixed/55 focus-visible:ring-offset-1 focus-visible:ring-offset-app-surface-lowest",
+    "w-full rounded-xl border border-app-outline-variant/16 bg-app-surface-lowest/96 text-app-text outline-none transition placeholder:text-app-muted-strong/82 focus:border-app-outline-variant/28 focus:bg-app-surface-lowest focus-visible:ring-2 focus-visible:ring-app-secondary-fixed/45 focus-visible:ring-offset-1 focus-visible:ring-offset-app-surface-lowest",
     size === "compact"
       ? "px-3 py-2 text-[13px]"
       : "px-3.5 py-2.5 text-[14px]",
@@ -38,7 +38,7 @@ export function textareaStyles({ size = "md" }: { size?: FieldSize } = {}) {
 export function selectStyles({ size = "md" }: { size?: FieldSize } = {}) {
   return cn(
     textSelectionStyles.content,
-    "w-full cursor-pointer rounded-xl border border-transparent bg-app-surface-low text-app-text outline-none transition focus:border-app-outline-variant/45 focus:bg-app-surface-lowest focus-visible:ring-2 focus-visible:ring-app-secondary-fixed/55 focus-visible:ring-offset-1 focus-visible:ring-offset-app-surface-lowest",
+    "w-full cursor-pointer rounded-xl border border-app-outline-variant/16 bg-app-surface-lowest/96 text-app-text outline-none transition focus:border-app-outline-variant/28 focus:bg-app-surface-lowest focus-visible:ring-2 focus-visible:ring-app-secondary-fixed/45 focus-visible:ring-offset-1 focus-visible:ring-offset-app-surface-lowest",
     size === "compact"
       ? "h-9 px-3 text-[13px]"
       : "h-11 px-3.5 text-[14px]",
@@ -58,16 +58,16 @@ export const ui = {
   panelLarge:
     "rounded-2xl border border-transparent bg-app-surface-lowest/70 p-5 shadow-soft backdrop-blur-sm",
   sectionPanel:
-    "rounded-[18px] border border-app-outline-variant/30 bg-app-surface-lowest/82 p-4 shadow-soft md:p-5",
+    "rounded-[18px] border border-app-outline-variant/14 bg-app-surface-lowest/88 p-4 shadow-soft md:p-5",
   subpanel:
-    "rounded-[16px] border border-app-outline-variant/24 bg-app-surface-low/88 p-4 shadow-soft",
+    "rounded-[16px] border border-app-outline-variant/14 bg-app-surface-low/90 p-4 shadow-soft",
   subcard:
-    "rounded-[14px] border border-app-outline-variant/22 bg-app-surface-lowest/88 p-3.5 shadow-soft",
+    "rounded-[14px] border border-app-outline-variant/12 bg-app-surface-lowest/90 p-3.5 shadow-soft",
   popover:
-    "rounded-2xl border border-app-outline-variant/55 bg-[color:color-mix(in_srgb,var(--surface-lowest)_72%,transparent)] p-1.5 shadow-soft backdrop-blur-xl",
-  menu: "rounded-2xl border border-app-outline-variant/55 bg-[color:color-mix(in_srgb,var(--surface-lowest)_72%,transparent)] p-1.5 shadow-soft backdrop-blur-xl",
+    "rounded-2xl border border-app-outline-variant/14 bg-app-surface-lowest/96 p-1.5 shadow-soft backdrop-blur-md",
+  menu: "rounded-2xl border border-app-outline-variant/14 bg-app-surface-lowest/96 p-1.5 shadow-soft backdrop-blur-md",
   dialog:
-    "rounded-2xl border border-app-outline-variant/35 bg-[color:color-mix(in_srgb,var(--surface-lowest)_78%,transparent)] shadow-soft backdrop-blur-xl",
+    "rounded-2xl border border-app-outline-variant/16 bg-app-surface-lowest/97 shadow-soft backdrop-blur-md",
   toolbar:
     "flex flex-wrap items-start justify-between gap-2.5 rounded-xl border border-transparent bg-app-surface-low px-2.5 py-2",
   actions: "flex flex-wrap items-center gap-1.5",
@@ -111,7 +111,7 @@ export function buttonStyles({
     variant === "primary"
       ? "border-transparent bg-app-primary text-app-primary-contrast hover:bg-[#25211c]"
       : variant === "secondary"
-        ? "border-transparent bg-app-surface-lowest text-app-secondary hover:bg-app-surface"
+        ? "border-app-outline-variant/16 bg-app-surface-low text-app-secondary hover:bg-app-surface-high"
         : variant === "danger"
           ? "border-transparent bg-red-600 text-white hover:bg-red-700"
           : variant === "dangerGhost"

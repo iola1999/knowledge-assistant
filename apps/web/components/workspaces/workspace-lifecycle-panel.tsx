@@ -59,7 +59,7 @@ export function WorkspaceLifecyclePanel({
 
   return (
     <>
-      <section className="grid gap-3 rounded-[16px] border border-red-200/70 bg-red-50/38 px-4 py-4 shadow-soft">
+      <section className="grid gap-3 rounded-[16px] border border-red-200/42 bg-red-50/46 px-4 py-4 shadow-soft">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="grid gap-1.5">
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-red-600">
@@ -75,7 +75,7 @@ export function WorkspaceLifecyclePanel({
 
           <button
             type="button"
-            className={buttonStyles({ variant: "danger" })}
+            className={buttonStyles({ variant: "danger", size: "sm" })}
             disabled={isBusy}
             onClick={() => {
               setStatus(null);

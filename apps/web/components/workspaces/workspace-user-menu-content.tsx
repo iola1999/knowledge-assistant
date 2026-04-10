@@ -47,9 +47,7 @@ export function WorkspaceUserMenuContent({
 
       {actions.length > 0 ? (
         <>
-          <div className="mx-2 my-1 h-px bg-app-border/70" />
-
-          <nav className="grid gap-0.5 py-0.5">
+          <nav className="grid gap-0.5 py-1">
             {actions.map((action) => (
               <Link
                 key={action.key}
@@ -74,8 +72,7 @@ export function WorkspaceUserMenuContent({
 
       {logoutLabel ? (
         <>
-          <div className="mx-2 my-1 h-px bg-app-border/70" />
-          <div className="pb-0.5 pt-0.5">
+          <div className="pb-1 pt-1">
             <button
               type="button"
               className={cn(
